@@ -889,7 +889,7 @@ jobs:
           base="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
           git worktree add --detach "$RUNNER_TEMP/knip-base" "$base"
           pnpm --dir "$RUNNER_TEMP/knip-base" install --frozen-lockfile --ignore-scripts
-          # Both revisions use the head config and head's patched Knip binary.
+          # Both revisions use the head config and head's Knip binary.
           cp knip.config.ts "$RUNNER_TEMP/knip-base/knip.config.ts"
       - name: Analyze and summarize
         env:

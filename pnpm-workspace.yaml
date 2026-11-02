@@ -229,8 +229,3 @@ catalog:
   '@wdio/tauri-plugin': '^1.5.0'
   '@wdio/tauri-service': '^1.5.0'
   webdriverio: '^9.0.0'
-# Production deploys omit development-only packages such as Knip. Their patches
-# may be unused in that subset; patches for installed packages must still apply.
-allowUnusedPatches: true
-patchedDependencies:
-  knip@6.44.1: patches/knip@6.44.1.patch

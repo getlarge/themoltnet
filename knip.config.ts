@@ -1,9 +1,6 @@
 import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
-  // The pnpm-managed Nx plugin patch reads targetDefaults/configurations and
-  // resolves commands from Nx's workspace-root cwd. Keep knip-nx.spec.ts green
-  // when upgrading; remove the patch once upstream covers these cases.
   ignore: [
     'dist/**',
     '**/dist/**',
@@ -36,6 +33,8 @@ const config: KnipConfig = {
     tools: {
       // Operator commands and CI scripts invoked indirectly by shell wrappers.
       entry: [
+        // Invoked through nx.json targetDefaults.
+        'check-bundle-externals.mjs',
         'db/*.ts',
         'release/{docker-preversion,self-host-smoke,self-host-smoke-prepare}.mjs',
         'release/agent-desktop/{manifest,verify-published-assets}.mjs',
@@ -51,6 +50,8 @@ const config: KnipConfig = {
     'apps/agent-desktop-e2e': {
       // Load as source: native config intentionally throws outside its launcher.
       entry: [
+        // Nx commands use workspace-root paths; declare their owning workspace.
+        '{build,run}-native.mjs',
         'wdio.*.conf.ts',
         'src/{chrome,native}-entry.ts',
         'src/fixtures/*.{ts,mjs}',
@@ -85,6 +86,10 @@ const config: KnipConfig = {
       ignoreDependencies: [],
     },
     'libs/agent-config': { entry: ['__tests__/fixtures/*-writer.ts'] },
+    'libs/bootstrap': {
+      // generate:durable-fixture runs this from the workspace root.
+      entry: ['src/testing/generate-conversation-fixture.ts'],
+    },
     'libs/sdk': { entry: ['__tests__/fixtures/config-repair.ts'] },
     'libs/cpp-sdk': { entry: ['e2e/setup.ts'] },
     'libs/n8n-nodes-moltnet': {
