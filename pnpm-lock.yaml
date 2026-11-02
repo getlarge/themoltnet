@@ -493,7 +493,7 @@ catalogs:
       version: 9.1.7
     ignore:
       specifier: ^7.0.5
-      version: 7.0.12
+      version: 7.0.14
     ioredis:
       specifier: ^5.9.2
       version: 5.9.2
@@ -2897,7 +2897,7 @@ importers:
         version: link:../api-client
       '@n8n/node-cli':
         specifier: 'catalog:'
-        version: 0.45.5(34679dc88d608d948dff00dbd2405e47)
+        version: 0.45.5(6cd23283b1a3c168fb36671f4d4af3c2)
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
@@ -4164,7 +4164,7 @@ importers:
         version: 1.7.0
       ignore:
         specifier: 'catalog:'
-        version: 7.0.12
+        version: 7.0.14
       json5:
         specifier: 'catalog:'
         version: 2.2.3
@@ -11635,8 +11635,8 @@ packages:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
     engines: {node: '>= 4'}
 
-  ignore@7.0.12:
-    resolution: {integrity: sha512-/8UvqAPU9DGTI9k4mxtf49U37Isfwr8Uts96+SBHIkFxPJnHS0Ew4f00sM4Scd8V8EjM0jUNtVDdv1kPdt35lg==}
+  ignore@7.0.14:
+    resolution: {integrity: sha512-wCBiZ77u1tuWde6G/nfOtLaCTYcFDU5yCzARzK10y+rLhzYoL7a7yEemcopcc2Mzow7gZOIjnV2ym1NYmdiJOQ==}
     engines: {node: '>= 4'}
 
   ignore@7.0.5:
@@ -17899,7 +17899,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/community@1.1.27(fed95a6d3093acb4cc9130b99ac6ff5a)':
+  '@langchain/community@1.1.27(12d5d9d50c8373ce8706f27735bca49c)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.64.1)(deepmerge@4.3.1)(dotenv@16.4.7)(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(zod@3.25.76)
       '@ibm-cloud/watsonx-ai': 1.7.16(supports-color@8.1.1)
@@ -17927,7 +17927,7 @@ snapshots:
       cheerio: 1.2.0
       d3-dsv: 3.0.1
       google-auth-library: 10.6.2(supports-color@8.1.1)
-      ignore: 7.0.12
+      ignore: 7.0.14
       ioredis: 5.9.2(supports-color@8.1.1)
       jsdom: 25.0.1(supports-color@8.1.1)
       jsonwebtoken: 9.0.3
@@ -18106,9 +18106,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@n8n/ai-node-sdk@0.26.5(319ea2fa5c9ddd7f11e2be0ffadd7be9)':
+  '@n8n/ai-node-sdk@0.26.5(31449d0aea1b20b5bbb7875ec6b8f467)':
     dependencies:
-      '@n8n/ai-utilities': 0.29.5(319ea2fa5c9ddd7f11e2be0ffadd7be9)
+      '@n8n/ai-utilities': 0.29.5(31449d0aea1b20b5bbb7875ec6b8f467)
     transitivePeerDependencies:
       - '@arcjet/redact'
       - '@aws-crypto/sha256-js'
@@ -18242,10 +18242,10 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@n8n/ai-utilities@0.29.5(319ea2fa5c9ddd7f11e2be0ffadd7be9)':
+  '@n8n/ai-utilities@0.29.5(31449d0aea1b20b5bbb7875ec6b8f467)':
     dependencies:
       '@langchain/classic': 1.0.27(@aws-sdk/credential-provider-node@3.972.86)(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(ws@8.22.0))(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(@smithy/signature-v4@5.7.4)(cheerio@1.2.0)(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(ws@8.22.0)
-      '@langchain/community': 1.1.27(fed95a6d3093acb4cc9130b99ac6ff5a)
+      '@langchain/community': 1.1.27(12d5d9d50c8373ce8706f27735bca49c)
       '@langchain/core': 1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(ws@8.22.0)
       '@langchain/openai': 1.4.4(@aws-sdk/credential-provider-node@3.972.86)(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(ws@8.22.0))(@smithy/signature-v4@5.7.4)(ws@8.22.0)
       '@langchain/textsplitters': 1.0.1(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.0(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.86)(@smithy/signature-v4@5.7.4)(undici@7.30.1)(ws@8.22.0)(zod@3.25.76))(ws@8.22.0))
@@ -18532,11 +18532,11 @@ snapshots:
       title-case: 3.0.3
       transliteration: 2.3.5
 
-  '@n8n/node-cli@0.45.5(34679dc88d608d948dff00dbd2405e47)':
+  '@n8n/node-cli@0.45.5(6cd23283b1a3c168fb36671f4d4af3c2)':
     dependencies:
       '@clack/prompts': 0.11.0
       '@eslint/js': 9.39.4
-      '@n8n/ai-node-sdk': 0.26.5(319ea2fa5c9ddd7f11e2be0ffadd7be9)
+      '@n8n/ai-node-sdk': 0.26.5(31449d0aea1b20b5bbb7875ec6b8f467)
       '@n8n/eslint-plugin-community-nodes': 0.29.0(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(n8n-workflow@2.16.0)(supports-color@8.1.1)(typescript@5.9.3)
       '@oclif/core': 4.14.0
       change-case: 5.4.4
@@ -18908,7 +18908,7 @@ snapshots:
       chalk: 4.1.2
       columnify: 1.6.0
       detect-port: 2.1.0
-      ignore: 7.0.12
+      ignore: 7.0.14
       js-tokens: 4.0.0
       jsonc-parser: 3.2.0
       npm-run-path: 4.0.1
@@ -19894,7 +19894,7 @@ snapshots:
 
   '@secretlint/walker@13.0.7':
     dependencies:
-      ignore: 7.0.12
+      ignore: 7.0.14
       picomatch: 4.0.7
 
   '@sentry/conventions@0.16.0': {}
@@ -20747,7 +20747,7 @@ snapshots:
       '@typescript-eslint/utils': 8.58.0(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       '@typescript-eslint/visitor-keys': 8.58.0
       eslint: 9.39.4(jiti@2.4.2)(supports-color@8.1.1)
-      ignore: 7.0.12
+      ignore: 7.0.14
       natural-compare: 1.4.0
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -24165,7 +24165,7 @@ snapshots:
 
   ignore@5.3.2: {}
 
-  ignore@7.0.12: {}
+  ignore@7.0.14: {}
 
   ignore@7.0.5: {}
 
