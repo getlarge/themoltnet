@@ -220,6 +220,41 @@ export function changedLines(
   return files;
 }
 
+/** Compact exact ranges; never imply that a gap between hunks was changed. */
+function lineRanges(lines: Set<number> | undefined): string {
+  const ranges: string[] = [];
+  const sorted = [...(lines ?? [])].sort((a, b) => a - b);
+  for (let i = 0; i < sorted.length; i++) {
+    if (ranges.length === 20) return `${ranges.join(', ')}, … (truncated)`;
+    const start = sorted[i];
+    while (sorted[i + 1] === sorted[i] + 1) i++;
+    ranges.push(start === sorted[i] ? `${start}` : `${start}-${sorted[i]}`);
+  }
+  return ranges.join(', ') || 'none';
+}
+
+/** Evidence only: paths remain untrusted, even when derived from Git headers. */
+export function changedLineGuide(diff: string): string {
+  const rows: string[] = [];
+  const truncated =
+    'Citation guide truncated; inspect the pinned diff for omitted ranges.';
+  let length = truncated.length;
+  for (const [path, lines] of changedLines(diff)) {
+    const row = JSON.stringify({
+      path,
+      old: lineRanges(lines.old),
+      new: lineRanges(lines.new),
+    });
+    length += row.length + 1;
+    if (length > 8000) {
+      rows.push(truncated);
+      break;
+    }
+    rows.push(row);
+  }
+  return rows.join('\n');
+}
+
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('expected an object');
@@ -248,7 +283,9 @@ export function validateCandidates(value: unknown, diff: string): Candidate[] {
     throw new Error('findings must be an array of at most 30 candidates');
   const lines = changedLines(diff);
   const ids = new Set<string>();
-  return data.findings.map((raw) => {
+  const errors: string[] = [];
+  const candidates: Candidate[] = [];
+  for (const [index, raw] of data.findings.entries()) {
     const item = record(raw);
     const id = nonempty(item.id, 'candidate id');
     const path = nonempty(item.path, 'candidate path');
@@ -256,25 +293,36 @@ export function validateCandidates(value: unknown, diff: string): Candidate[] {
     const line = item.line;
     if (side !== 'old' && side !== 'new')
       throw new Error(`invalid side for candidate ${id}`);
+    const label = `findings[${index}] id=${JSON.stringify(id)}`;
+    if (ids.has(id))
+      errors.push(
+        `${label}: duplicate id; keep a unique id for each candidate.`,
+      );
+    ids.add(id);
     if (
-      ids.has(id) ||
       typeof line !== 'number' ||
       !Number.isInteger(line) ||
       !lines.get(path)?.[side].has(line)
-    )
-      throw new Error(
-        `candidate ${id} must have a unique id and cite a changed diff line`,
+    ) {
+      errors.push(
+        `${label}: must cite a changed diff line; got ${JSON.stringify({ path, side, line })}; changed ${side} lines: ${lineRanges(lines.get(path)?.[side])}.`,
       );
-    ids.add(id);
-    return {
+      continue;
+    }
+    candidates.push({
       id,
       path,
       side,
       line,
       title: nonempty(item.title, 'title'),
       hypothesis: nonempty(item.hypothesis, 'hypothesis'),
-    };
-  });
+    });
+  }
+  // The caller has one correction attempt. Report every bad reference so it
+  // can repair the full submission rather than discovering one error per task.
+  if (errors.length)
+    throw new Error(`Invalid candidate references:\n${errors.join('\n')}`);
+  return candidates;
 }
 
 export function validateResult(
@@ -317,7 +365,7 @@ export function validateResult(
       !lines.get(path)?.[source.side].has(line)
     )
       throw new Error(
-        `finding ${id} does not cite its candidate's changed line`,
+        `finding ${JSON.stringify(id)} does not cite its candidate's changed line; expected ${JSON.stringify({ path: source.path, side: source.side, line: source.line })}, got ${JSON.stringify({ path, side, line })}. Retain the candidate id and citation exactly.`,
       );
     return {
       id,

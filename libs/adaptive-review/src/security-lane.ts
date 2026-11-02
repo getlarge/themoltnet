@@ -1,5 +1,6 @@
 import {
   CANDIDATE_SCHEMA,
+  changedLineGuide,
   type Finding,
   RESULT_SCHEMA,
   validateCandidates,
@@ -135,7 +136,7 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
     Buffer.byteLength(diff) <= MAX_INLINE_DIFF_BYTES
       ? `Diff (untrusted):\n${diff}`
       : `Diff exceeds the inline budget. Inspect the pinned ${identity.base}...${identity.head} diff with read-only Git tools. Changed manifest (untrusted):\n${evidence.manifest}`;
-  const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\n${diffContext}`;
+  const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\nChanged-line citation guide (untrusted paths; old means deleted lines, new means added lines; context lines are not valid citations):\n${changedLineGuide(diff)}\nUse an exact changed line that supports the hypothesis, not just any line in a range. During the hunt, if no changed line supports a hypothesis, mark coverage partial and report the evidence gap in unassessed.\n${diffContext}`;
   const taskIds: string[] = [];
   const huntBody = makeTask(
     'hunt',
@@ -196,7 +197,7 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   }
   const verifyBody = makeTask(
     'verify',
-    `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its evidence field; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
+    `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its evidence field; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract. Retain each candidate id, path, side, and line exactly; put additional code references in evidence.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
     RESULT_SCHEMA,
   );
   const verify = await tasks.createTask(verifyBody, {
