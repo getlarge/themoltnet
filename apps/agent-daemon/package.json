@@ -54,17 +54,9 @@
       "import": "./src/lib/runtime-profile-retry-triage.ts",
       "types": "./src/lib/runtime-profile-retry-triage.ts"
     },
-    "./lib/runtime-sessions.js": {
-      "import": "./src/lib/runtime-sessions.ts",
-      "types": "./src/lib/runtime-sessions.ts"
-    },
     "./lib/runtime-slots.js": {
       "import": "./src/lib/runtime-slots.ts",
       "types": "./src/lib/runtime-slots.ts"
-    },
-    "./lib/session-files.js": {
-      "import": "./src/lib/session-files.ts",
-      "types": "./src/lib/session-files.ts"
     },
     "./lib/state-dir.js": {
       "import": "./src/lib/state-dir.ts",
