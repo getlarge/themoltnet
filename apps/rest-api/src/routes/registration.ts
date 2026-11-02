@@ -353,6 +353,10 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       }
 
       const newSecret = crypto.randomUUID();
+      const metadata = {
+        ...((existingClient.metadata ?? {}) as Record<string, unknown>),
+      };
+      delete metadata.identity_id;
       try {
         await fastify.oauth2Client.setOAuth2Client({
           id: clientId,
@@ -363,7 +367,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
             token_endpoint_auth_method:
               existingClient.token_endpoint_auth_method,
             scope: existingClient.scope,
-            metadata: existingClient.metadata,
+            metadata: { ...metadata, agent_id: authContext.agentId },
             client_secret: newSecret,
           },
         });

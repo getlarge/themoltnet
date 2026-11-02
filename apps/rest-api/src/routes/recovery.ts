@@ -375,32 +375,14 @@ export async function recoveryRoutes(
             'Failed to fetch OAuth2 client',
           );
         }
-        // Rank rather than filter flat. `identity_id` still disambiguates when
-        // it is accurate, so the most specific tier that matches anything wins:
-        //
-        //   1. the durable agent_id written by the Hydra backfill;
-        //   2. the agent's CURRENT Kratos identity;
-        //   3. anything else that matched on the key pair.
-        //
-        // Tier 3 is what serves an agent relinked after the 2026-09-04
-        // deletion: its client still names the DEAD identity, so tier 2 finds
-        // nothing and requiring identity equality outright — as this did — hid
-        // exactly the client recovery exists to find. The backfill cannot
-        // repair those either, since it joins on that same dead identity.
+        // The durable ID identifies a backfilled client. For older clients,
+        // the caller's proved key pair is the only stable lookup handle.
         const meta = (client: { metadata?: unknown }) =>
           client.metadata as Record<string, unknown> | undefined;
         const byDurableId = matches.filter(
           (client) => meta(client)?.agent_id === agent.id,
         );
-        const byCurrentIdentity = matches.filter(
-          (client) => meta(client)?.identity_id === agent.identityId,
-        );
-        const ranked =
-          byDurableId.length > 0
-            ? byDurableId
-            : byCurrentIdentity.length > 0
-              ? byCurrentIdentity
-              : matches;
+        const ranked = byDurableId.length > 0 ? byDurableId : matches;
 
         // Zero matches is not an error any more: an agent registered with an
         // agent key never had a Hydra client, and the proof of key possession
@@ -435,7 +417,6 @@ export async function recoveryRoutes(
         existingClient === undefined
           ? buildAgentOAuth2Client({
               agentId: agent.id,
-              identityId: agent.identityId,
               publicKey: agent.publicKey,
               fingerprint: agent.fingerprint,
               clientSecret,
@@ -513,11 +494,23 @@ export async function recoveryRoutes(
             mintedClient,
           );
         } else {
+          if (!existingClient) throw new Error('Resolved client missing');
+          const metadata = {
+            ...((existingClient.metadata ?? {}) as Record<string, unknown>),
+          };
+          delete metadata.identity_id;
           await fastify.oauth2Client.setOAuth2Client({
             id: clientId,
             oAuth2Client: {
               ...existingClient,
               client_secret: clientSecret,
+              metadata: {
+                ...metadata,
+                type: 'moltnet_agent',
+                agent_id: agent.id,
+                public_key: agent.publicKey,
+                fingerprint: agent.fingerprint,
+              },
             },
           });
         }

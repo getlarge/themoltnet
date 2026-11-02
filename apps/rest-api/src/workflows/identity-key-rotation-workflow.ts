@@ -68,7 +68,10 @@ export type IdentityKeyRotationResult =
 
 export interface IdentityKeyRotationDeps {
   identityApi: Pick<IdentityApi, 'patchIdentity'>;
-  oauth2Api: Pick<OAuth2Api, 'patchOAuth2Client' | 'deleteOAuth2Token'>;
+  oauth2Api: Pick<
+    OAuth2Api,
+    'getOAuth2Client' | 'patchOAuth2Client' | 'deleteOAuth2Token'
+  >;
   agentRepository: AgentRepository;
   agentIdentityKeyRepository: AgentIdentityKeyRepository;
   transactionRunner: TransactionRunner;
@@ -141,6 +144,8 @@ export function initIdentityKeyRotationWorkflow(): void {
     ): Promise<void> => {
       const { oauth2Api } = getDeps();
       try {
+        const client = await oauth2Api.getOAuth2Client({ id: clientId });
+        const metadata = client.metadata as Record<string, unknown> | undefined;
         await oauth2Api.patchOAuth2Client({
           id: clientId,
           jsonPatch: [
@@ -151,6 +156,9 @@ export function initIdentityKeyRotationWorkflow(): void {
             },
             { op: 'add', path: '/metadata/public_key', value: publicKey },
             { op: 'add', path: '/metadata/fingerprint', value: fingerprint },
+            ...(metadata && 'identity_id' in metadata
+              ? [{ op: 'remove' as const, path: '/metadata/identity_id' }]
+              : []),
           ],
         });
       } catch (err) {

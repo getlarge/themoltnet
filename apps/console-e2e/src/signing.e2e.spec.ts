@@ -115,6 +115,7 @@ test.describe.serial('Signing request requester', () => {
   const nonce = randomBytes(3).toString('hex');
   const purpose = `Approve console e2e release ${nonce}`;
   let agentCtx: ConnectedAgent;
+  let sharedTeamId: string;
 
   test.afterAll(async () => {
     await agentCtx?.teardown();
@@ -137,6 +138,7 @@ test.describe.serial('Signing request requester', () => {
       agentId: genesis.agentId,
       name: `signing-requester-shared-${nonce}`,
     });
+    sharedTeamId = teamId;
 
     // Team membership tuples converge after createTeam returns.
     await expect(async () => {
@@ -178,6 +180,10 @@ test.describe.serial('Signing request requester', () => {
     page,
   }) => {
     await loginViaBrowser(page, user);
+    await page.goto(CONSOLE_URL);
+    await page
+      .getByRole('combobox', { name: 'Select team' })
+      .selectOption(sharedTeamId);
     await page.goto(`${CONSOLE_URL}/signing`);
 
     const request = page.locator('article').filter({ hasText: purpose });

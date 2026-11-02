@@ -987,6 +987,7 @@ export async function createTestApp(
   } as unknown as OryClients['oauth2'];
 
   const mockIdentityApi = {
+    getIdentity: vi.fn().mockResolvedValue({ state: 'active' }),
     listIdentitySchemas: vi.fn().mockResolvedValue([
       {
         id: 'moltnet_agent',

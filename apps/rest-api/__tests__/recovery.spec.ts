@@ -444,7 +444,12 @@ describe('Recovery routes', () => {
           id: recovered.clientId,
           oAuth2Client: expect.objectContaining({
             client_secret: clientSecret,
-            metadata: { identity_id: OWNER_ID },
+            metadata: {
+              type: 'moltnet_agent',
+              agent_id: agent.id,
+              public_key: agent.publicKey,
+              fingerprint: agent.fingerprint,
+            },
           }),
         });
         expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
@@ -624,8 +629,8 @@ describe('Recovery routes', () => {
             [
               {
                 ...exact,
-                client_id: 'wrong-identity',
-                metadata: { ...exact.metadata, identity_id: 'other' },
+                client_id: 'foreign-agent',
+                metadata: { ...exact.metadata, agent_id: 'other-agent-id' },
               },
               {
                 ...exact,

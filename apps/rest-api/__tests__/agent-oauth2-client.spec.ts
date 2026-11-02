@@ -10,7 +10,6 @@ import {
 describe('buildAgentOAuth2Client', () => {
   const input = {
     agentId: '11111111-1111-4111-8111-111111111111',
-    identityId: '22222222-2222-4222-8222-222222222222',
     publicKey: 'ed25519:AAAA+/bbbb==',
     fingerprint: 'ABCD-EF01-2345-6789',
     clientSecret: 'secret-value',
@@ -30,15 +29,14 @@ describe('buildAgentOAuth2Client', () => {
       metadata: {
         type: 'moltnet_agent',
         agent_id: input.agentId,
-        identity_id: input.identityId,
         public_key: input.publicKey,
         fingerprint: input.fingerprint,
       },
     });
   });
 
-  it('omits identity_id when the agent has no bound Ory identity', () => {
-    const client = buildAgentOAuth2Client({ ...input, identityId: null });
+  it('omits the renewable Kratos identity from client metadata', () => {
+    const client = buildAgentOAuth2Client(input);
 
     expect(client.metadata).not.toHaveProperty('identity_id');
     expect(client.metadata).toMatchObject({ agent_id: input.agentId });
@@ -48,7 +46,6 @@ describe('buildAgentOAuth2Client', () => {
 describe('createOrReplaceAgentOAuth2Client', () => {
   const client = buildAgentOAuth2Client({
     agentId: '11111111-1111-4111-8111-111111111111',
-    identityId: null,
     publicKey: 'ed25519:AAAA+/bbbb==',
     fingerprint: 'ABCD-EF01-2345-6789',
     clientSecret: 'secret-value',

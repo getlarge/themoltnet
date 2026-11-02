@@ -50,7 +50,11 @@ function httpError(status: number) {
 describe('identity key rotation workflow', () => {
   const deps = {
     identityApi: { patchIdentity: vi.fn() },
-    oauth2Api: { patchOAuth2Client: vi.fn(), deleteOAuth2Token: vi.fn() },
+    oauth2Api: {
+      getOAuth2Client: vi.fn(),
+      patchOAuth2Client: vi.fn(),
+      deleteOAuth2Token: vi.fn(),
+    },
     agentRepository: { findById: vi.fn(), rotateIdentityKey: vi.fn() },
     agentIdentityKeyRepository: {
       attachRotationProof: vi.fn(),
@@ -86,11 +90,15 @@ describe('identity key rotation workflow', () => {
         fingerprint: INPUT.newFingerprint,
       });
     deps.agentIdentityKeyRepository.attachRotationProof.mockResolvedValue(true);
+    deps.oauth2Api.getOAuth2Client.mockResolvedValue({ metadata: {} });
     deps.oauth2Api.patchOAuth2Client.mockResolvedValue({});
     setIdentityKeyRotationDeps(deps as never);
   });
 
   it('rotates in Postgres, then reconciles Kratos, Hydra and caches', async () => {
+    deps.oauth2Api.getOAuth2Client.mockResolvedValue({
+      metadata: { identity_id: IDENTITY_ID },
+    });
     const result = await identityKeyRotationWorkflow.rotateIdentityKey(INPUT);
 
     expect(result).toEqual({
@@ -125,6 +133,7 @@ describe('identity key rotation workflow', () => {
             path: '/metadata/fingerprint',
             value: INPUT.newFingerprint,
           },
+          { op: 'remove', path: '/metadata/identity_id' },
         ]),
       });
       expect(deps.oauth2Api.deleteOAuth2Token).toHaveBeenCalledWith({

@@ -346,6 +346,10 @@ describe('TokenValidator', () => {
       });
 
       it('falls back to client metadata when token has no ext claims', async () => {
+        const resolveOAuthAgent = createMockTalosAgentResolver();
+        validator = createTokenValidator(mockOAuth2Api as any, {
+          resolveOAuthAgent,
+        });
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
           active: true,
           client_id: VALID_CLIENT_ID,
@@ -357,7 +361,7 @@ describe('TokenValidator', () => {
           client_id: VALID_CLIENT_ID,
           metadata: {
             agent_id: VALID_AGENT_ID,
-            identity_id: VALID_IDENTITY_ID,
+            identity_id: 'stale-kratos-identity',
             public_key: 'ed25519:AAAA+/bbbb==',
             fingerprint: 'A1B2-C3D4-E5F6-07A8',
           },
@@ -374,6 +378,33 @@ describe('TokenValidator', () => {
           { id: VALID_CLIENT_ID },
           { signal: expect.any(AbortSignal) },
         );
+        expect(resolveOAuthAgent).toHaveBeenCalledWith(
+          VALID_AGENT_ID,
+          expect.any(AbortSignal),
+        );
+      });
+
+      it('rejects agent metadata when the current agent is unavailable', async () => {
+        validator = createTokenValidator(mockOAuth2Api as any, {
+          resolveOAuthAgent: vi.fn().mockResolvedValue(null),
+        });
+        mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: 'diary:read',
+        });
+        mockOAuth2Api.getOAuth2Client.mockResolvedValue({
+          client_id: VALID_CLIENT_ID,
+          metadata: {
+            agent_id: VALID_AGENT_ID,
+            public_key: 'ed25519:AAAA+/bbbb==',
+            fingerprint: 'A1B2-C3D4-E5F6-07A8',
+          },
+        });
+
+        await expect(
+          validator.resolveAuthContext(OPAQUE_TOKEN),
+        ).resolves.toBeNull();
       });
 
       it('returns null for inactive token', async () => {

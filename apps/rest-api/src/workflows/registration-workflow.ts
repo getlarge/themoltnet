@@ -209,7 +209,6 @@ export async function issueRegistrationCredential(
     const clientSecret = crypto.randomUUID();
     const oAuth2Client = buildAgentOAuth2Client({
       agentId: registration.agentId,
-      identityId: registration.identityId,
       publicKey: registration.publicKey,
       fingerprint: registration.fingerprint,
       clientSecret,

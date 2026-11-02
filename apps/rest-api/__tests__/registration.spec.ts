@@ -397,6 +397,13 @@ describe('registration routes', () => {
       expect(rotateApp.tokenValidator.evictOAuthClient).toHaveBeenCalledWith(
         VALID_AUTH_CONTEXT.clientId,
       );
+      const rotated = vi
+        .mocked(rotateApp.oauth2Client.setOAuth2Client)
+        .mock.calls.at(-1)?.[0].oAuth2Client;
+      expect(rotated?.metadata).toMatchObject({
+        agent_id: VALID_AUTH_CONTEXT.agentId,
+      });
+      expect(rotated?.metadata).not.toHaveProperty('identity_id');
     });
   });
 });

@@ -66,13 +66,23 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    const agent = createMockAgent();
+    mocks.agentRepository.findById.mockResolvedValue(agent);
+    vi.mocked(app.identityApi.getIdentity)
+      .mockReset()
+      .mockResolvedValue({ state: 'active' } as never);
     // Schema rejection can leave a one-shot Ory response unconsumed. Tests
     // are shuffled, so reset this app-owned mock as well as the repositories.
     vi.mocked(app.oauth2Client.getOAuth2Client)
       .mockReset()
       .mockResolvedValue({
         client_id: 'test-client-id',
-        metadata: { identity_id: OWNER_ID },
+        metadata: {
+          type: 'moltnet_agent',
+          agent_id: agent.id,
+          public_key: agent.publicKey,
+          fingerprint: agent.fingerprint,
+        },
       });
     mockStartWorkflow
       .mockReset()
@@ -338,9 +348,7 @@ describe('Hook routes', () => {
 
   describe('POST /hooks/hydra/token-exchange', () => {
     it('enriches token with agent claims', async () => {
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(
-        createMockAgent(),
-      );
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
 
       const response = await app.inject({
         method: 'POST',
@@ -367,6 +375,114 @@ describe('Hook routes', () => {
         'moltnet:fingerprint': 'C212-DAFA-27C5-6C57',
         'moltnet:subject_type': 'agent',
       });
+    });
+
+    it('uses the current agent binding despite stale identity metadata', async () => {
+      const agent = createMockAgent();
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'legacy-client',
+        metadata: {
+          agent_id: agent.id,
+          identity_id: 'old-kratos-identity',
+          public_key: agent.publicKey,
+          fingerprint: agent.fingerprint,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'legacy-client',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().session.access_token['moltnet:identity_id']).toBe(
+        agent.identityId,
+      );
+      expect(mocks.agentRepository.findByIdentityId).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unbackfilled agent client', async () => {
+      const agent = createMockAgent();
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'legacy-client',
+        metadata: {
+          identity_id: agent.identityId,
+          public_key: agent.publicKey,
+          fingerprint: agent.fingerprint,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'legacy-client',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(mocks.agentRepository.findByIdentityId).not.toHaveBeenCalled();
+    });
+
+    it('rejects agent metadata whose key no longer matches the agent', async () => {
+      const agent = createMockAgent();
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'stale-client',
+        metadata: {
+          agent_id: agent.id,
+          public_key: 'ed25519:stale-key',
+          fingerprint: agent.fingerprint,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'stale-client',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('rejects a client bound to a disabled Kratos identity', async () => {
+      vi.mocked(app.identityApi.getIdentity).mockResolvedValueOnce({
+        state: 'inactive',
+      } as never);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {},
+          request: {
+            client_id: 'hydra-client-uuid',
+            grant_types: ['client_credentials'],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
     });
 
     it('enriches token with human claims from session', async () => {
@@ -887,11 +1003,8 @@ describe('Hook routes', () => {
     });
 
     it('leaves first-party agent clients above the DCR cap untouched', async () => {
-      // Arrange: agents legitimately hold key:manage. They are distinguished by
-      // metadata.identity_id, which the DCR cap must never intercept.
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(
-        createMockAgent(),
-      );
+      // Agent clients use the durable agent ID and are outside the DCR cap.
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
 
       // Act
       const response = await app.inject({
@@ -916,7 +1029,7 @@ describe('Hook routes', () => {
     });
 
     it('rejects with 403 when agent not found', async () => {
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
+      mocks.agentRepository.findById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'POST',
