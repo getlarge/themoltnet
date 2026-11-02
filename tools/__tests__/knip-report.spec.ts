@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   annotation,
   backlog,
+  backlogMarker,
   compare,
   normalize,
   publishBacklog,
@@ -153,6 +154,18 @@ describe('owned cleanup backlog', () => {
     ]);
     await publishBacklog(github, repo, findings(99), 'https://new');
     expect(github.rest.issues.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing end marker without modifying the issue', async () => {
+    const github = client([
+      { number: 1, body: `Human notes\n${backlogMarker}\nMore notes` },
+    ]);
+
+    await expect(publishBacklog(github, repo, findings(), '')).rejects.toThrow(
+      'Knip backlog end marker missing; preserve the issue for manual repair',
+    );
+    expect(github.rest.issues.update).not.toHaveBeenCalled();
+    expect(github.rest.issues.create).not.toHaveBeenCalled();
   });
 
   it('preserves manual notes, closes an empty backlog, and reopens new debt', async () => {
