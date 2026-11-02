@@ -1,0 +1,44 @@
+diff --git a/dist/plugins/nx/index.js b/dist/plugins/nx/index.js
+index 2e3fe7d40eb31097d6f1bb9729b9308131274002..0a472b944ab8762204baab3bb80a9091788bc55d 100644
+--- a/dist/plugins/nx/index.js
++++ b/dist/plugins/nx/index.js
+@@ -29,17 +29,25 @@ const findNxDependenciesInNxJson = async (localConfig) => {
+ };
+ const resolveConfig = async (localConfig, options) => {
+     const { configFileName } = options;
+-    if (configFileName === 'nx.json') {
+-        return findNxDependenciesInNxJson(localConfig, options);
+-    }
++    const rootInputs = configFileName === 'nx.json'
++        ? await findNxDependenciesInNxJson(localConfig, options)
++        : [];
+     const config = localConfig;
+-    const targets = config.targets ? Object.values(config.targets) : [];
++    const declaredTargets = configFileName === 'nx.json' ? config.targetDefaults : config.targets;
++    // Configurations can replace a target's command or cwd; each is a root.
++    const targets = Object.values(declaredTargets ?? {}).flatMap(target => [
++        target,
++        ...Object.values(target.configurations ?? {}).map(configuration => ({
++            ...target,
++            options: { ...target.options, ...configuration },
++        })),
++    ]);
+     const executors = targets
+         .map(target => target?.executor)
+         .filter(executor => executor && !executor.startsWith('.'))
+         .map(executor => executor && substringBefore(executor, ':'));
+     const expand = (value) => value.replaceAll('{projectRoot}', options.configFileDir).replaceAll('{workspaceRoot}', options.rootCwd);
+-    const resolveTargetCwd = (targetCwd) => targetCwd ? toAbsolute(expand(targetCwd), options.rootCwd) : options.cwd;
++    const resolveTargetCwd = (targetCwd) => targetCwd ? toAbsolute(expand(targetCwd), options.rootCwd) : options.rootCwd;
+     const inputs = targets
+         .filter(target => target.executor === 'nx:run-commands' || target.command)
+         .flatMap(target => {
+@@ -85,7 +93,7 @@ const resolveConfig = async (localConfig, options) => {
+         }
+         return configs;
+     });
+-    return compact([...executors, ...inputs, ...configInputs]).map(id => typeof id === 'string' ? toDependency(id) : id);
++    return compact([...rootInputs, ...executors, ...inputs, ...configInputs]).map(id => typeof id === 'string' ? toDependency(id) : id);
+ };
+ const collections = [
+     ['generators', 'schematics'],

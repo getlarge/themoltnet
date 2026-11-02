@@ -177,7 +177,7 @@ catalog:
   jsdom: '^25.0.0'
   json5: '^2.2.3'
   jsonc-eslint-parser: '^2.1.0'
-  knip: '^5.82.1'
+  knip: '6.44.1'
   lint-staged: '^16.0.0'
   lucide-react: '^1.28.0'
   mermaid: '^11.16.1'
@@ -229,3 +229,5 @@ catalog:
   '@wdio/tauri-plugin': '^1.5.0'
   '@wdio/tauri-service': '^1.5.0'
   webdriverio: '^9.0.0'
+patchedDependencies:
+  knip@6.44.1: patches/knip@6.44.1.patch

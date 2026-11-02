@@ -23,6 +23,7 @@ FROM base AS build
 WORKDIR /repo
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ ./patches/
 RUN pnpm fetch --prod
 
 COPY . .

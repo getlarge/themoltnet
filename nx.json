@@ -29,6 +29,7 @@
     ],
     "dockerNodePackaging": [
       "docker",
+      "{workspaceRoot}/patches/**",
       "{workspaceRoot}/tools/postinstall.mjs",
       "{workspaceRoot}/tools/prepare.mjs"
     ],
