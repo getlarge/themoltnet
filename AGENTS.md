@@ -173,7 +173,9 @@ Release Please and the CLI go.mod sync workflow open draft PRs. Mark them ready
 when their proposed changes should run CI and be reviewed. Other automation may
 open non-draft PRs when immediate validation is part of its workflow. Renovate
 is one: it opens update PRs ready and automerges non-major updates once the
-required checks pass. Majors and auth/crypto packages still wait for a human
+required checks pass. Majors, digest moves (a tag re-pointed at new content,
+batched weekly), and auth/crypto packages (npm `@ory`, `@noble`, sodium, `jose`;
+Go `golang.org/x/crypto`, `golang.org/x/oauth2`) still wait for a human
 review. To keep the shared CI runner quota free for other work, Renovate keeps
 at most two PRs open, opens routine updates only on weekday evenings, nights and
 weekends (security fixes bypass that window), rebases only on conflict, and

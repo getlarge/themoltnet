@@ -34,13 +34,12 @@
   "packageRules": [
     {
       "automerge": true,
-      "description": "Automerge non-major updates once required CI checks pass; majors and auth/crypto packages are excluded by later rules",
+      "description": "Automerge non-major updates once required CI checks pass; majors, digest moves and auth/crypto packages are excluded by later rules",
       "matchUpdateTypes": [
         "minor",
         "patch",
         "pin",
         "pinDigest",
-        "digest",
         "lockFileMaintenance"
       ]
     },
@@ -218,8 +217,22 @@
     },
     {
       "automerge": false,
+      "description": "A digest update means a tag now points at different content with no new version (the tag-mutation attack pattern); review these by hand, batched weekly",
+      "groupName": "digest updates",
+      "matchUpdateTypes": ["digest"],
+      "schedule": ["* 0-7 * * 1"]
+    },
+    {
+      "automerge": false,
       "description": "Require review for authentication and cryptography dependencies",
-      "matchPackageNames": ["@ory/**", "@noble/**", "*sodium*", "jose"]
+      "matchPackageNames": [
+        "@ory/**",
+        "@noble/**",
+        "*sodium*",
+        "jose",
+        "golang.org/x/crypto",
+        "golang.org/x/oauth2"
+      ]
     },
     {
       "description": "Move golang.org/x modules together; they are released as one wave",
