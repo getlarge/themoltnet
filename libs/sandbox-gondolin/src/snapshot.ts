@@ -278,6 +278,10 @@ export interface EnsureSnapshotOptions {
   maxCached?: number;
 }
 
+// A timed-out caller does not cancel its build. Share the in-flight result so
+// another caller in this process cannot unlink the live build's overlay.
+const pendingSnapshots = new Map<string, Promise<string>>();
+
 /**
  * Ensure a cached snapshot exists, building one if needed.
  * Returns the absolute path to the qcow2 checkpoint file.
@@ -286,10 +290,31 @@ export async function ensureSnapshot(
   options: EnsureSnapshotOptions = {},
 ): Promise<string> {
   const config = options.config ?? DEFAULT_CONFIG;
+  const snapshotPath = getSnapshotPath(config);
+  // Check in-flight builds before the file: checkpoint() can create its output
+  // before it finishes writing it.
+  const pending = pendingSnapshots.get(snapshotPath);
+  if (pending) {
+    options.onProgress?.(`waiting for snapshot build: ${snapshotPath}`);
+    return pending;
+  }
+
+  const build = buildCachedSnapshot(snapshotPath, config, options);
+  pendingSnapshots.set(snapshotPath, build);
+  try {
+    return await build;
+  } finally {
+    pendingSnapshots.delete(snapshotPath);
+  }
+}
+
+async function buildCachedSnapshot(
+  snapshotPath: string,
+  config: SnapshotConfig,
+  options: EnsureSnapshotOptions,
+): Promise<string> {
   const log = options.onProgress ?? (() => {});
   const maxCached = options.maxCached ?? 1;
-
-  const snapshotPath = getSnapshotPath(config);
   const snapshotDir = path.dirname(snapshotPath);
 
   if (existsSync(snapshotPath)) {
@@ -358,6 +383,10 @@ export async function ensureSnapshot(
     log('creating checkpoint...');
     await vm.checkpoint(snapshotPath);
     log(`snapshot saved: ${snapshotPath}`);
+  } catch (error) {
+    // A failed checkpoint may leave an incomplete output. Never reuse it.
+    rmSync(snapshotPath, { force: true });
+    throw error;
   } finally {
     try {
       await vm.close();
@@ -511,7 +540,10 @@ function pruneOldSnapshots(maxCached: number, currentDir: string): void {
 
   // Keep maxCached + the current one
   for (const entry of entries.slice(maxCached + 1)) {
-    if (entry.path !== currentDir) {
+    if (
+      entry.path !== currentDir &&
+      !pendingSnapshots.has(path.join(entry.path, 'snapshot.qcow2'))
+    ) {
       rmSync(entry.path, { recursive: true, force: true });
     }
   }
