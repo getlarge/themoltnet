@@ -37,7 +37,7 @@ if (!Format.Has('uri')) {
 // Schemas
 // ============================================================================
 
-export const ServerConfigSchema = Type.Object({
+const ServerConfigSchema = Type.Object({
   PORT: Type.Number({ default: 8000 }),
   NODE_ENV: Type.Union(
     [
@@ -49,20 +49,20 @@ export const ServerConfigSchema = Type.Object({
   ),
 });
 
-export const DatabaseConfigSchema = Type.Object({
+const DatabaseConfigSchema = Type.Object({
   DATABASE_URL: Type.Optional(Type.String({ minLength: 1 })),
   DBOS_SYSTEM_DATABASE_URL: Type.String({ minLength: 1 }),
 });
 
-export const WebhookConfigSchema = Type.Object({
+const WebhookConfigSchema = Type.Object({
   ORY_ACTION_API_KEY: Type.String({ minLength: 1 }),
 });
 
-export const RecoveryConfigSchema = Type.Object({
+const RecoveryConfigSchema = Type.Object({
   RECOVERY_CHALLENGE_SECRET: Type.String({ minLength: 16 }),
 });
 
-export const OryConfigSchema = Type.Object({
+const OryConfigSchema = Type.Object({
   ORY_PROJECT_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KRATOS_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
@@ -96,7 +96,7 @@ export const OryConfigSchema = Type.Object({
   }),
 });
 
-export const ObservabilityConfigSchema = Type.Object({
+const ObservabilityConfigSchema = Type.Object({
   AXIOM_API_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
   /** Full OTLP HTTP base URL, e.g. https://api.axiom.co or http://otel-collector:4318 */
   OTLP_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
@@ -110,7 +110,7 @@ export const ObservabilityConfigSchema = Type.Object({
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
 });
 
-export const PackGcConfigSchema = Type.Object({
+const PackGcConfigSchema = Type.Object({
   // Strictly positive: this window becomes the authoritative GC deadline for
   // every unpinned pack (#1858). Zero or negative would make a freshly
   // unpinned pack collectable at once. Fractional days remain valid.
@@ -119,7 +119,7 @@ export const PackGcConfigSchema = Type.Object({
   PACK_GC_BATCH_SIZE: Type.Number({ default: 100 }),
 });
 
-export const DbosWorkflowRetentionConfigSchema = Type.Object({
+const DbosWorkflowRetentionConfigSchema = Type.Object({
   DBOS_WORKFLOW_RETENTION_ENABLED: Type.Boolean({ default: true }),
   DBOS_WORKFLOW_RETENTION_DAYS: Type.Number({ minimum: 1, default: 30 }),
   DBOS_WORKFLOW_RETENTION_BATCH_SIZE: Type.Integer({
@@ -132,7 +132,7 @@ export const DbosWorkflowRetentionConfigSchema = Type.Object({
   }),
 });
 
-export const TaskOrphanSweeperConfigSchema = Type.Object({
+const TaskOrphanSweeperConfigSchema = Type.Object({
   /**
    * How often the orphan sweeper runs. Default every 2 minutes — frequent
    * enough that abandoned tasks don't sit too long, infrequent enough not
@@ -206,7 +206,7 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: Type.Number({ default: 1000 }),
 });
 
-export const RuntimeSessionStorageConfigSchema = Type.Object({
+const RuntimeSessionStorageConfigSchema = Type.Object({
   RUNTIME_SESSION_STORAGE_ENDPOINT: Type.Optional(
     Type.String({ minLength: 1 }),
   ),
@@ -224,7 +224,7 @@ export const RuntimeSessionStorageConfigSchema = Type.Object({
   RUNTIME_SESSION_MAX_BYTES: Type.Number({ default: 10 * 1024 * 1024 }),
 });
 
-export const TaskArtifactStorageConfigSchema = Type.Object({
+const TaskArtifactStorageConfigSchema = Type.Object({
   TASK_ARTIFACT_STORAGE_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
   TASK_ARTIFACT_STORAGE_REGION: Type.String({ default: 'auto' }),
   TASK_ARTIFACT_STORAGE_BUCKET: Type.String({
@@ -240,14 +240,14 @@ export const TaskArtifactStorageConfigSchema = Type.Object({
   TASK_ARTIFACT_MAX_BYTES: Type.Number({ default: 25 * 1024 * 1024 }),
 });
 
-export const EmbeddingConfigSchema = Type.Object({
+const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
   /** Allow downloading models from huggingface.co at runtime (default: true) */
   EMBEDDING_ALLOW_REMOTE_MODELS: Type.Boolean({ default: true }),
 });
 
-export const SecurityConfigSchema = Type.Object({
+const SecurityConfigSchema = Type.Object({
   // CORS origins (comma-separated)
   CORS_ORIGINS: Type.String({
     default: 'https://themolt.net,https://api.themolt.net',
@@ -326,7 +326,7 @@ export const SecurityConfigSchema = Type.Object({
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),
 });
 
-export const ReleaseConfigSchema = Type.Object({
+const ReleaseConfigSchema = Type.Object({
   // Publisher ssh-ed25519 key that signs release checksums, served in the
   // discovery document. Set from apps/rest-api/fly.toml, the only maintained
   // copy (release jobs read the same line). Required in production (see
@@ -356,12 +356,10 @@ export type TaskOrphanSweeperConfig = Static<
 export type RuntimeSessionStorageConfig = Static<
   typeof RuntimeSessionStorageConfigSchema
 >;
-export type TaskArtifactStorageConfig = Static<
-  typeof TaskArtifactStorageConfigSchema
->;
-export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
+type TaskArtifactStorageConfig = Static<typeof TaskArtifactStorageConfigSchema>;
+type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
-export type ReleaseConfig = Static<typeof ReleaseConfigSchema>;
+type ReleaseConfig = Static<typeof ReleaseConfigSchema>;
 
 export interface AppConfig {
   server: ServerConfig;
@@ -486,7 +484,7 @@ export function loadRecoveryConfig(
   );
 }
 
-export function loadEmbeddingConfig(
+function loadEmbeddingConfig(
   env: Record<string, string | undefined> = process.env,
 ): EmbeddingConfig {
   return validateSchema(
@@ -536,7 +534,7 @@ export function loadRuntimeSessionStorageConfig(
   );
 }
 
-export function loadTaskArtifactStorageConfig(
+function loadTaskArtifactStorageConfig(
   env: Record<string, string | undefined> = process.env,
 ): TaskArtifactStorageConfig {
   return validateSchema(
@@ -546,7 +544,7 @@ export function loadTaskArtifactStorageConfig(
   );
 }
 
-export function loadReleaseConfig(
+function loadReleaseConfig(
   env: Record<string, string | undefined> = process.env,
 ): ReleaseConfig {
   return validateSchema(

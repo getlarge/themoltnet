@@ -33,7 +33,7 @@ export interface SessionToolPolicy {
 }
 
 /** Default deadline for the allowed-tools fetch before we fall back. */
-export const DEFAULT_RESOLVE_TIMEOUT_MS = 5_000;
+const DEFAULT_RESOLVE_TIMEOUT_MS = 5_000;
 /** Backoff before each retry of a transiently failed allowed-tools fetch. */
 const RESOLVE_RETRY_DELAYS_MS = [250, 1_000] as const;
 
@@ -215,14 +215,14 @@ export async function resolveSessionToolPolicy(
 }
 
 /** Thrown when the allowed-tools fetch exceeds its deadline. */
-export class ToolPolicyResolveTimeoutError extends Error {
+class ToolPolicyResolveTimeoutError extends Error {
   constructor(timeoutMs: number) {
     super(`tool-policy resolution timed out after ${timeoutMs}ms`);
     this.name = 'ToolPolicyResolveTimeoutError';
   }
 }
 
-export class RuntimeKindMismatchError extends Error {
+class RuntimeKindMismatchError extends Error {
   constructor(input: {
     expectedRuntimeKind: string;
     receivedRuntimeKind: string;

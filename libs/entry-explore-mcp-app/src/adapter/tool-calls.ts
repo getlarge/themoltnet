@@ -19,7 +19,7 @@ import type { ToolCaller } from './tool-caller.js';
 
 type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
 
-export interface EntriesListArgs {
+interface EntriesListArgs {
   diary_id: string;
   limit?: number;
   offset?: number;
@@ -29,7 +29,7 @@ export interface EntriesListArgs {
   entry_type?: EntryType[];
 }
 
-export interface EntriesSearchArgs {
+interface EntriesSearchArgs {
   query: string;
   diary_id?: string;
   tags?: string[];
@@ -41,20 +41,20 @@ export interface EntriesSearchArgs {
   exclude_superseded?: boolean;
 }
 
-export interface DiaryTagsArgs {
+interface DiaryTagsArgs {
   diary_id: string;
   prefix?: string;
   min_count?: number;
   entry_types?: EntryType[];
 }
 
-export interface EntriesGetArgs {
+interface EntriesGetArgs {
   entry_id: string;
   expand_relations?: boolean;
   depth?: number;
 }
 
-export interface PacksCreateArgs {
+interface PacksCreateArgs {
   diary_id: string;
   params: Record<string, unknown>;
   entries: Array<{ entry_id: string; rank: number }>;
@@ -62,13 +62,13 @@ export interface PacksCreateArgs {
   pinned?: boolean;
 }
 
-export interface PacksUpdateArgs {
+interface PacksUpdateArgs {
   pack_id: string;
   pinned?: boolean;
   expires_at?: string;
 }
 
-export interface PacksProvenanceArgs {
+interface PacksProvenanceArgs {
   pack_id?: string;
   pack_cid?: string;
   depth?: number;

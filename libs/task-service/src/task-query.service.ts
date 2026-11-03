@@ -19,6 +19,7 @@ import {
   dbTaskToWire,
 } from './wire-mappers.js';
 
+/** @public Named in the inferred return type of createTaskService. */
 export interface TaskListInput {
   teamId: string;
   status?: string;

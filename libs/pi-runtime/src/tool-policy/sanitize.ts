@@ -1,5 +1,5 @@
 /** Stands in for a command name we will not reproduce. */
-export const UNREPORTABLE_EXECUTABLE = '<unreportable>';
+const UNREPORTABLE_EXECUTABLE = '<unreportable>';
 
 const PLAUSIBLE_EXECUTABLE = /^[A-Za-z0-9._@+:[\]-]{1,15}$/;
 

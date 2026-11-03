@@ -134,7 +134,7 @@ function renderShellCommandPrefixes(
   return visible;
 }
 
-export function buildSandboxCapabilityInstructions(
+function buildSandboxCapabilityInstructions(
   sandbox: RuntimeInstructorSandbox | undefined,
   policy?: RuntimeInstructorToolPolicy,
 ): string {
@@ -393,5 +393,9 @@ export function composeRuntimeSystemPrompt(input: {
     : [input.kernel];
 }
 
-/** @deprecated Use buildRuntimeKernel; retained for package consumers. */
+/**
+ * @public
+ * @alias
+ * @deprecated Use buildRuntimeKernel; retained for package consumers.
+ */
 export const buildRuntimeInstructor = buildRuntimeKernel;

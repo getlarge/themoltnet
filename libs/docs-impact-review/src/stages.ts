@@ -24,8 +24,8 @@ import {
 
 export type CreateBody = Parameters<TaskClient['createTask']>[0];
 
-export const MAX_CONTRACT_CHANGES = 8;
-export const MAX_FINDINGS = 3;
+const MAX_CONTRACT_CHANGES = 8;
+const MAX_FINDINGS = 3;
 
 /**
  * Sanity bounds only, against runaway output. Conciseness is requested in

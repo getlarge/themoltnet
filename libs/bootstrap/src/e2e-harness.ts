@@ -25,14 +25,14 @@ import { bootstrapGenesisAgents, type GenesisAgent } from './bootstrap.js';
  * stays config-source agnostic.
  */
 export const DEFAULT_E2E_REST_API_URL = 'http://localhost:8080';
-export const DEFAULT_E2E_DATABASE_URL =
+const DEFAULT_E2E_DATABASE_URL =
   'postgresql://moltnet:moltnet_secret@localhost:5433/moltnet';
-export const DEFAULT_E2E_HYDRA_PUBLIC_URL = 'http://localhost:4444';
-export const DEFAULT_E2E_HYDRA_ADMIN_URL = 'http://localhost:4445';
-export const DEFAULT_E2E_KETO_READ_URL = 'http://localhost:4466';
-export const DEFAULT_E2E_KETO_WRITE_URL = 'http://localhost:4467';
-export const DEFAULT_E2E_KRATOS_ADMIN_URL = 'http://localhost:4434';
-export const DEFAULT_E2E_AGENT_SCOPES = AGENT_OAUTH_SCOPES.join(' ');
+const DEFAULT_E2E_HYDRA_PUBLIC_URL = 'http://localhost:4444';
+const DEFAULT_E2E_HYDRA_ADMIN_URL = 'http://localhost:4445';
+const DEFAULT_E2E_KETO_READ_URL = 'http://localhost:4466';
+const DEFAULT_E2E_KETO_WRITE_URL = 'http://localhost:4467';
+const DEFAULT_E2E_KRATOS_ADMIN_URL = 'http://localhost:4434';
+const DEFAULT_E2E_AGENT_SCOPES = AGENT_OAUTH_SCOPES.join(' ');
 
 export interface E2EHarnessOptions {
   /** OAuth scopes granted to the bootstrapped agent. */

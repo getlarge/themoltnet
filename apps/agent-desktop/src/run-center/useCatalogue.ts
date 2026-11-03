@@ -28,8 +28,8 @@ export interface CatalogueState {
   checkNow: () => Promise<void>;
 }
 
-export const CATALOGUE_POLL_MS = 60_000;
-export const CATALOGUE_RECOVERY_POLL_MS = 5_000;
+const CATALOGUE_POLL_MS = 60_000;
+const CATALOGUE_RECOVERY_POLL_MS = 5_000;
 
 /**
  * When each identity's catalogue started looking degraded, per client. A team

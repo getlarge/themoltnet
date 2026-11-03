@@ -13,7 +13,7 @@ export interface DocsHunk {
 }
 
 export const DOCS_CHECK_VERDICTS = ['keep', 'rewrite', 'remove'] as const;
-export type DocsCheckVerdict = (typeof DOCS_CHECK_VERDICTS)[number];
+type DocsCheckVerdict = (typeof DOCS_CHECK_VERDICTS)[number];
 
 export interface DocsCheckAnswer {
   id: string;

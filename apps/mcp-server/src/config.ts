@@ -2,7 +2,7 @@ import type { Static, TObject } from 'typebox';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const McpServerConfigSchema = Type.Object({
+const McpServerConfigSchema = Type.Object({
   PORT: Type.Number({ default: 8001 }),
   NODE_ENV: Type.Union(
     [

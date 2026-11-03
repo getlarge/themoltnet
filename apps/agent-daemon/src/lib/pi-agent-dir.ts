@@ -22,7 +22,7 @@ import {
   resolveAgentServerRoot,
 } from './agent-server/store.js';
 
-export type PiAgentDirSource = 'env' | 'store' | 'global';
+type PiAgentDirSource = 'env' | 'store' | 'global';
 
 export interface PiAgentDir {
   path: string;

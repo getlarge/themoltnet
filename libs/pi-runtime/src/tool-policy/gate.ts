@@ -128,7 +128,7 @@ export type GateDecision =
       missingShellCommands?: MissingShellCommand[];
     };
 
-export interface MatchedShellCommand {
+interface MatchedShellCommand {
   executable: string;
   argvPrefixFingerprint: string;
   argvPrefixLength: number;

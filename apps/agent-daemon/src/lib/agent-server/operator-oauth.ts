@@ -10,7 +10,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import { AgentServerHttpError } from './http-error.js';
 
-export class InvalidOperatorGrantError extends Error {}
+class InvalidOperatorGrantError extends Error {}
 
 /** Safe messages cross the native bridge, which exposes errors as strings. */
 export class OperatorApprovalError extends AgentServerHttpError {

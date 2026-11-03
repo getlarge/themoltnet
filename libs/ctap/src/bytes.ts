@@ -1,7 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
-import { CtapError } from './errors.js';
-
 // Node-only transport primitives; intentionally not part of the root API.
 export function concatBytes(...values: readonly Uint8Array[]): Uint8Array {
   const result = new Uint8Array(
@@ -21,23 +19,6 @@ export function sha256(value: Uint8Array): Uint8Array {
 
 export function toBase64Url(value: Uint8Array): string {
   return Buffer.from(value).toString('base64url');
-}
-
-export function fromBase64Url(
-  value: string,
-  field = 'binary value',
-): Uint8Array {
-  if (!/^[A-Za-z0-9_-]*$/.test(value)) {
-    throw new CtapError('INVALID_RESPONSE', `${field} is not valid base64url`);
-  }
-  const decoded = new Uint8Array(Buffer.from(value, 'base64url'));
-  if (toBase64Url(decoded) !== value) {
-    throw new CtapError(
-      'INVALID_RESPONSE',
-      `${field} is not canonical base64url`,
-    );
-  }
-  return decoded;
 }
 
 export function u16be(value: number): Uint8Array {

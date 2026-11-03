@@ -29,12 +29,12 @@ export function safeErrorContext(
   return context;
 }
 
-export function safeLogMessage(value: string): string | undefined {
+function safeLogMessage(value: string): string | undefined {
   const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
   return normalized ? normalized.slice(0, 500) : undefined;
 }
 
-export function safeErrorToken(value: unknown): string | undefined {
+function safeErrorToken(value: unknown): string | undefined {
   return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
     ? value
     : undefined;

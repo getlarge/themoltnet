@@ -6,7 +6,7 @@ import { Type } from 'typebox';
  * and carried into the pack `params` when a zone is saved. snake_case is the
  * canonical wire shape (the app maps it to its camelCase internal type).
  */
-export const EntryMapZoneSearchSchema = Type.Object({
+const EntryMapZoneSearchSchema = Type.Object({
   query: Type.Optional(Type.String()),
   tags: Type.Optional(Type.Array(Type.String())),
   exclude_tags: Type.Optional(Type.Array(Type.String())),
@@ -19,9 +19,8 @@ export const EntryMapZoneSearchSchema = Type.Object({
     }),
   ),
 });
-export type EntryMapZoneSearch = Static<typeof EntryMapZoneSearchSchema>;
 
-export const EntryMapZoneProvenanceSchema = Type.Object({
+const EntryMapZoneProvenanceSchema = Type.Object({
   basis: Type.Optional(
     Type.String({
       description: 'Human-language selection basis, e.g. "tag:auth + recent".',
@@ -44,7 +43,7 @@ export const EntryMapZoneProvenanceSchema = Type.Object({
  * `Array(Unknown)` let the agent invent field names (`anchorEntries`, `summary`)
  * that the app silently dropped, rendering every zone with zero entries.
  */
-export const EntryMapZoneSchema = Type.Object({
+const EntryMapZoneSchema = Type.Object({
   id: Type.String({
     description: 'Stable zone id (any unique slug, e.g. "infra-decisions").',
   }),
@@ -83,9 +82,8 @@ export const EntryMapZoneSchema = Type.Object({
   ),
   provenance: Type.Optional(EntryMapZoneProvenanceSchema),
 });
-export type EntryMapZone = Static<typeof EntryMapZoneSchema>;
 
-export const EntryMapDataSchema = Type.Object(
+const EntryMapDataSchema = Type.Object(
   {
     diaryName: Type.Optional(Type.String()),
     totalEntries: Type.Optional(Type.Integer()),

@@ -240,13 +240,13 @@ import type { TokenManager } from './token.js';
 // ---------------------------------------------------------------------------
 
 /** Per-call team context for diary operations. */
-export interface DiaryRequestOptions {
+interface DiaryRequestOptions {
   /** Active team. Sets `x-moltnet-team-id` for the request when provided. */
   teamId?: string;
 }
 
 /** Team context for diary creation, where the team is required (it owns the diary). */
-export interface DiaryCreateRequestOptions {
+interface DiaryCreateRequestOptions {
   /** Team that will own the diary. Sets `x-moltnet-team-id`. */
   teamId: string;
 }
@@ -1153,7 +1153,7 @@ export interface RuntimeSlotsNamespace {
   ): Promise<ListRuntimeSlotsResponse['items']>;
 }
 
-export interface RuntimeSlotRequestOptions {
+interface RuntimeSlotRequestOptions {
   teamId: string;
 }
 

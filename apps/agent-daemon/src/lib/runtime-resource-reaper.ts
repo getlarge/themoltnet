@@ -34,7 +34,7 @@ export interface RuntimeResourceReaperInput {
   teamId: string;
 }
 
-export interface RuntimeResourceReaperIssue {
+interface RuntimeResourceReaperIssue {
   kind: 'failure' | 'unsafe_path';
   path: string;
   reason: string;

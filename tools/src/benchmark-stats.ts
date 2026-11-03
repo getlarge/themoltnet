@@ -9,7 +9,7 @@ export interface BenchmarkDistribution {
 }
 
 /** Nearest-rank percentile over an ascending numeric sample. */
-export function nearestRankPercentile(
+function nearestRankPercentile(
   sorted: readonly number[],
   quantile: number,
 ): number {

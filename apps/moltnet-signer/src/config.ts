@@ -2,7 +2,7 @@ import { parseAllowedOrigins } from '@moltnet/loopback-companion';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const SignerEnvironmentSchema = Type.Object(
+const SignerEnvironmentSchema = Type.Object(
   {
     MOLTNET_SIGNER_PORT: Type.Number({ minimum: 1, maximum: 65_535 }),
     MOLTNET_SIGNER_ALLOWED_ORIGINS: Type.String({

@@ -27,7 +27,7 @@ import {
 import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 export type SigningCredentialStatus = SigningCredential['status'];
-export const SIGNING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1000;
+const SIGNING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 export type CreateSigningCredentialInput = Omit<
   NewSigningCredential,

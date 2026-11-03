@@ -15,9 +15,9 @@ export class RemoteSignerError extends Error {
   }
 }
 
-export const DEFAULT_REMOTE_SIGNER_TIMEOUT_MS = 30_000;
+const DEFAULT_REMOTE_SIGNER_TIMEOUT_MS = 30_000;
 /** Largest broker response we are willing to read (identity or signature). */
-export const MAX_REMOTE_SIGNER_RESPONSE_BYTES = 16 * 1024;
+const MAX_REMOTE_SIGNER_RESPONSE_BYTES = 16 * 1024;
 const UUID_RE =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 

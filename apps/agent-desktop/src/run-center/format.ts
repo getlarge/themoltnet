@@ -31,16 +31,6 @@ export function duration(startIso: string, endMs: number): string {
   return `${minutes}m ${pad(seconds)}s`;
 }
 
-export function shortHash(hash: string | null): string {
-  if (!hash) return '—';
-  return hash.length <= 12 ? hash : `${hash.slice(0, 8)}…${hash.slice(-4)}`;
-}
-
-/** Replaces the user's home directory with `~` so paths stay readable. */
-export function tildePath(path: string, home = '/Users/you'): string {
-  return path.startsWith(home) ? `~${path.slice(home.length)}` : path;
-}
-
 export function pluralize(count: number, noun: string, plural = `${noun}s`) {
   return `${count} ${count === 1 ? noun : plural}`;
 }

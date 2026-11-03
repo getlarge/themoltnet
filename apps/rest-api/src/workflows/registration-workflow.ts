@@ -103,7 +103,7 @@ export interface RegistrationResult {
  * this record, compensating that retry would delete another registration's
  * resources while reporting success.
  */
-export interface RegistrationOwnedResources {
+interface RegistrationOwnedResources {
   /** This run inserted the agents row. */
   agent: boolean;
   /** Team id when this run created it; null when it pre-existed or is an invite team. */

@@ -60,7 +60,7 @@ export interface GateTaskAttempt {
 }
 
 /** Minimal shape of a task artifact (a structural subset of `TaskArtifact`). */
-export interface GateTaskArtifact {
+interface GateTaskArtifact {
   cid: string;
   attemptN: number | null;
   title: string;
@@ -68,7 +68,7 @@ export interface GateTaskArtifact {
 
 /** Minimal shape of an artifact download (a structural subset of
  * `TaskArtifactDownload`). */
-export interface GateArtifactDownload {
+interface GateArtifactDownload {
   stream: AsyncIterable<Uint8Array>;
 }
 

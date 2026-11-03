@@ -17,7 +17,7 @@ export { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
  * Wrap a plain lifecycle state body into the freeform artifact envelope the
  * lifecycle artifact parser reads (`kind: 'issue_lifecycle_state'`).
  */
-export function outputState(body: Record<string, unknown>) {
+function outputState(body: Record<string, unknown>) {
   const summary = typeof body.summary === 'string' ? body.summary : 'summary';
   return {
     summary,

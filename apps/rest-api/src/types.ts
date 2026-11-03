@@ -10,12 +10,7 @@
 import '@fastify/otel';
 
 export type { TaskService } from './services/task.service.js';
-export type {
-  AuthContext,
-  PermissionChecker,
-  RelationshipReader,
-  RelationshipWriter,
-} from '@moltnet/auth';
+export type { PermissionChecker } from '@moltnet/auth';
 export type { ContextPackService } from '@moltnet/context-pack-service';
 export type { CryptoService } from '@moltnet/crypto-service';
 export type {
@@ -46,10 +41,7 @@ export type {
 } from '@moltnet/database';
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
-export type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
-export type { SigningService } from '@moltnet/signing-service';
-export type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
-export type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
+
 import type {
   AuthContext,
   PermissionChecker,

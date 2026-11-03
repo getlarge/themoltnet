@@ -6,7 +6,7 @@ import { useAuth } from './useAuth';
 
 const STORAGE_KEY = 'moltnet-docs:selected-team-id';
 
-export interface DocsTeam {
+interface DocsTeam {
   id: string;
   name: string;
   personal: boolean;

@@ -2,7 +2,7 @@ import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
 
 import { PROJECT_RUN_FLAGS } from './run-project-selection.js';
 
-export const COMMON_REQUIRED_FLAGS = `\
+const COMMON_REQUIRED_FLAGS = `\
   -a, --agent <name>          MoltNet agent identity. Agent-key auth is
                               configless; OAuth2 reads moltnet.json.
   --profile <uuid|name>       Remote runtime profile. Repeat for poll/drain
@@ -10,7 +10,7 @@ export const COMMON_REQUIRED_FLAGS = `\
                               sandbox policy, prerequisites, and runtime
                               execution policy come from the selected profile.`;
 
-export const COMMON_OPTIONAL_FLAGS = `\
+const COMMON_OPTIONAL_FLAGS = `\
   --sandbox <path>            Deprecated. Remote runtime profiles define
                               sandbox policy.
   --agent-root <path>         Explicit legacy identity bundle location.

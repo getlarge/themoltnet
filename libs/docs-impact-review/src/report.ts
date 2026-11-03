@@ -3,7 +3,7 @@ import type { DocsImpactReport } from './types.js';
 export const DOCS_IMPACT_COMMENT_MARKER = '<!-- moltnet:docs-impact-review -->';
 
 /** The comment shows at most this many findings; the report keeps all. */
-export const COMMENT_MAX_FINDINGS = 3;
+const COMMENT_MAX_FINDINGS = 3;
 
 /**
  * An error in the comment stays readable and far below GitHub's 65,536

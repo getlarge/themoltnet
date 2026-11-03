@@ -17,7 +17,7 @@ export const AgentKeyBindingScopeSchema = Type.Union(
   { $id: 'AgentKeyBindingScope' },
 );
 
-export const AgentKeyRevocationReasonSchema = Type.Union(
+const AgentKeyRevocationReasonSchema = Type.Union(
   [
     Type.Literal('key_compromise'),
     Type.Literal('affiliation_changed'),

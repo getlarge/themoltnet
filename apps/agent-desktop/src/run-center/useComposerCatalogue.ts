@@ -1,8 +1,6 @@
 import type { AgentServerCatalogue } from './types.js';
 import { useCatalogue } from './useCatalogue.js';
 
-export { CATALOGUE_ERROR } from './useCatalogue.js';
-
 /**
  * The composer's catalogue for whichever identity it is offering.
  *

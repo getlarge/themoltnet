@@ -48,11 +48,7 @@ import type {
   PackGcConfig,
   TaskOrphanSweeperConfig,
 } from '../config.js';
-export {
-  startTaskDeletionWorkflow,
-  type TaskDeletionWorkflowInput,
-  type TaskDeletionWorkflowResult,
-} from '@moltnet/task-workflows';
+export { startTaskDeletionWorkflow } from '@moltnet/task-workflows';
 
 // ── Types ──────────────────────────────────────────────────────
 

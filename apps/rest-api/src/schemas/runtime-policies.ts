@@ -22,7 +22,7 @@ const ShellCommandTokenSchema = Type.String({
   description: 'One literal argv token.',
 });
 
-export const ShellCommandRuleSchema = Type.Object(
+const ShellCommandRuleSchema = Type.Object(
   {
     argvPrefix: Type.Array(ShellCommandTokenSchema, {
       minItems: 1,
@@ -34,12 +34,12 @@ export const ShellCommandRuleSchema = Type.Object(
   { $id: 'ShellCommandRule', additionalProperties: false },
 );
 
-export const ToolEnforcementSchema = {
+const ToolEnforcementSchema = {
   ...CanonicalToolEnforcementSchema,
   $id: 'ToolEnforcement',
 };
 
-export const RuntimePolicySchema = Type.Object(
+const RuntimePolicySchema = Type.Object(
   {
     id: UuidSchema,
     teamId: UuidSchema,
