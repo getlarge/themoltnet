@@ -65,7 +65,7 @@ on:
         default: ''
       daemon-version:
         type: string
-        default: '0.74.1'
+        default: '0.74.3'
     outputs:
       skip:
         value: ${{ jobs.prepare.outputs.skip }}
