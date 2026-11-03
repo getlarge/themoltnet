@@ -59,6 +59,26 @@ are auto-discovered (`readdirSync(evals-v2)`); no registration.
 entries) as `context` for the treatment arm. Both live runners currently hardcode
 `baseline`; a real A/B needs a variant axis in the runner or two runtime profiles.
 
+**Runtime profile:** the live suites share one generic profile
+(`createEvalProfile` in `apps/agent-daemon-e2e/src/fixtures.ts`: plain
+`gondolin_pi`, no tool policy). To measure a producer under a production
+profile instead, use `createCommittedEvalProfile({ agent, teamId, profileName,
+overrides })`. It loads `.github/runtime-profiles/<profileName>.json` and the
+policies bound to it in `.github/runtime-policy-bindings.json`
+(`loadCommittedRuntimeProfile` in `libs/agent-eval`). It then creates them on
+the e2e stack under unique names, checks the server's resolved allow-set
+against the committed policies, and returns `cleanup()`. Overrides are limited
+to what the e2e environment must change: the name suffix,
+`generation`/`classification` model, `requiredEnv`, `sandboxEnv` (merged), and
+`sandboxResources`. Context, tool enforcement, VFS, network, turn and timeout
+budgets, workspace modes, and required tools stay as committed. A model override
+keeps the committed sampling fields. Set one to `null` if the e2e model rejects
+it. The scenario's `execution.workspace` must be one of the profile's
+`allowedWorkspaceModes`; most review profiles allow only `dedicated_worktree`.
+Diary-backed `adaptive_review_pi` profiles can be created, but the in-process
+e2e daemon does not load that runtime module. Their host-only
+`ADAPTIVE_REVIEW_DIARY_IDS` is rejected as a sandbox override.
+
 ## B. Repo-practice / incident regression — `evals/moltnet-practices/<slug>/`
 
 - **`task.md`** — a straightforward implementation/debug request. Must **not**

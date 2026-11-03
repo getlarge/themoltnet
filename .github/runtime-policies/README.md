@@ -14,9 +14,16 @@ output redirection.
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json)                           | `legreffier-review-v1`                                                                           |
 | [`legreffier-adaptive-focused-readonly-v1.json`](./legreffier-adaptive-focused-readonly-v1.json)       | `legreffier-adaptive-focused-review-v1`, `legreffier-adaptive-docs-review-v1`                    |
+| [`legreffier-adaptive-knowledge-readonly-v1.json`](./legreffier-adaptive-knowledge-readonly-v1.json)   | `legreffier-adaptive-knowledge-review-v1`                                                        |
 | [`legreffier-security-review-readonly-v1.json`](./legreffier-security-review-readonly-v1.json)         | `legreffier-security-review-v2`                                                                  |
 | [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                |
 | [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`, `legreffier-issue-classifier-v2` |
+
+The same binding is machine-readable in
+[`../runtime-policy-bindings.json`](../runtime-policy-bindings.json), which the
+eval harness uses to create a committed profile with its policies. A spec in
+`libs/agent-eval` validates every definition against the API create schemas and
+fails when this table and the bindings file disagree.
 
 The definitions here are the reviewable source of truth. They are **not**
 applied automatically — the server holds the live state, and these files are
