@@ -149,8 +149,12 @@ describe('structured task submission through Pi (e2e)', () => {
   let providerBaseUrl: string;
   const requests: ToolWireRequest[] = [];
   const queuedArguments: Array<
-    { toolName: string; args: Record<string, unknown> } | { finalText: string }
+    | { toolName: string; args: Record<string, unknown> }
+    | { finalText: string }
+    | { stall: true }
   > = [];
+  let interruptedRequests = 0;
+  const interruptedAtRequest: number[] = [];
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -172,12 +176,20 @@ describe('structured task submission through Pi (e2e)', () => {
         requests.push(
           JSON.parse(Buffer.concat(chunks).toString('utf8')) as ToolWireRequest,
         );
+        interruptedAtRequest.push(interruptedRequests);
         const responseFixture = queuedArguments.shift();
         if (!responseFixture) {
           response.writeHead(500).end('No fixture response queued');
           return;
         }
-        if ('finalText' in responseFixture) {
+        if ('stall' in responseFixture) {
+          // Real HTTP stream: no finish event until the worker cancels it.
+          response.writeHead(200, { 'content-type': 'text/event-stream' });
+          response.flushHeaders();
+          response.on('close', () => {
+            interruptedRequests += 1;
+          });
+        } else if ('finalText' in responseFixture) {
           sendFixtureFinalMessage(response, responseFixture.finalText);
         } else {
           sendToolCall(
@@ -206,15 +218,19 @@ describe('structured task submission through Pi (e2e)', () => {
     taskType: 'fulfill_brief' | 'freeform' = 'fulfill_brief',
     extraInput: Record<string, unknown> = {},
     expectedExitCode = 0,
+    runningTimeoutSec?: number,
   ) {
     const requestStart = requests.length;
+    const interruptedStart = interruptedRequests;
     const toolName = taskType === 'freeform' ? FREEFORM_TOOL : SUBMIT_TOOL;
     queuedArguments.length = 0;
     queuedArguments.push(
       ...argumentsToReturn.map((args) =>
-        'finalText' in args
-          ? { finalText: args.finalText as string }
-          : { toolName, args },
+        'stall' in args
+          ? { stall: true as const }
+          : 'finalText' in args
+            ? { finalText: args.finalText as string }
+            : { toolName, args },
       ),
     );
     const { sandboxRoot, agentRoot, piDir } =
@@ -251,6 +267,7 @@ describe('structured task submission through Pi (e2e)', () => {
         taskType,
         diaryId: creds.privateDiaryId,
         maxAttempts: 1,
+        ...(runningTimeoutSec === undefined ? {} : { runningTimeoutSec }),
         input: {
           brief: `Call ${toolName} with a short summary.`,
           ...(taskType === 'fulfill_brief'
@@ -286,8 +303,94 @@ describe('structured task submission through Pi (e2e)', () => {
       queuedArguments.length = 0;
       await agent.runtimeProfiles.delete(profile.id);
     }
-    return { task, taskRequests: requests.slice(requestStart) };
+    return {
+      task,
+      taskRequests: requests.slice(requestStart),
+      interrupted: interruptedRequests - interruptedStart,
+      interruptedAtRequest: interruptedAtRequest
+        .slice(requestStart)
+        .map((n) => n - interruptedStart),
+    };
   }
+
+  it('interrupts a streaming request and saves corrected output in the same attempt before its deadline', async () => {
+    const marker =
+      'Synthetic evidence retained before the interrupted request.';
+    const { task, taskRequests, interrupted, interruptedAtRequest } =
+      await runFixtureTask(
+        [
+          { finalText: marker },
+          { stall: true },
+          {},
+          {
+            summary:
+              'Partial assessment submitted; unverified coverage remains uncertain.',
+          },
+        ],
+        'freeform',
+        {},
+        0,
+        60,
+      );
+
+    expect(interrupted).toBe(1);
+    expect(taskRequests).toHaveLength(4);
+    expect(interruptedAtRequest.slice(2)).toEqual([1, 1]);
+    for (const request of taskRequests.slice(2)) {
+      expect(request.tools?.map((tool) => tool.function?.name)).toEqual([
+        FREEFORM_TOOL,
+      ]);
+      expect(JSON.stringify(request.messages)).toContain(marker);
+      expect(JSON.stringify(request.messages)).toContain(
+        'investigation time is exhausted',
+      );
+    }
+    expect(taskRequests[3]?.messages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: 'tool' })]),
+    );
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(1);
+    const attempts = await agent.tasks.listAttempts(task.id);
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0]).toMatchObject({
+      status: 'completed',
+      error: null,
+      output: {
+        summary:
+          'Partial assessment submitted; unverified coverage remains uncertain.',
+      },
+    });
+    expect(
+      Date.parse(attempts[0]!.completedAt!) -
+        Date.parse(attempts[0]!.startedAt!),
+    ).toBeLessThan(60_000);
+    const info = await agent.tasks.listMessages(task.id, 1, { kind: ['info'] });
+    expect(
+      info.filter((message) => message.payload.event === 'submission_deadline'),
+    ).toHaveLength(1);
+  }, 180_000);
+
+  it('keeps the hard deadline when the final submission request also stalls', async () => {
+    const { task, taskRequests, interrupted } = await runFixtureTask(
+      [{ stall: true }, { stall: true }],
+      'freeform',
+      {},
+      1,
+      60,
+    );
+    expect(interrupted).toBe(2);
+    expect(taskRequests).toHaveLength(2);
+    expect(taskRequests[1]?.tools?.map((tool) => tool.function?.name)).toEqual([
+      FREEFORM_TOOL,
+    ]);
+    const attempts = await agent.tasks.listAttempts(task.id);
+    expect(attempts).toHaveLength(1);
+    expect(['failed', 'timed_out']).toContain(attempts[0]?.status);
+    expect(attempts[0]?.error?.code).toBe('running_total_exceeded');
+    expect(attempts[0]?.output).toBeNull();
+    expect((await agent.tasks.get(task.id)).acceptedAttemptN).toBeNull();
+  }, 180_000);
 
   it('advertises a strict task schema and accepts the resulting tool submission', async () => {
     const { task, taskRequests } = await runFixtureTask([VALID_ARGUMENTS]);
