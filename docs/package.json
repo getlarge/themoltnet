@@ -37,7 +37,6 @@
     }
   },
   "dependencies": {
-    "@moltnet/runtime-profiles": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
+    "@moltnet/runtime-profiles": "workspace:*"
   }
 }

@@ -90,14 +90,12 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "thread-stream": "catalog:",
-    "tslib": "catalog:",
     "typebox": "catalog:",
     "winston": "catalog:",
-    "winston-transport": "catalog:"
+    "winston-transport": "catalog:",
+    "@noble/ed25519": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/api-client": "workspace:*",
-    "@moltnet/bootstrap": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "tsx": "catalog:",

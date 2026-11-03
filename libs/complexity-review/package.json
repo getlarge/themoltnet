@@ -25,12 +25,10 @@
     "@moltnet/task-schemas": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
-    "multiformats": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

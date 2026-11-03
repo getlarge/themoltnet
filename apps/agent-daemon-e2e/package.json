@@ -7,12 +7,10 @@
     "@moltnet/agent-eval": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/observability": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/agent-daemon": "workspace:*",
     "@themoltnet/agent-runtime": "workspace:*",
-    "@themoltnet/pi-extension": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*"
   },
