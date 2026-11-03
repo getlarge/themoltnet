@@ -1,0 +1,1 @@
+Review the proposed rollout eligibility implementation in this workspace for release readiness. Follow the review procedure in README.md. Do not change the implementation or verification scripts. Return your findings with concrete input examples, their impact on the rollout decision, and the verification evidence supporting your recommendation.

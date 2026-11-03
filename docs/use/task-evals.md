@@ -259,6 +259,39 @@ the rendered pack faithfully represents its source entries, run a separate
 `judge_pack` task as described in
 [Context Packs: Fidelity attestation](./context-packs.md#fidelity-attestation).
 
+## Deadline finalization in the weekly matrix
+
+`evals-v2/deadline-review-finalization` exercises a live model through the real
+Gondolin/Pi daemon. It reviews seeded source files and starts a deliberately
+slow local verification probe. The task has a 180-second total running budget;
+the runtime interrupts exploration to reserve time for structured submission.
+
+With the [local e2e stack](../contribute/testing.md) running and
+`OLLAMA_API_KEY` set, run its four independent trials for one model:
+
+```bash
+NX_LOAD_DOT_ENV_FILES=false MOLTNET_EVAL_MATRIX=1 MODELS=glm-5.2 \
+  EVAL_MATRIX_SCENARIOS=deadline-review-finalization \
+  EVAL_MATRIX_OUT=/tmp/deadline-matrix.json \
+  EVAL_MATRIX_EVIDENCE_DIR=/tmp/deadline-evidence \
+  pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e:eval-matrix
+```
+
+The matrix records each trial separately, including failures. Deterministic
+gates require an actual interruption, clean structured output, and completion
+within the original budget. Passing attempts receive a hidden-rubric judgment of
+finding retention, coverage honesty, and the release recommendation. Timing
+fields report total elapsed time and time from cutoff to completion. Optional
+evidence files retain attempt outputs, messages, and durable conversations for
+manual inspection; they are never copied into the producer workspace.
+
+Scenario metadata `matrixOnly: true` excludes this expensive stress case from
+the per-PR smoke suite. `matrixRepeats: 4` creates fresh tasks, workspaces, and
+diaries, while `runningTimeoutSec` sets the task budget. Setup errors and
+missing fixtures invalidate a trial; do not interpret them as model capability
+failures. Four trials provide an initial measurement, not proof of a reliability
+rate or improvement over an older runtime.
+
 ## CI eval spend
 
 The PR live-eval lanes and the weekly model matrix attach `eval-spend-*`
@@ -269,8 +302,9 @@ retains its detailed `score-matrix-*` artifacts.
 The table separates producer cost, judge overhead, and total estimated USD for
 each model under evaluation. Spend includes every task attempt and every fresh
 scenario retry, including failures. Gate pass counts use the final sampling run
-per scenario; mean judged scores use the matrix's existing scores. A skipped
-judge contributes no judge spend.
+per scenario in retrying PR smoke lanes; independent matrix trials are counted
+separately. Mean judged scores use the matrix's existing scores. A skipped judge
+contributes no judge spend.
 
 Costs use standard catalog rates, including scheduled runs during off-peak
 hours. Fully priced, partially priced, unpriced, and missing-telemetry task
