@@ -51,6 +51,45 @@ function makeMockTasks(overrides: Partial<TasksNamespace> = {}): {
 const TASK_ID = '11111111-1111-4111-8111-111111111111';
 
 describe('ApiTaskReporter', () => {
+  it('reads the matching server attempt start without replacing it with worker time', async () => {
+    const startedAt = '2026-11-01T12:00:00.000Z';
+    const listAttempts = vi.fn().mockResolvedValue([
+      { attemptN: 1, startedAt: '2026-10-31T00:00:00.000Z' },
+      { attemptN: 2, startedAt },
+    ]);
+    const { tasks } = makeMockTasks({ listAttempts });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      teamId: 'team',
+      heartbeatIntervalMs: 0,
+    });
+    await reporter.open({ taskId: TASK_ID, attemptN: 2 });
+    expect(await reporter.getAttemptStartedAt()).toBe(Date.parse(startedAt));
+    expect(listAttempts).toHaveBeenCalledWith(TASK_ID, {
+      teamId: 'team',
+      signal: expect.any(AbortSignal),
+    });
+    await reporter.close();
+  });
+
+  it.each([
+    [],
+    [{ attemptN: 2, startedAt: null }],
+    [{ attemptN: 2, startedAt: 'invalid' }],
+  ])(
+    'refuses an unavailable server start instead of granting a new budget (%j)',
+    async (...attempts) => {
+      const { tasks } = makeMockTasks({
+        listAttempts: vi.fn().mockResolvedValue(attempts.flat()),
+      });
+      const reporter = new ApiTaskReporter({ tasks, heartbeatIntervalMs: 0 });
+      await reporter.open({ taskId: TASK_ID, attemptN: 2 });
+      await expect(reporter.getAttemptStartedAt()).rejects.toThrow(
+        'running-phase start is unavailable',
+      );
+      await reporter.close();
+    },
+  );
   beforeEach(() => {
     vi.useFakeTimers();
     reporterTelemetry.addActiveTaskEvent.mockClear();
