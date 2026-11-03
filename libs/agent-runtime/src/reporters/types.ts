@@ -45,6 +45,12 @@ export interface TaskReporter {
    */
   reconcileAttempt?(): Promise<TaskOutput | null>;
 
+  /** Server-recorded running-phase start, after open's initial heartbeat.
+   * Used for time budgets across worker restarts; never substitute a new start
+   * when an API-backed attempt cannot be read.
+   */
+  getAttemptStartedAt?(): Promise<number>;
+
   /**
    * Signal that aborts when the task is cancelled by the proposer (or a
    * diary writer) while the executor is running. `ApiTaskReporter`

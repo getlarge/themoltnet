@@ -91,6 +91,9 @@ const Attempts = defineDocFamily({
     lastToolRound: null as string | null,
     outputSource: null as 'submit_tool' | 'final_message' | null,
     bashTimeouts: 0,
+    deadlineMs: null as number | null,
+    finalization: null as 'interrupting' | 'submitting' | null,
+    finalizationTurns: 0,
   }),
 });
 
@@ -100,6 +103,31 @@ const BASH_TIMEOUT = /^Command timed out after /;
 
 /** Tool rounds left at which the model is told to submit. */
 const TURN_BUDGET_WARNING_ROUNDS = 3;
+
+/** Leave time for generation, a corrected submission, and result persistence. */
+const SUBMISSION_RESERVE_MS = 90_000;
+const FINALIZATION_TOOL_ROUNDS = 3;
+
+/** A host timer, independent of model/tool progress; callers abort timed-out work. */
+async function beforeDeadline<T>(
+  work: Promise<T>,
+  deadlineMs: number,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(
+          () => resolve(null),
+          Math.max(0, deadlineMs - Date.now()),
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * A request-only notice that the turn budget is nearly spent. Without it the
@@ -370,6 +398,7 @@ export function createDurableTaskExecutor(options: {
         startedAt: Date.now(),
         baseline: { inputTokens: 0, outputTokens: 0 },
       };
+      let finalizing = false;
       const guards = defineExtension({
         name: 'moltnet-attempt',
         tools: [submit],
@@ -378,13 +407,15 @@ export function createDurableTaskExecutor(options: {
             async beforeTool(call, _api, ctx) {
               connected.check();
               const block =
-                call.name === contract.toolName
-                  ? undefined
-                  : await prepared!.authorizeTool(
-                      call.name,
-                      call.arguments as JsonObject,
-                      withAbortSignal(connected.signal, ctx),
-                    );
+                finalizing && call.name !== contract.toolName
+                  ? 'Investigation time is exhausted. Submit the current result.'
+                  : call.name === contract.toolName
+                    ? undefined
+                    : await prepared!.authorizeTool(
+                        call.name,
+                        call.arguments as JsonObject,
+                        withAbortSignal(connected.signal, ctx),
+                      );
               await emit('tool_call_start', { tool_name: call.name });
               if (!block) return undefined;
               // A blocked call settles without afterTool, so close it here.
@@ -431,6 +462,9 @@ export function createDurableTaskExecutor(options: {
                 const state = await tx.doc(Attempts, key, seed);
                 if (state.lastToolRound !== String(assistant)) {
                   state.turns += 1;
+                  if (state.finalization === 'submitting')
+                    state.finalizationTurns =
+                      (state.finalizationTurns ?? 0) + 1;
                   state.lastToolRound = String(assistant);
                 }
               }, ctx);
@@ -440,8 +474,10 @@ export function createDurableTaskExecutor(options: {
               const state = await harness!.snapshot(Attempts, key, ctx);
               const exhausted =
                 (turnLimit !== undefined && (state?.turns ?? 0) >= turnLimit) ||
-                (bashTimeoutLimit !== undefined &&
-                  bashTimeoutsOf(state) >= bashTimeoutLimit);
+                (finalizing
+                  ? (state?.finalizationTurns ?? 0) >= FINALIZATION_TOOL_ROUNDS
+                  : bashTimeoutLimit !== undefined &&
+                    bashTimeoutsOf(state) >= bashTimeoutLimit);
               if (exhausted) {
                 await abortGeneration(harness!, api.taskId, ctx);
                 return undefined;
@@ -451,6 +487,7 @@ export function createDurableTaskExecutor(options: {
                   ? undefined
                   : turnLimit - (state?.turns ?? 0);
               if (
+                !finalizing &&
                 remaining !== undefined &&
                 remaining <= TURN_BUDGET_WARNING_ROUNDS &&
                 !state?.submission
@@ -688,6 +725,24 @@ export function createDurableTaskExecutor(options: {
         }, context);
         state = await harness.snapshot(Attempts, key, context);
       }
+      // Explicit task budgets are pinned by the proposer. Read the server's
+      // running start once, then persist the deadline before environment setup.
+      // Older/local attempts use their already-persisted start, never resume time.
+      const runningTimeoutSec = task.runningTimeoutSec;
+      if (
+        typeof runningTimeoutSec === 'number' &&
+        typeof state?.deadlineMs !== 'number'
+      ) {
+        const startedAt = reporter.getAttemptStartedAt
+          ? await reporter.getAttemptStartedAt()
+          : seed.startedAt;
+        await harness.commit(async (tx) => {
+          (await tx.doc(Attempts, key, seed)).deadlineMs =
+            startedAt + runningTimeoutSec * 1000;
+        }, context);
+        state = await harness.snapshot(Attempts, key, context);
+      }
+      finalizing = Boolean(state?.finalization);
       prepared = await connected.prepare(state?.environment ?? null);
       if (!state?.environment && prepared.checkpoint) {
         await harness.commit(async (tx) => {
@@ -702,6 +757,16 @@ export function createDurableTaskExecutor(options: {
             ...tool,
             async execute(args, api, ctx) {
               connected.check();
+              if (finalizing)
+                return {
+                  isError: true,
+                  output: [
+                    {
+                      type: 'text' as const,
+                      text: 'Investigation time is exhausted. Submit the current result.',
+                    },
+                  ],
+                };
               // Pi's safe recovery phase bypasses beforeTool; authorize the actual
               // invocation as well as admission so recovered calls use current policy.
               const block = await prepared!.authorizeTool(
@@ -887,6 +952,10 @@ export function createDurableTaskExecutor(options: {
       await conversation.configure(
         {
           ...options.agent,
+          tools: finalizing ? [submit] : (options.agent?.tools ?? null),
+          modelTools: finalizing
+            ? [submit]
+            : (options.agent?.modelTools ?? null),
           instructions: [options.agent?.instructions, prepared.instructions]
             .filter(Boolean)
             .join('\n\n'),
@@ -903,20 +972,87 @@ export function createDurableTaskExecutor(options: {
       );
       connected.check();
       // requestId makes the admission crash window idempotent, including after settlement.
-      const submission = await conversation.submit(
-        {
-          type: 'input',
-          requestId: key,
-          content:
-            prepared.prompt ??
-            buildTaskUserPrompt(task, {
-              taskId: task.id,
-              diaryId: task.diaryId ?? '',
-            }).text,
-        },
-        context,
+      const submission = finalizing
+        ? undefined
+        : await conversation.submit(
+            {
+              type: 'input',
+              requestId: key,
+              content:
+                prepared.prompt ??
+                buildTaskUserPrompt(task, {
+                  taskId: task.id,
+                  diaryId: task.diaryId ?? '',
+                }).text,
+            },
+            context,
+          );
+      const deadlineMs = state?.deadlineMs ?? undefined;
+      const reserveMs = Math.min(
+        SUBMISSION_RESERVE_MS,
+        ((task.runningTimeoutSec ?? 0) * 1000) / 4,
       );
-      const settlement = await submission.wait(context);
+      let settlement = !submission
+        ? null
+        : deadlineMs === undefined
+          ? await submission.wait(context)
+          : await beforeDeadline(
+              submission.wait(context),
+              deadlineMs - reserveMs,
+            );
+      if (settlement === null) {
+        // Persist intent before aborting. A reopened executor repeats the abort
+        // barrier, or reattaches to the idempotent finalization submission.
+        finalizing = true;
+        state = await harness.snapshot(Attempts, key, context);
+        if (state?.submission) {
+          // The submit tool may have persisted output just before the cutoff,
+          // while its round is still settling. Keep that output, but drain the
+          // conversation so a later continuation cannot inherit live work.
+          await conversation.abort(context, { background: true });
+        } else if (state?.finalization !== 'submitting') {
+          await harness.commit(async (tx) => {
+            (await tx.doc(Attempts, key, seed)).finalization = 'interrupting';
+          }, context);
+          await emit('info', {
+            event: 'submission_deadline',
+            remainingMs: Math.max(0, (deadlineMs ?? Date.now()) - Date.now()),
+          });
+          await conversation.abort(context, { background: true });
+          await harness.commit(async (tx) => {
+            (await tx.doc(Attempts, key, seed)).finalization = 'submitting';
+          }, context);
+        }
+        state = await harness.snapshot(Attempts, key, context);
+        if (
+          !state?.submission &&
+          deadlineMs !== undefined &&
+          Date.now() < deadlineMs
+        ) {
+          await conversation.configure(
+            { tools: [submit], modelTools: [submit] },
+            context,
+          );
+          const finalSubmission = await conversation.submit(
+            {
+              type: 'input',
+              requestId: `${key}/finalize`,
+              content: `Runtime notice: investigation time is exhausted. Call ${contract.toolName} now using the evidence already collected. Report incomplete coverage and uncertainty honestly. Do not investigate further.`,
+            },
+            context,
+          );
+          settlement = await beforeDeadline(
+            finalSubmission.wait(context),
+            deadlineMs,
+          );
+          if (settlement === null)
+            await conversation.abort(context, { background: true });
+        } else if (!state?.submission) {
+          // A restart can find a pending final generation after its deadline.
+          // Settle its work before recording a terminal attempt result.
+          await conversation.abort(context, { background: true });
+        }
+      }
       connected.check();
       state = await harness.snapshot(Attempts, key, context);
       const usage = attemptUsage(
@@ -942,30 +1078,36 @@ export function createDurableTaskExecutor(options: {
       const maxBashTimeoutsExceeded =
         bashTimeoutLimit !== undefined && bashTimeouts >= bashTimeoutLimit;
       const failure =
-        output || state?.finalMessageError
+        deadlineMs !== undefined && Date.now() >= deadlineMs && !output
           ? {
-              code: 'output_validation_failed',
-              message: output
-                ? JSON.stringify(errors.slice(0, 3))
-                : state!.finalMessageError!,
+              code: 'running_total_exceeded',
+              message: 'Running deadline elapsed without valid output',
+              retryable: false,
             }
-          : maxBashTimeoutsExceeded
+          : output || state?.finalMessageError
             ? {
-                code: 'max_bash_timeouts_exceeded',
-                message: `Aborted after ${bashTimeouts} bash timeouts in this attempt (cap ${bashTimeoutLimit}).`,
+                code: 'output_validation_failed',
+                message: output
+                  ? JSON.stringify(errors.slice(0, 3))
+                  : state!.finalMessageError!,
               }
-            : maxTurnsExceeded
+            : maxBashTimeoutsExceeded
               ? {
-                  code: 'max_turns_exceeded',
-                  message:
-                    'Durable task exceeded maxTurns without valid output',
+                  code: 'max_bash_timeouts_exceeded',
+                  message: `Aborted after ${bashTimeouts} bash timeouts in this attempt (cap ${bashTimeoutLimit}).`,
                 }
-              : {
-                  code: 'submit_output_missing',
-                  message: 'No valid output was submitted',
-                };
+              : maxTurnsExceeded
+                ? {
+                    code: 'max_turns_exceeded',
+                    message:
+                      'Durable task exceeded maxTurns without valid output',
+                  }
+                : {
+                    code: 'submit_output_missing',
+                    message: 'No valid output was submitted',
+                  };
       const providerMessage =
-        settlement.status === 'unanswered' &&
+        settlement?.status === 'unanswered' &&
         settlement.reason === 'model_error'
           ? typeof settlement.detail === 'string'
             ? settlement.detail
