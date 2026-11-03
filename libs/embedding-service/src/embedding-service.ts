@@ -5,10 +5,12 @@
  * via @huggingface/transformers (ONNX runtime).
  */
 
+import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 
 import { env, pipeline } from '@huggingface/transformers';
 
+import { createWorkerEmbedder } from './embedding-worker.js';
 import type {
   EmbeddingLogger,
   EmbeddingService,
@@ -48,8 +50,7 @@ async function loadPipeline(
   // cache_dir only controls the HTTP response cache, not the local model lookup
   // path. Set localModelPath so the library finds pre-downloaded models.
   if (cacheDir) {
-    const absPath = resolve(process.cwd(), cacheDir);
-    env.localModelPath = absPath.endsWith('/') ? absPath : `${absPath}/`;
+    env.localModelPath = toLocalModelPath(cacheDir);
   }
 
   try {
@@ -65,6 +66,13 @@ async function loadPipeline(
     env.allowRemoteModels = prevAllowRemote;
     env.localModelPath = prevLocalModelPath;
   }
+}
+
+// cache_dir only controls the HTTP response cache, not the local model lookup
+// path, so models are located through env.localModelPath instead.
+function toLocalModelPath(cacheDir: string): string {
+  const absPath = resolve(process.cwd(), cacheDir);
+  return absPath.endsWith('/') ? absPath : `${absPath}/`;
 }
 
 function l2Normalize(vector: number[]): number[] {
@@ -89,6 +97,24 @@ export function createEmbeddingService(
   const allowRemoteModels = options?.allowRemoteModels ?? true;
   const logger = options?.logger ?? noopLogger;
 
+  const worker =
+    (options?.executor ?? 'worker') === 'worker'
+      ? createWorkerEmbedder(
+          {
+            modulePath:
+              options?.transformersModulePath ??
+              createRequire(import.meta.url).resolve(
+                '@huggingface/transformers',
+              ),
+            modelId,
+            quantization,
+            localModelPath: cacheDir ? toLocalModelPath(cacheDir) : undefined,
+            allowRemoteModels,
+          },
+          logger,
+        )
+      : null;
+
   let pipelinePromise: Promise<FeatureExtractionPipeline> | null = null;
 
   function getOrCreatePipeline(): Promise<FeatureExtractionPipeline> {
@@ -111,14 +137,17 @@ export function createEmbeddingService(
     return pipelinePromise;
   }
 
-  async function embed(text: string): Promise<number[]> {
+  async function embedInline(text: string): Promise<number[]> {
     const extractor = await getOrCreatePipeline();
     const output = await extractor([text], {
       pooling: 'mean',
       normalize: false,
     });
-    const vectors = output.tolist();
-    const raw = vectors[0];
+    return output.tolist()[0];
+  }
+
+  async function embed(text: string): Promise<number[]> {
+    const raw = worker ? await worker.embedRaw(text) : await embedInline(text);
 
     if (raw.length !== dimensions) {
       logger.warn(
@@ -136,6 +165,9 @@ export function createEmbeddingService(
     },
     async embedQuery(text: string): Promise<number[]> {
       return embed(`query: ${text}`);
+    },
+    async close(): Promise<void> {
+      await worker?.close();
     },
   };
 }

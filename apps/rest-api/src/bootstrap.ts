@@ -439,6 +439,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     allowRemoteModels: config.embedding.EMBEDDING_ALLOW_REMOTE_MODELS,
     logger: app.log,
   });
+  // Inference runs on a worker thread so it never blocks this event loop.
+  app.addHook('onClose', () => embeddingService.close?.());
 
   // Eagerly warm the ONNX pipeline so the first user request doesn't pay
   // the ~5 s cold-start cost (model load + runtime init). The health-check
