@@ -260,8 +260,8 @@ function submitCallResults(
 }
 
 /** Conversation reads are bounded by the attempt; inherited context is not its evidence. */
-async function durableToolEvents(
-  agent: GateAgent,
+export async function readDurableToolEvents(
+  agent: { tasks: Pick<GateAgent['tasks'], 'conversations'> },
   taskId: string,
   attemptN: number,
   teamId: string | undefined,
@@ -371,7 +371,7 @@ export async function checkGates(
   } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
   let messages = await listAllMessages(agent, taskId, attemptN);
   try {
-    const evidence = await durableToolEvents(
+    const evidence = await readDurableToolEvents(
       agent,
       taskId,
       attemptN,

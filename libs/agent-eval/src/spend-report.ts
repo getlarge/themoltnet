@@ -22,6 +22,8 @@ export interface EvalSpendContext {
 export interface EvalSpendTask {
   taskId: string;
   scenario: string;
+  /** Independent matrix trial; omitted for retry-until-pass smoke lanes. */
+  trial?: number;
   provider: string;
   model: string;
   role: 'producer' | 'judge';
@@ -139,12 +141,15 @@ export async function collectEvalSpend(
     records,
     totals: totals(records),
     models: [...groups.values()].map(({ owner, records }) => {
-      // Quality uses the final sampling run per scenario; spend uses all runs.
+      // Smoke retries collapse to the final run; independent matrix trials do not.
       const outcomes = [
         ...new Map(
           records
             .filter((r) => r.role === 'producer')
-            .map((r) => [r.scenario, r.evaluation]),
+            .map((r) => [
+              JSON.stringify([r.scenario, r.trial ?? null]),
+              r.evaluation,
+            ]),
         ).values(),
       ];
       const scores = outcomes.flatMap((r) =>

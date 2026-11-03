@@ -1,5 +1,5 @@
 import type { SubmitRepairKind } from '@moltnet/tasks';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { GateResult } from '../src/check-gates.js';
 import { summarizeProducerSpend } from '../src/producer-spend.js';
@@ -58,6 +58,66 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
 }
 
 describe('runMatrix', () => {
+  it('retains task identity and diagnostic errors when a producer is interrupted', async () => {
+    const runJudge = vi.fn();
+    const matrix = await runMatrix(
+      ['model'],
+      [scenario('deadline')],
+      'judge',
+      deps({
+        runProducer: async () => ({
+          taskId: 'interrupted-task',
+          attemptN: null,
+          failureCode: 'execution_interrupted',
+          error: 'writer lease lost',
+        }),
+        runJudge,
+      }),
+    );
+    expect(matrix.cells[0]).toMatchObject({
+      producerTaskId: 'interrupted-task',
+      failureCode: 'execution_interrupted',
+      error: 'writer lease lost',
+      composite: 0,
+      judged: false,
+    });
+    expect(runJudge).not.toHaveBeenCalled();
+  });
+
+  it('runs fresh trials without retrying away failures and retains timing evidence', async () => {
+    const trialScenario = { ...scenario('deadline'), matrixRepeats: 4 };
+    const runJudge = vi.fn(async () => ({ composite: 0.8 }));
+    const deadline = {
+      elapsedMs: 160_000,
+      finalizationMs: 25_000,
+      remainingMsAtCutoff: 45_000,
+    };
+    const runGates = vi
+      .fn()
+      .mockResolvedValueOnce(FAIL)
+      .mockResolvedValue({ ...PASS, deadline });
+    const result = await runMatrix(
+      ['model'],
+      [trialScenario],
+      'judge',
+      deps({ runGates, runJudge }),
+    );
+    expect(result.cells.map((cell) => cell.producerTaskId)).toEqual([
+      'task-1',
+      'task-2',
+      'task-3',
+      'task-4',
+    ]);
+    expect(result.cells.map((cell) => cell.trial)).toEqual([1, 2, 3, 4]);
+    expect(result.cells.map((cell) => cell.composite)).toEqual([
+      0, 0.8, 0.8, 0.8,
+    ]);
+    expect(result.cells[0].judged).toBe(false);
+    expect(result.cells[1].deadline).toEqual(deadline);
+    expect(runJudge).toHaveBeenCalledTimes(3);
+    expect(summarizeMatrix(result)).toContain('finalization=25000ms');
+  });
+
   it('scores gate-only structure without calling the judge', async () => {
     let judgeCalls = 0;
     const shape = { ...scenario('shape'), scoring: 'gates_only' as const };

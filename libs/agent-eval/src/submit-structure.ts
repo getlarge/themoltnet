@@ -1,5 +1,6 @@
 import { SUBMIT_REPAIR_KINDS, type SubmitRepairKind } from '@moltnet/tasks';
 
+import { type GateAgent, readDurableToolEvents } from './check-gates.js';
 import type { SubmitStructure } from './score-matrix.js';
 
 const KNOWN_REPAIR_KINDS: ReadonlySet<string> = new Set(SUBMIT_REPAIR_KINDS);
@@ -19,6 +20,7 @@ export interface SubmitStructureMessage {
 /** The narrow slice of the SDK `Agent` that `readSubmitStructure` needs. */
 export interface SubmitStructureAgent {
   tasks: {
+    conversations?: GateAgent['tasks']['conversations'];
     listMessages(
       taskId: string,
       attemptN: number,
@@ -59,10 +61,18 @@ export async function readSubmitStructure(
   taskId: string,
   attemptN: number,
   taskType: string,
+  teamId?: string,
 ): Promise<SubmitStructure> {
   const messages = await listAllStructureMessages(agent, taskId, attemptN);
   const submitName = `submit_${taskType}_output`;
-  const invalidSubmitCalls = messages.filter(
+  // Argument preparation failures exist in committed conversation results but
+  // may never emit a tool_call_end progress event. Use the same authoritative
+  // evidence as checkGates, once, rather than counting mirrored progress too.
+  const toolMessages = teamId
+    ? ((await readDurableToolEvents(agent, taskId, attemptN, teamId)) ??
+      messages)
+    : messages;
+  const invalidSubmitCalls = toolMessages.filter(
     (message) =>
       message.kind === 'tool_call_end' &&
       message.payload.tool_name === submitName &&
