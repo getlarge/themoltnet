@@ -8,7 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { execManagedCommand } from '../src/managed-exec.js';
 import { ensureSnapshot } from '../src/snapshot.js';
@@ -46,12 +46,38 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
+  const storeSandboxConfig = {
+    env: { NPM_CONFIG_STORE_DIR: '/opt/pnpm-store' },
+    snapshot: {
+      overlaySize: '3G',
+      setupCommands: [
+        'mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store',
+      ],
+    },
+  };
+  let checkpointPath: string;
+  let storeCheckpointPath: string;
+
+  // Cold builds download and install guest tools. Give setup its own budget,
+  // so a test timeout cannot start another build against the same overlay.
+  beforeAll(async () => {
+    const onProgress = (message: string) =>
+      console.info(`[snapshot ${new Date().toISOString()}] ${message}`);
+    // Keep the first prepared snapshot even if a restored cache contains newer
+    // unrelated configurations when the second build prunes old snapshots.
+    const setupOptions = { onProgress, maxCached: Number.POSITIVE_INFINITY };
+    checkpointPath = await ensureSnapshot(setupOptions);
+    storeCheckpointPath = await ensureSnapshot({
+      ...setupOptions,
+      config: storeSandboxConfig.snapshot,
+    });
+  }, 600_000);
+
   it('retires the VM before daemonized delayed work escapes', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-managed-exec-'));
     const workspace = path.join(root, 'workspace');
     const marker = path.join(workspace, 'escaped.txt');
     mkdirSync(workspace, { recursive: true });
-    const checkpointPath = await ensureSnapshot();
     const managed = await resumeVm({
       checkpointPath,
       agentName: 'configless',
@@ -95,7 +121,6 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       path.join(legacyDir, 'moltnet.json'),
       JSON.stringify({ keys: { private_key: 'host-only-seed-sentinel' } }),
     );
-    const checkpointPath = await ensureSnapshot();
     const identity = {
       agentName: 'legacy',
       identityId: 'id-1',
@@ -196,7 +221,6 @@ echo "seed-env=$(env | grep -c host-only-seed-sentinel || true)"
     );
     writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
 
-    const checkpointPath = await ensureSnapshot();
     const managed = await resumeVm({
       checkpointPath,
       agentName: 'legreffier',
@@ -245,27 +269,12 @@ echo policy-enforced
     );
     writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
 
-    const sandboxConfig = {
-      env: {
-        NPM_CONFIG_STORE_DIR: '/opt/pnpm-store',
-      },
-      snapshot: {
-        overlaySize: '3G',
-        setupCommands: [
-          'mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store',
-        ],
-      },
-    };
-
-    const checkpointPath = await ensureSnapshot({
-      config: sandboxConfig.snapshot,
-    });
     const managed = await resumeVm({
-      checkpointPath,
+      checkpointPath: storeCheckpointPath,
       agentName: 'legreffier',
       agentRootDir: root,
       mountPath: workspace,
-      sandboxConfig,
+      sandboxConfig: storeSandboxConfig,
     });
 
     try {
