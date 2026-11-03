@@ -8,7 +8,7 @@ export interface PiModelOptions {
   maxOutputTokens?: number | null;
 }
 
-export function hasPiModelOptions(options: PiModelOptions): boolean {
+function hasPiModelOptions(options: PiModelOptions): boolean {
   return (
     (options.temperature !== undefined && options.temperature !== null) ||
     (options.topP !== undefined && options.topP !== null) ||

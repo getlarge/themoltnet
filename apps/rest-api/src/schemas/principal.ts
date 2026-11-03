@@ -34,11 +34,8 @@
 import { Type } from 'typebox';
 
 export {
-  type AgentPrincipal,
   AgentPrincipalSchema,
-  type HumanPrincipal,
   HumanPrincipalSchema,
-  type PrincipalIdentity,
   PrincipalIdentitySchema,
 } from '@moltnet/models';
 

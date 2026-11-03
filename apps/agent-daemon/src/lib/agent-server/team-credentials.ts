@@ -13,7 +13,7 @@ import {
 } from './identity.js';
 import type { AgentActivation, AgentServerStore } from './store.js';
 
-export const AGENT_SERVER_REQUIRED_SCOPES = [...DAEMON_MINIMUM_SCOPES];
+const AGENT_SERVER_REQUIRED_SCOPES = [...DAEMON_MINIMUM_SCOPES];
 
 export interface CredentialMetadata {
   keyId: string;

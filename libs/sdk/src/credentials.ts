@@ -26,5 +26,4 @@ export {
   updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
-  type WriteConfigOptions,
 } from '@moltnet/agent-config';

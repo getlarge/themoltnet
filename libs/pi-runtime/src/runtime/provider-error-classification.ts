@@ -265,7 +265,7 @@ export function isPermanentProviderQuotaError(
   );
 }
 
-export function isProviderAuthError(message: string): boolean {
+function isProviderAuthError(message: string): boolean {
   return PROVIDER_AUTH_PATTERN.test(message);
 }
 

@@ -57,17 +57,7 @@ const TALOS_ADMIN_URL =
 const WEBHOOK_API_KEY =
   process.env.ORY_ACTION_API_KEY ?? 'local-dev-webhook-key';
 
-export {
-  DATABASE_URL,
-  HYDRA_ADMIN_URL,
-  HYDRA_PUBLIC_URL,
-  KETO_READ_URL,
-  KETO_WRITE_URL,
-  KRATOS_ADMIN_URL,
-  KRATOS_PUBLIC_URL,
-  TALOS_ADMIN_URL,
-  WEBHOOK_API_KEY,
-};
+export { DATABASE_URL, HYDRA_PUBLIC_URL, KRATOS_PUBLIC_URL, WEBHOOK_API_KEY };
 
 // ── Ory API Clients (test scaffolding — direct to Ory containers) ──
 

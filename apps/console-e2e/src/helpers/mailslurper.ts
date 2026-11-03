@@ -1,6 +1,6 @@
 import { MAILSLURPER_API_URL } from './env.js';
 
-export interface MailRecord {
+interface MailRecord {
   to: string[];
   body?: string;
   html?: string;

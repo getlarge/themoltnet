@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const DESKTOP_PLATFORMS = Object.freeze({
+const DESKTOP_PLATFORMS = Object.freeze({
   'mac-os': Object.freeze({
     artifacts: Object.freeze([
       Object.freeze({ suffix: 'aarch64.app.tar.gz', updater: true }),
@@ -32,13 +32,13 @@ export const DESKTOP_PLATFORMS = Object.freeze({
 
 export const MANIFEST_NAME = 'latest.json';
 
-export function assertVersion(version) {
+function assertVersion(version) {
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version ?? '')) {
     throw new Error(`Desktop version is not canonical: ${version ?? 'none'}`);
   }
 }
 
-export const desktopAssetName = (version, suffix) =>
+const desktopAssetName = (version, suffix) =>
   `MoltNet-Agent_${version}_${suffix}`;
 
 export function expectedAssetNames(version) {

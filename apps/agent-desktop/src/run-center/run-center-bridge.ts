@@ -16,7 +16,6 @@ import type {
   AgentServerCatalogue,
   AgentServerProvider,
   AgentServerRun,
-  AgentServerSubscription,
   AgentServerSubscriptionLogin,
   ProjectActions,
   ProjectLocation,
@@ -118,14 +117,6 @@ export const projectActions: ProjectActions = {
   },
   chooseFolder: () => invoke<string | null>('desktop_choose_project_folder'),
 };
-
-export function listSubscriptions(): Promise<AgentServerSubscription[]> {
-  return invoke<AgentServerSubscription[]>('desktop_subscriptions');
-}
-
-export function listProviders(): Promise<Record<string, AgentServerProvider>> {
-  return invoke<Record<string, AgentServerProvider>>('desktop_providers');
-}
 
 export const runCenterActions: RunCenterActions = {
   createManagedAgent: (name, enrollmentToken) =>

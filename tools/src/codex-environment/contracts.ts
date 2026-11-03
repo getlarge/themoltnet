@@ -1,19 +1,15 @@
 import { sanitizeForPersistence } from './sanitize.js';
 
-export const CREDENTIAL_PREFLIGHT_REASONS = [
-  'required_binding_missing',
-  'binding_requirement_mismatch',
-  'resolution_boundary_denied',
-  'destination_denied',
-  'provider_unavailable',
-  'host_store_inaccessible',
-  'binding_absent',
-  'delivery_failed',
-  'ready',
-] as const;
-
 export type CredentialPreflightReason =
-  (typeof CREDENTIAL_PREFLIGHT_REASONS)[number];
+  | 'required_binding_missing'
+  | 'binding_requirement_mismatch'
+  | 'resolution_boundary_denied'
+  | 'destination_denied'
+  | 'provider_unavailable'
+  | 'host_store_inaccessible'
+  | 'binding_absent'
+  | 'delivery_failed'
+  | 'ready';
 
 export interface CredentialPreflightState {
   binding: 'missing' | 'present';

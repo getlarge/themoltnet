@@ -137,7 +137,7 @@ export class NodeHidProvider implements HidProvider {
   }
 }
 
-export function describeDevice(device: HidDeviceInfo): DeviceDescriptor {
+function describeDevice(device: HidDeviceInfo): DeviceDescriptor {
   invariant(
     device.path,
     'TRANSPORT_ERROR',

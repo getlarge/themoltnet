@@ -30,11 +30,11 @@ import type { HumanAuthContext } from './types.js';
  * Minimal logger shape compatible with both Pino (used by Fastify) and a
  * plain console shim. Kept narrow so this module stays framework-agnostic.
  */
-export interface SessionResolverLogger {
+interface SessionResolverLogger {
   warn: (obj: unknown, msg?: string) => void;
 }
 
-export interface ResolveSessionInput {
+interface ResolveSessionInput {
   /** Session token from the `X-Moltnet-Session-Token` header (native clients). */
   sessionToken?: string | null;
   /** Raw `Cookie` header value (browser clients). */

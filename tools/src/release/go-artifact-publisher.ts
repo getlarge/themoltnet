@@ -27,7 +27,7 @@ type ArtifactStore =
       finalize?: boolean;
       upload?: boolean;
     };
-export type GoReleaseBuild = {
+type GoReleaseBuild = {
   goos: string;
   goarch: string;
   goarm?: string;
@@ -528,7 +528,7 @@ function formatCommand(
   )}`;
 }
 
-export function printGoArtifactReleasePlan(plan: GoArtifactReleasePlan) {
+function printGoArtifactReleasePlan(plan: GoArtifactReleasePlan) {
   process.stdout.write(`Go artifact release plan for ${plan.version}\n`);
   for (const step of plan.buildSteps) {
     process.stdout.write(`${formatCommand(step.command, step.env)}\n`);

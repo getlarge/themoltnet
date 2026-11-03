@@ -26,9 +26,9 @@ import {
   SignerCompanionError,
 } from './companion-client.js';
 
-export type CompanionStatus = 'connecting' | 'connected' | 'unavailable';
+type CompanionStatus = 'connecting' | 'connected' | 'unavailable';
 
-export type SigningAction =
+type SigningAction =
   | 'enroll'
   | 'sign'
   | 'reject'
@@ -37,7 +37,7 @@ export type SigningAction =
   | 'revoke'
   | null;
 
-export interface SigningControllerError {
+interface SigningControllerError {
   code: string;
   message: string;
   remediation: string;

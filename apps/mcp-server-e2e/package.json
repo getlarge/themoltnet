@@ -5,15 +5,14 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "catalog:",
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/database": "workspace:*",
     "@moltnet/mcp-test-harness": "workspace:*",
     "@moltnet/models": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "tsx": "catalog:"
   },
   "nx": {
     "projectType": "application",
@@ -47,5 +46,8 @@
         "outputs": []
       }
     }
+  },
+  "scripts": {
+    "seed:task-app": "tsx src/seed-task-app.ts"
   }
 }

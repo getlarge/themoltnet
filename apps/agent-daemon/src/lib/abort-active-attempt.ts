@@ -1,4 +1,4 @@
-export interface ActiveAttempt {
+interface ActiveAttempt {
   taskId: string;
   attemptN: number;
 }

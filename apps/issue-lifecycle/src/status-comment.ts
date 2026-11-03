@@ -33,7 +33,7 @@ export function readyForReviewMarker(correlationId: string): string {
   return `<!-- moltnet-issue-lifecycle:ready-for-review:${correlationId} -->`;
 }
 
-export function consoleCorrelationUrl(input: NormalizedLifecycleInput): string {
+function consoleCorrelationUrl(input: NormalizedLifecycleInput): string {
   const params = new URLSearchParams({ correlationId: input.correlationId });
   return `${input.consoleUrl}/tasks?${params}`;
 }
@@ -45,7 +45,7 @@ function consoleTaskUrl(
   return `${input.consoleUrl}/tasks/${taskId}`;
 }
 
-export function consoleAttemptUrl(
+function consoleAttemptUrl(
   input: NormalizedLifecycleInput,
   task: AcceptedTaskResult,
 ): string {

@@ -157,9 +157,7 @@
   },
   "devDependencies": {
     "@fastify/swagger": "catalog:",
-    "@moltnet/agent-eval": "workspace:*",
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/execution-integrations": "workspace:*",
     "@moltnet/execution-plan": "workspace:*",

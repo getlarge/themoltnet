@@ -190,7 +190,7 @@ export async function shutdownDBOS(): Promise<void> {
 }
 
 // Re-export DBOS for workflow/step registration
-export { DBOS, DBOSWorkflowConflictError } from '@dbos-inc/dbos-sdk';
+export { DBOS } from '@dbos-inc/dbos-sdk';
 
 // Re-export types used by workflow runners
 export type { WorkflowHandle } from '@dbos-inc/dbos-sdk';

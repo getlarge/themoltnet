@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path';
 
-export function parsePackResult(output) {
+function parsePackResult(output) {
   const parsed = JSON.parse(output);
   const result = Array.isArray(parsed)
     ? parsed[0]

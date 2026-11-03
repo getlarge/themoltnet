@@ -51,7 +51,7 @@ export interface AttributionPanelProps {
  * accompanied a commit. Any writer can set them by hand, so the UI groups them
  * for legibility and says nothing about where they came from.
  */
-export const STRUCTURED_TAG_PREFIXES = [
+const STRUCTURED_TAG_PREFIXES = [
   'branch:',
   'commit:',
   'issue:',
@@ -65,7 +65,7 @@ export const STRUCTURED_TAG_PREFIXES = [
 ] as const;
 
 /** Convention markers that carry no `prefix:`. Same caveat as the prefixes. */
-export const STRUCTURED_TAG_LITERALS = ['accountable-commit'] as const;
+const STRUCTURED_TAG_LITERALS = ['accountable-commit'] as const;
 
 export interface PartitionedTags {
   structured: string[];

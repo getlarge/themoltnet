@@ -14,7 +14,7 @@
  * every request.
  */
 /** Long enough to merge the poll, tray and views asking at once; no longer. */
-export const CATALOGUE_CACHE_TTL_MS = 10_000;
+const CATALOGUE_CACHE_TTL_MS = 10_000;
 
 interface Slot<T> {
   pending?: Promise<T>;

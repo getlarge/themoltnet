@@ -15,7 +15,7 @@ const TaskBudgetSchema = Type.Object(
 
 export type TaskBudget = Static<typeof TaskBudgetSchema>;
 export const REVIEW_BUDGET_KEYS = ['classifier', 'focused', ...LANES] as const;
-export type ReviewBudgetKey = (typeof REVIEW_BUDGET_KEYS)[number];
+type ReviewBudgetKey = (typeof REVIEW_BUDGET_KEYS)[number];
 export type ReviewTaskBudgets = Record<ReviewBudgetKey, TaskBudget>;
 
 const DEFAULT_RUNNING_SECONDS: Record<ReviewBudgetKey, number> = {

@@ -43,7 +43,7 @@ function isSnapshot(value: unknown): value is ConversationSnapshot {
   );
 }
 
-export class ConversationReadError extends Error {
+class ConversationReadError extends Error {
   constructor(readonly status: number) {
     super(`Conversation read failed (${status})`);
   }

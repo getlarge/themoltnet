@@ -18,14 +18,12 @@
   "scripts": {
     "build": "vite build",
     "dev": "tsx watch src/main.ts",
-    "seed:task-app": "tsx e2e/seed-task-app.ts",
     "start": "node dist/main.js"
   },
   "dependencies": {
     "@fastify/otel": "catalog:",
     "@getlarge/fastify-mcp": "catalog:",
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/entry-explore-mcp-app": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
     "@moltnet/models": "workspace:*",
@@ -49,7 +47,6 @@
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
-    "@themoltnet/design-system": "workspace:*",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
     "pino": "catalog:",
@@ -58,11 +55,6 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/bootstrap": "workspace:*",
-    "@moltnet/database": "workspace:*",
-    "@moltnet/mcp-test-harness": "workspace:*",
-    "@modelcontextprotocol/sdk": "catalog:",
-    "drizzle-orm": "catalog:",
     "pino-pretty": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",

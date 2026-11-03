@@ -7,7 +7,7 @@ import { PrincipalIdentitySchema } from './principal.js';
 
 // ── Context Packs ─────────────────────────────────────────
 
-export const ContextPackEntrySchema = Type.Object({
+const ContextPackEntrySchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
   packId: Type.String({ format: 'uuid' }),
   entryId: Type.String({ format: 'uuid' }),

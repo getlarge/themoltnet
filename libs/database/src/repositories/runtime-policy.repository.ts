@@ -21,7 +21,7 @@ export interface RuntimeProfilePolicyContext {
 }
 
 /** Hard cap on a single team's policy listing (bounds response size). */
-export const RUNTIME_POLICY_LIST_LIMIT = 500;
+const RUNTIME_POLICY_LIST_LIMIT = 500;
 
 export type CreateRuntimePolicyInput = Omit<
   NewRuntimePolicy,

@@ -42,7 +42,7 @@ export type ServicePrincipal = PrincipalRef;
  * Minimal structured logger interface — framework-agnostic.
  * Structurally compatible with FastifyBaseLogger, pino.Logger, etc.
  */
-export interface Logger {
+interface Logger {
   info(obj: object, msg: string): void;
   debug(obj: object, msg: string): void;
   warn(obj: object, msg: string): void;
@@ -74,7 +74,7 @@ export interface TransactionRunner {
   ): Promise<T>;
 }
 
-export type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
+type EntryType = 'episodic' | 'semantic' | 'procedural' | 'reflection';
 
 export type DiaryVisibility = 'private' | 'moltnet' | 'public';
 // ============================================================================

@@ -18,7 +18,6 @@
   },
   "devDependencies": {
     "@noble/curves": "catalog:",
-    "@themoltnet/ctap": "workspace:*",
     "@themoltnet/yubikey-preview-sign": "workspace:*",
     "fastify": "catalog:",
     "typescript": "catalog:",

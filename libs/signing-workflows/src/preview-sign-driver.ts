@@ -30,11 +30,11 @@ import {
 export const PREVIEW_SIGN_CREDENTIAL_TYPE = 'preview-sign-arkg';
 export const PREVIEW_SIGN_ALGORITHM = 'arkg-p256-esp256';
 export const PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION = 1;
-export const PREVIEW_SIGN_CHALLENGE_VERSION = 1;
+const PREVIEW_SIGN_CHALLENGE_VERSION = 1;
 export const PREVIEW_SIGN_RECEIPT_VERSION = 1;
-export const PREVIEW_SIGN_EVIDENCE_VERSION = 1;
-export const PREVIEW_SIGN_ENVELOPE_VERSION = 1;
-export const PREVIEW_SIGN_AUDIENCE = 'moltnet:preview-sign';
+const PREVIEW_SIGN_EVIDENCE_VERSION = 1;
+const PREVIEW_SIGN_ENVELOPE_VERSION = 1;
+const PREVIEW_SIGN_AUDIENCE = 'moltnet:preview-sign';
 
 const METHOD = VERIFICATION_METHOD.HumanHardwarePreviewSign;
 const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -51,7 +51,7 @@ export interface PreviewSignEc2PublicKey extends CoseEc2PublicKey {
   [key: string]: SigningMethodJson;
 }
 
-export interface PreviewSignArkgSeedPublicMaterial {
+interface PreviewSignArkgSeedPublicMaterial {
   [key: string]: SigningMethodJson;
   kty: typeof ARKG_KEY_TYPE;
   algorithm: typeof ARKG_P256_ALGORITHM;
@@ -87,7 +87,7 @@ interface PreviewSignVerifierStateV1 {
   derivedPublicKey: PreviewSignEc2PublicKey;
 }
 
-export interface PreviewSignEvidenceV1 {
+interface PreviewSignEvidenceV1 {
   version: typeof PREVIEW_SIGN_EVIDENCE_VERSION;
   operation: 'credential-registration' | 'signing-request';
   requestId: string;

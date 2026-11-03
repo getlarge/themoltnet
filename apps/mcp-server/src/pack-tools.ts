@@ -316,7 +316,7 @@ export async function handlePacksProvenance(
   return structuredResult(data);
 }
 
-export async function handlePacksUpdate(
+async function handlePacksUpdate(
   args: PackUpdateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -406,7 +406,7 @@ export async function handleRenderedPacksList(
   return structuredResult(data);
 }
 
-export async function handleRenderedPacksUpdate(
+async function handleRenderedPacksUpdate(
   args: RenderedPackUpdateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -508,7 +508,7 @@ export async function handlePacksRenderPreview(
   return structuredResult(data);
 }
 
-export async function handlePacksDiff(
+async function handlePacksDiff(
   args: PackDiffInput,
   deps: McpDeps,
   context: HandlerContext,

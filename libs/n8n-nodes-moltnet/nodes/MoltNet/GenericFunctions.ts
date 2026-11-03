@@ -22,7 +22,7 @@ import {
 
 export type { Task, TaskAttempt, TaskStatus } from './ApiBindings.js';
 export type TaskListQuery = NonNullable<ListTasksData['query']>;
-export type CreateTaskBody = CreateTaskData['body'];
+type CreateTaskBody = CreateTaskData['body'];
 
 export type MoltNetAuthentication = 'agentKey' | 'oauth2';
 export type MoltNetCredentialType = 'moltNetAgentApi' | 'moltNetOAuth2Api';
@@ -35,7 +35,7 @@ export interface MoltNetCredentials extends IDataObject {
 
 type MoltNetNodeContext = IExecuteFunctions | ILoadOptionsFunctions;
 
-export interface RequestContext {
+interface RequestContext {
   signal?: AbortSignal;
   teamId?: string;
 }

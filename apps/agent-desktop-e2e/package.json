@@ -15,8 +15,6 @@
     "vite": "catalog:",
     "webdriverio": "catalog:",
     "tsx": "catalog:",
-    "react": "catalog:",
-    "react-dom": "catalog:",
     "@axe-core/webdriverio": "catalog:"
   },
   "nx": {
@@ -76,7 +74,6 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@themoltnet/agent-daemon": "workspace:*",
-    "@themoltnet/design-system": "workspace:*",
     "@themoltnet/sdk": "workspace:*"
   }
 }

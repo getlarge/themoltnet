@@ -414,14 +414,3 @@ export function assertSecretReferenceBinding(
     description: BINDING_MESSAGES[kind],
   });
 }
-
-export function assertOAuth2SecretReferenceBinding(
-  reference: SecretReference,
-  subjectId: string,
-  clientId: string,
-): void {
-  assertSecretReferenceBinding('oauth2-client-secret', reference, {
-    subjectId,
-    clientId,
-  });
-}

@@ -55,7 +55,7 @@ export function warnLegacyCredentialFieldOnce(field: string): void {
 }
 
 /** Emit the deprecation warning for a MoltNet-owned credential kind. */
-export function warnLegacyCredentialOnce(kind: CredentialKind): void {
+function warnLegacyCredentialOnce(kind: CredentialKind): void {
   warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
 }
 

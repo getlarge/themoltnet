@@ -2,7 +2,7 @@ import type { Rubric } from '@moltnet/tasks';
 import { type Static, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-export const ComplexityReviewDecision = Type.Object(
+const ComplexityReviewDecision = Type.Object(
   {
     scores: Type.Array(
       Type.Object(

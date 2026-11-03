@@ -20,7 +20,7 @@ type Row = NonNullable<
 type Insert = Omit<Row, 'storeId' | 'seq'>;
 type Document = StoredDocument & { retired?: boolean };
 const object = (value: unknown) => value as Record<string, unknown>;
-export const documentAddress = (a: DocumentAddress) =>
+const documentAddress = (a: DocumentAddress) =>
   JSON.stringify([
     a.kind,
     a.scope.kind,

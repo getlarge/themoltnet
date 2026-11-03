@@ -8,8 +8,6 @@ export default [
     ignoredDependencies: [
       // SDK's Node adapter loads the optional keyring package dynamically.
       '@themoltnet/os-keyring',
-      // Bundled private @moltnet/tasks imports this at runtime.
-      'multiformats',
     ],
   }),
 ];

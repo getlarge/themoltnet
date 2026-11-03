@@ -1,12 +1,12 @@
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
-export interface PiWorkspaceAttachmentPlan {
+interface PiWorkspaceAttachmentPlan {
   mountPath: string;
   cwdPath: string;
   shadowWrites?: 'deny' | 'tmpfs';
 }
 
-export interface PiWorkspaceSeedPlan {
+interface PiWorkspaceSeedPlan {
   copyFromPath: string;
   source: 'producer';
 }

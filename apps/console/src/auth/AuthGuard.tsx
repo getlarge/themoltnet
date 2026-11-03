@@ -149,7 +149,7 @@ function sameOriginAsKratos(candidate: string, kratosUrl: string): boolean {
  * concludes the user is already logged in, and 302s to `return_to` — putting
  * the console right back where it started. That is the redirect loop.
  */
-export function buildSignInUrl({
+function buildSignInUrl({
   challenge,
   challengeRedirectTo,
   kratosUrl,

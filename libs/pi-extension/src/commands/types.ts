@@ -6,7 +6,7 @@ import type {
 import type { TrackedError } from '@themoltnet/pi-runtime';
 import type { connect } from '@themoltnet/sdk';
 
-export interface SessionMeta {
+interface SessionMeta {
   agentName: string;
   gitBranch: string | null;
   sessionName: string | undefined;

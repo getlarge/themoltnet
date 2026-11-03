@@ -20,7 +20,3 @@ export function runWithDaemonRuntimeContext<T>(
 ): T {
   return storage.run(context, callback);
 }
-
-export function getDaemonRuntimeContext(): DaemonRuntimeContext | undefined {
-  return storage.getStore();
-}

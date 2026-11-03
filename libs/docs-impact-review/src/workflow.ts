@@ -95,7 +95,7 @@ export function createSleepingContext(): WorkflowContext {
 export const DEFAULT_POLL_INTERVAL_SEC = 2;
 
 /** Consecutive failed reads of one poll before the review gives up. */
-export const POLL_READ_RETRY_LIMIT = 5;
+const POLL_READ_RETRY_LIMIT = 5;
 
 /**
  * Statuses worth retrying while polling a task this run created. 403 is

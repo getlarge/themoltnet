@@ -81,7 +81,7 @@ export interface VerifiedExecutorAttestation {
   verifiedSignature?: string;
 }
 
-export interface TaskInputArtifactObjectHead {
+interface TaskInputArtifactObjectHead {
   contentLength?: number;
   contentType?: string;
 }
@@ -92,7 +92,7 @@ export interface TaskInputArtifactObjectHead {
  * task-service does not depend on task-artifact-service; the app
  * bootstrap wires it from TaskArtifactStorage + buildArtifactObjectKey.
  */
-export interface TaskInputArtifactObjectStore {
+interface TaskInputArtifactObjectStore {
   buildObjectKey(teamId: string, cid: string): string;
   headObject(key: string): Promise<TaskInputArtifactObjectHead | null>;
 }

@@ -69,7 +69,11 @@ function assertGuestServiceId(id: string): void {
     );
   }
 }
-/** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
+/**
+ * @public
+ * @alias
+ * @deprecated Use GUEST_TASK_CONTEXT_MOUNT.
+ */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
 /**

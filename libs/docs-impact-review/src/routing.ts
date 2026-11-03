@@ -242,7 +242,7 @@ export function searchDocsForTerms(
 }
 
 /** A search term matching more documentation files than this is too generic. */
-export const MAX_FILES_PER_TERM = 8;
+const MAX_FILES_PER_TERM = 8;
 
 /**
  * Drops search terms that match too many files (e.g. `--help`): they flood

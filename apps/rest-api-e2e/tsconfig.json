@@ -34,9 +34,6 @@
       "path": "../../libs/yubikey-preview-sign"
     },
     {
-      "path": "../../libs/ctap"
-    },
-    {
       "path": "./tsconfig.spec.json"
     }
   ]

@@ -105,7 +105,7 @@ export type PackListInput = {
   expand?: ListDiaryQuery['expand'];
 };
 
-export const CustomPackEntrySelectionSchema = Type.Object({
+const CustomPackEntrySelectionSchema = Type.Object({
   entry_id: Type.String({
     description: 'Entry identifier (UUID) selected by the caller.',
   }),

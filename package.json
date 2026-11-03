@@ -119,14 +119,11 @@
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:",
-    "vitest-axe": "catalog:"
+    "vitest-axe": "catalog:",
+    "@noble/ed25519": "catalog:"
   },
   "engines": {
     "node": ">=24.14.1"
-  },
-  "dependencies": {
-    "tslib": "^2.3.0"
   }
 }

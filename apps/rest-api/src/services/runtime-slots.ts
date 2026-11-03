@@ -168,7 +168,7 @@ export function serializeRuntimeSlot(slot: RuntimeSlot) {
   };
 }
 
-export function serializeRuntimeWorkspace(workspace: RuntimeWorkspace | null) {
+function serializeRuntimeWorkspace(workspace: RuntimeWorkspace | null) {
   if (!workspace) return null;
   return {
     id: workspace.id,

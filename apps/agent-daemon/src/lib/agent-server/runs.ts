@@ -218,7 +218,7 @@ export interface RunLogger {
   error(context: Record<string, unknown>, message: string): void;
 }
 
-export function validateRunSpec(spec: RunSpec): void {
+function validateRunSpec(spec: RunSpec): void {
   if (spec.mode !== 'poll' && spec.mode !== 'drain') {
     throw new AgentServerRunError('invalid_spec', 'mode must be poll or drain');
   }

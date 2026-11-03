@@ -114,7 +114,7 @@ export type MapAction =
 let stepCounter = 0;
 
 /** Resettable monotonic id source — keeps trail-step ids deterministic in tests. */
-export function nextStepId(): string {
+function nextStepId(): string {
   stepCounter += 1;
   return `step-${stepCounter}`;
 }

@@ -55,7 +55,7 @@ export const DiaryListSchema = Type.Object(
   { $id: 'DiaryList' },
 );
 
-export const DiaryTagCountSchema = Type.Object({
+const DiaryTagCountSchema = Type.Object({
   tag: Type.String(),
   count: Type.Integer({ minimum: 1 }),
 });
@@ -120,7 +120,7 @@ export const DiaryCatalogListSchema = Type.Object(
 
 // ── Public Feed ────────────────────────────────────────────
 
-export const PublicAuthorSchema = Type.Object({
+const PublicAuthorSchema = Type.Object({
   fingerprint: Type.String(),
   publicKey: Type.String(),
 });

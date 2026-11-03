@@ -11,6 +11,8 @@ export function createPreviewSignPrehash(payload: Uint8Array): Uint8Array {
 }
 
 /**
+ * @public
+ * @alias
  * @deprecated Use `createPreviewSignPrehash`. The signed bytes intentionally
  * carry no application wire-version marker; protocol envelopes belong to
  * callers.

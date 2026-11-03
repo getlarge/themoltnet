@@ -10,7 +10,7 @@ export interface GuestExecutableDiscoveryOptions {
   timeoutMs?: number;
 }
 
-export class GuestExecutableProbeError extends Error {
+class GuestExecutableProbeError extends Error {
   readonly code: 'capability_probe_failed' | 'capability_probe_timeout';
 
   constructor(

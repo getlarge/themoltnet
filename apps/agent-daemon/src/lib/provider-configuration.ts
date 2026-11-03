@@ -10,7 +10,6 @@ import {
 } from '@themoltnet/sdk/node';
 
 import {
-  AgentServerModelDiscoveryError,
   assertKeyTransport,
   type DiscoveryFailure,
   MAX_DISCOVERED_MODELS,
@@ -774,7 +773,7 @@ export class ProviderConfigurationService {
   }
 }
 
-export function providerView(provider: ProviderEntry): ProviderView {
+function providerView(provider: ProviderEntry): ProviderView {
   return {
     api: provider.api,
     baseUrl: provider.baseUrl,
@@ -786,8 +785,6 @@ export function providerView(provider: ProviderEntry): ProviderView {
     hasApiKey: Boolean(provider.apiKeyRef),
   };
 }
-
-export { AgentServerModelDiscoveryError };
 
 function isOllamaProvider(providerId: string, baseUrl: URL): boolean {
   return (
