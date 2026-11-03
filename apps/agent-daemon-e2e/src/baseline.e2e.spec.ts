@@ -18,7 +18,6 @@
  * `BASELINE_SCENARIOS` (comma-separated slugs), `BASELINE_REPEATS` (default 4),
  * and `BASELINE_OUT` (default <cwd>/baseline-report.json).
  */
-import { randomUUID } from 'node:crypto';
 import {
   existsSync,
   mkdtempSync,
@@ -49,6 +48,7 @@ import { resolveStoreRoot } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  createEvalProfile,
   createScenarioProducerTask,
   provisionDaemonCredentials,
 } from './fixtures.js';
@@ -158,25 +158,14 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
       });
     }
 
-    const profile = await agent.runtimeProfiles.create(
-      {
-        name: `baseline-${randomUUID()}`,
-        runtimeKind: 'gondolin_pi',
-        models: { generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL } },
-
-        maxTurns: 14,
-        maxBashTimeouts: 1,
-        defaultWorkspaceMode: 'shared_mount',
-        allowedWorkspaceModes: ['none', 'shared_mount'],
-        requiredEnv: LIVE_PROVIDER === 'ollama-cloud' ? ['OLLAMA_API_KEY'] : [],
-        requiredTools: [],
-        sandbox: {
-          env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
-          resources: { cpus: 2, memory: '2G' },
-        },
-      },
-      { teamId },
-    );
+    const profile = await createEvalProfile({
+      agent,
+      teamId,
+      namePrefix: 'baseline',
+      provider: LIVE_PROVIDER,
+      model: LIVE_MODEL,
+      requiredEnv: LIVE_PROVIDER === 'ollama-cloud' ? ['OLLAMA_API_KEY'] : [],
+    });
     profileId = profile.id;
   }, 120_000);
 

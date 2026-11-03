@@ -10,7 +10,6 @@
  * The scenario corpus is the source of truth for what runs — add a scenario dir
  * under `evals-v2/` and the partition suites pick it up automatically.
  */
-import { randomUUID } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -21,7 +20,11 @@ import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createEvalSpendReporter } from './eval-spend-report.js';
-import { createScenarioProducerTask, runDaemonOnce } from './fixtures.js';
+import {
+  createEvalProfile,
+  createScenarioProducerTask,
+  runDaemonOnce,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -106,27 +109,13 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
           clientSecret,
         });
 
-        const profile = await agent.runtimeProfiles.create(
-          {
-            name: `evals-v2-${randomUUID()}`,
-            runtimeKind: 'gondolin_pi',
-            models: {
-              generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL },
-            },
-
-            maxTurns: 14,
-            maxBashTimeouts: 1,
-            defaultWorkspaceMode: 'shared_mount',
-            allowedWorkspaceModes: ['none', 'shared_mount'],
-            requiredEnv: ['OLLAMA_API_KEY'],
-            requiredTools: [],
-            sandbox: {
-              env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
-              resources: { cpus: 2, memory: '2G' },
-            },
-          },
-          { teamId },
-        );
+        const profile = await createEvalProfile({
+          agent,
+          teamId,
+          namePrefix: 'evals-v2',
+          provider: LIVE_PROVIDER,
+          model: LIVE_MODEL,
+        });
         profileId = profile.id;
       }, 120_000);
 

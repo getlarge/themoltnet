@@ -3,36 +3,15 @@ import {
   ToolEnforcementSchema as CanonicalToolEnforcementSchema,
   UuidSchema,
 } from '@moltnet/models';
-import { RuntimeProfileRuntimeKind } from '@moltnet/runtime-profiles';
+import {
+  CreateRuntimePolicyBodySchema,
+  RuntimePolicyToolNameSchema as ToolNameSchema,
+  RuntimeProfileRuntimeKind,
+  ShellCommandRuleSchema,
+} from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
-const TOOL_NAME_PATTERN = '^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$';
-
-const ToolNameSchema = Type.String({
-  minLength: 1,
-  maxLength: 128,
-  pattern: TOOL_NAME_PATTERN,
-  description:
-    'A runtime or MCP tool name, e.g. "read". Never authorizes a shell invocation.',
-});
-
-const ShellCommandTokenSchema = Type.String({
-  minLength: 1,
-  maxLength: 128,
-  description: 'One literal argv token.',
-});
-
-export const ShellCommandRuleSchema = Type.Object(
-  {
-    argvPrefix: Type.Array(ShellCommandTokenSchema, {
-      minItems: 1,
-      maxItems: 8,
-      description:
-        'Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.',
-    }),
-  },
-  { $id: 'ShellCommandRule', additionalProperties: false },
-);
+export { CreateRuntimePolicyBodySchema, ShellCommandRuleSchema };
 
 export const ToolEnforcementSchema = {
   ...CanonicalToolEnforcementSchema,
@@ -68,18 +47,6 @@ export const RuntimePolicyWithToolsSchema = Type.Object(
 export const RuntimePolicyListSchema = Type.Object(
   { items: Type.Array(Type.Ref(RuntimePolicySchema.$id)) },
   { $id: 'RuntimePolicyList' },
-);
-
-export const CreateRuntimePolicyBodySchema = Type.Object(
-  {
-    name: Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
-    description: Type.Optional(Type.String({ maxLength: 4096 })),
-    tools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
-    shellCommands: Type.Optional(
-      Type.Array(Type.Ref(ShellCommandRuleSchema.$id), { maxItems: 500 }),
-    ),
-  },
-  { $id: 'CreateRuntimePolicyBody', additionalProperties: false },
 );
 
 // Rejects unknown keys (catches misspelled fields) and empty no-op patches.

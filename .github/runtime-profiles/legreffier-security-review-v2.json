@@ -10,11 +10,16 @@
   "defaultWorkspaceMode": "dedicated_worktree",
   "description": "Read-only runtime for staged advisory PR security review.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 16384,
   "maxTurns": 40,
-  "model": "mistral-large-4",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 16384,
+      "model": "mistral-large-4",
+      "provider": "ollama-cloud",
+      "thinkingLevel": "high"
+    }
+  },
   "name": "legreffier-security-review-v2",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -32,6 +37,5 @@
       "shadowMode": "deny"
     }
   },
-  "thinkingLevel": "high",
   "toolEnforcement": "enforce"
 }

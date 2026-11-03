@@ -9,6 +9,8 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import {
@@ -23,6 +25,7 @@ import { connect } from '@themoltnet/sdk';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createCommittedEvalProfile } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const KNOWLEDGE_SCOPES = [
@@ -31,6 +34,12 @@ const KNOWLEDGE_SCOPES = [
   'pack:read',
   'pack:write',
 ] as const;
+
+const COMMITTED_PROFILES = readdirSync(
+  join(import.meta.dirname, '../../../.github/runtime-profiles'),
+)
+  .filter((file) => file.endsWith('.json'))
+  .map((file) => file.slice(0, -'.json'.length));
 
 const noopLogger = {
   debug: () => {},
@@ -425,4 +434,51 @@ describe('Tool-policy enforcement (daemon)', () => {
       }),
     ).toMatchObject({ allow: false });
   });
+
+  it.each(COMMITTED_PROFILES)(
+    'committed profile %s resolves to its committed allow-set',
+    async (profileName) => {
+      // Arrange
+      const committed = await createCommittedEvalProfile({
+        agent,
+        teamId,
+        profileName,
+      });
+
+      try {
+        // Act
+        const profile = await agent.runtimeProfiles.get(committed.profileId);
+        const policy = await resolveSessionToolPolicy({
+          agent: knowledgeKeyAgent,
+          profileId: committed.profileId,
+          teamId,
+          runtimeKind: profile.runtimeKind,
+          enforcement: profile.toolEnforcement,
+          logger: noopLogger,
+        });
+
+        // Assert
+        expect(policy.degraded).toBe(false);
+        expect([...policy.allowedTools].sort()).toEqual(
+          [...committed.allowedTools.allowedTools].sort(),
+        );
+        if (profile.toolEnforcement === 'enforce') {
+          expect(
+            decideToolCall({
+              toolName: 'write',
+              enforcement: policy.enforcement,
+              allowedTools: policy.allowedTools,
+              allowedShellCommands: policy.allowedShellCommands,
+              analyze,
+            }),
+          ).toMatchObject({ allow: false });
+        }
+      } finally {
+        await committed.cleanup();
+      }
+      await expect(
+        agent.runtimeProfiles.get(committed.profileId),
+      ).rejects.toThrow();
+    },
+  );
 });
