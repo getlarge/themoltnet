@@ -3,14 +3,22 @@ import {
   type ClaimedTask,
   TaskExecutionInterrupted,
 } from '@themoltnet/agent-runtime';
-import type { RuntimeSessionsNamespace } from '@themoltnet/sdk';
+import {
+  isTransientMoltNetError,
+  type RuntimeSessionsNamespace,
+} from '@themoltnet/sdk';
 
 import type {
   DurableStoreTransport,
   RuntimeCommit,
 } from './durable-storage.js';
 
-/** One process owns this writer. Exhausted retries or expiry stop model/tool work. */
+/**
+ * One process owns this writer. A rejected renewal or lease expiry stops
+ * model/tool work. A renewal that fails transiently (network, 408, 429, 5xx)
+ * after the SDK's own retries is retried on the next tick while the last
+ * confirmed lease is still valid; expiry remains the hard fence.
+ */
 export async function acquireDurableTransport(input: {
   stores: RuntimeSessionsNamespace;
   claimed: ClaimedTask;
@@ -54,6 +62,14 @@ export async function acquireDurableTransport(input: {
   deadline = Date.parse(handle.writerExpiresAt);
   let closed = false;
   let renewal: Promise<void> | undefined;
+  // Last transient renewal failure since the last confirmed renewal. Attached
+  // to the expiry error so an outage that outlasts the lease stays diagnosable.
+  let lastRenewalError: unknown;
+  const leaseExpired = () =>
+    new Error(
+      'Writer lease expired',
+      lastRenewalError === undefined ? undefined : { cause: lastRenewalError },
+    );
   const fail = (
     operation: 'renew' | 'read' | 'read_body' | 'mint_id' | 'commit' | 'expiry',
     error: unknown,
@@ -66,8 +82,7 @@ export async function acquireDurableTransport(input: {
     );
   };
   const check = () => {
-    if (Date.now() >= deadline)
-      fail('expiry', new Error('Writer lease expired'));
+    if (Date.now() >= deadline) fail('expiry', leaseExpired());
     signal.throwIfAborted();
     if (closed) throw new Error('Durable writer closed');
   };
@@ -77,7 +92,7 @@ export async function acquireDurableTransport(input: {
   const scheduleExpiry = () => {
     clearTimeout(expiry);
     expiry = setTimeout(
-      () => fail('expiry', new Error('Writer lease expired')),
+      () => fail('expiry', leaseExpired()),
       Math.max(0, deadline - Date.now()),
     );
     expiry.unref();
@@ -91,9 +106,19 @@ export async function acquireDurableTransport(input: {
       if (closed) return;
       check();
       deadline = Date.parse(renewed.writerExpiresAt);
+      lastRenewalError = undefined;
       scheduleExpiry();
     })()
-      .catch((error: unknown) => fail('renew', error))
+      .catch((error: unknown) => {
+        // A transient failure leaves the confirmed lease intact: try again on
+        // the next tick and let the expiry timer fence work at the deadline.
+        // Anything else (stale writer, auth, validation) is definitive.
+        if (!signal.aborted && isTransientMoltNetError(error)) {
+          lastRenewalError = error;
+          return;
+        }
+        fail('renew', error);
+      })
       .finally(() => {
         renewal = undefined;
       });
