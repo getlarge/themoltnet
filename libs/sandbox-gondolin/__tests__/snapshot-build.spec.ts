@@ -1,4 +1,5 @@
 import { existsSync, rmSync } from 'node:fs';
+import path from 'node:path';
 
 import { VM } from '@earendil-works/gondolin';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,13 +12,18 @@ const vm = vi.hoisted(() => ({
   close: vi.fn(),
 }));
 
+const cacheFs = vi.hoisted(() => ({
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
+}));
+
 vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
-  readdirSync: () => [],
+  readdirSync: cacheFs.readdirSync,
   rmSync: vi.fn(),
-  statSync: vi.fn(),
+  statSync: cacheFs.statSync,
 }));
 vi.mock('@earendil-works/gondolin', () => ({
   createHttpHooks: () => ({ httpHooks: {} }),
@@ -29,6 +35,7 @@ vi.mock('@earendil-works/gondolin', () => ({
 beforeEach(() => {
   vi.useFakeTimers();
   vi.resetAllMocks();
+  cacheFs.readdirSync.mockReturnValue([]);
   vi.mocked(existsSync).mockReturnValue(false);
   vi.mocked(VM.create).mockResolvedValue(vm as unknown as VM);
   vm.exec.mockResolvedValue({ exitCode: 0, stdout: '', stderr: '' });
@@ -167,6 +174,47 @@ describe('snapshot build concurrency', () => {
     await expect(ensureSnapshot()).resolves.toBe(snapshotPath);
     expect(VM.create).toHaveBeenCalledTimes(2);
     expect(vm.checkpoint).toHaveBeenCalledTimes(2);
+  });
+
+  it('prunes inactive snapshots while preserving an in-flight build', async () => {
+    const checkpoint = deferred<void>();
+    vm.checkpoint.mockReturnValueOnce(checkpoint.promise);
+    const first = ensureSnapshot();
+    await vi.runAllTimersAsync();
+    const activeDir = path.dirname(vm.checkpoint.mock.calls[0][0] as string);
+    const cacheRoot = path.dirname(activeDir);
+    const inactiveDir = path.join(cacheRoot, 'v2-inactive');
+    vi.mocked(existsSync).mockImplementation((file) => file === cacheRoot);
+    // Put the active build beyond the retention cutoff, so only the pending
+    // build guard can protect it. The inactive directory must also be pruned.
+    vm.checkpoint.mockImplementationOnce((snapshotPath: string) => {
+      const currentDir = path.dirname(snapshotPath);
+      cacheFs.readdirSync.mockReturnValue(
+        [currentDir, activeDir, inactiveDir].map((directory) => ({
+          name: path.basename(directory),
+          isDirectory: () => true,
+        })),
+      );
+      cacheFs.statSync.mockImplementation((directory: string) => ({
+        mtimeMs: directory === currentDir ? 2 : 1,
+      }));
+    });
+
+    try {
+      await ensureSnapshot({ config: { overlaySize: '4G' }, maxCached: 0 });
+
+      expect(rmSync).toHaveBeenCalledWith(inactiveDir, {
+        recursive: true,
+        force: true,
+      });
+      expect(rmSync).not.toHaveBeenCalledWith(activeDir, {
+        recursive: true,
+        force: true,
+      });
+    } finally {
+      checkpoint.resolve();
+      await first;
+    }
   });
 
   it('does not share builds for different snapshot configurations', async () => {
