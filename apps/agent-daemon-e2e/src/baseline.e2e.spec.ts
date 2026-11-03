@@ -73,6 +73,7 @@ function loadScenarios(): Scenario[] {
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)))
+    .filter((scenario) => !scenario.matrixOnly)
     .filter((scenario) => !selected || selected.includes(scenario.slug));
 }
 
@@ -252,6 +253,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               task.id,
               lastAttempt.attemptN,
               scenario.taskType,
+              teamId,
             );
             structures.push({
               scenario: scenario.slug,

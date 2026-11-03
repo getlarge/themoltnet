@@ -52,6 +52,7 @@ function loadScenarios(
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)))
+    .filter((scenario) => !scenario.matrixOnly)
     .sort((left, right) => left.slug.localeCompare(right.slug))
     .filter((_scenario, index) => index % partitionCount === partitionIndex);
 }
