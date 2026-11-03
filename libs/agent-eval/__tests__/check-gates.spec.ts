@@ -711,3 +711,93 @@ describe('checkGates', () => {
     expect(result.failures.map((f) => f.gate)).toContain('artifact_count');
   });
 });
+
+describe('deadline finalization gate', () => {
+  const startedAt = '2026-01-01T00:00:00.000Z';
+  const cutoff = {
+    kind: 'info',
+    timestamp: '2026-01-01T00:02:15.000Z',
+    payload: { event: 'submission_deadline', remainingMs: 45_000 },
+  };
+  const attempt = {
+    attemptN: 1,
+    status: 'completed',
+    output: VALID_OUTPUT,
+    startedAt,
+    completedAt: '2026-01-01T00:02:40.000Z',
+  };
+  const expected = { ...EXPECTED, runningTimeoutSec: 180 };
+
+  it('measures a real interrupted attempt using server timestamps', async () => {
+    const result = await checkGates(
+      fakeAgent([...messages(), cutoff], attempt),
+      'task',
+      1,
+      { requireDeadlineFinalization: true },
+      expected,
+    );
+    expect(result).toEqual({
+      passed: true,
+      failures: [],
+      deadline: {
+        elapsedMs: 160_000,
+        finalizationMs: 25_000,
+        remainingMsAtCutoff: 45_000,
+      },
+    });
+  });
+
+  it.each([
+    { name: 'early submit without interruption', events: [], override: {} },
+    { name: 'duplicate interruption', events: [cutoff, cutoff], override: {} },
+    {
+      name: 'missing server start',
+      events: [cutoff],
+      override: { startedAt: null },
+    },
+    {
+      name: 'invalid server completion',
+      events: [cutoff],
+      override: { completedAt: 'bad' },
+    },
+    {
+      name: 'completed before interruption',
+      events: [cutoff],
+      override: { completedAt: '2026-01-01T00:02:00.000Z' },
+    },
+    {
+      name: 'completed after budget',
+      events: [cutoff],
+      override: { completedAt: '2026-01-01T00:03:00.001Z' },
+    },
+    {
+      name: 'failed attempt',
+      events: [cutoff],
+      override: { status: 'failed' },
+    },
+    {
+      name: 'invalid reserve',
+      events: [
+        { ...cutoff, payload: { ...cutoff.payload, remainingMs: 46_000 } },
+      ],
+      override: {},
+    },
+    {
+      name: 'missing cutoff timestamp',
+      events: [{ ...cutoff, timestamp: undefined }],
+      override: {},
+    },
+  ])('rejects $name', async ({ events, override }) => {
+    const result = await checkGates(
+      fakeAgent([...messages(), ...events], { ...attempt, ...override }),
+      'task',
+      1,
+      { requireDeadlineFinalization: true },
+      expected,
+    );
+    expect(result.passed).toBe(false);
+    expect(result.failures).toContainEqual(
+      expect.objectContaining({ gate: 'submission_deadline' }),
+    );
+  });
+});
