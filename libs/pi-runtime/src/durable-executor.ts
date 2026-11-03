@@ -254,6 +254,8 @@ export function createDurableTaskExecutor(options: {
     storage: Storage;
     signal: AbortSignal;
     check(): void;
+    /** Host-only submission can outlive a VM retired by the cutoff abort. */
+    beginSubmissionFinalization?(): void;
     /** Trusted deployment callback; resolve policy and an isolated environment before scheduling. */
     prepare(previousEnvironment: JsonObject | null): Promise<{
       checkpoint?: JsonObject;
@@ -743,6 +745,7 @@ export function createDurableTaskExecutor(options: {
         state = await harness.snapshot(Attempts, key, context);
       }
       finalizing = Boolean(state?.finalization);
+      if (finalizing) connected.beginSubmissionFinalization?.();
       prepared = await connected.prepare(state?.environment ?? null);
       if (!state?.environment && prepared.checkpoint) {
         await harness.commit(async (tx) => {
@@ -1004,6 +1007,7 @@ export function createDurableTaskExecutor(options: {
         // Persist intent before aborting. A reopened executor repeats the abort
         // barrier, or reattaches to the idempotent finalization submission.
         finalizing = true;
+        connected.beginSubmissionFinalization?.();
         state = await harness.snapshot(Attempts, key, context);
         if (state?.submission) {
           // The submit tool may have persisted output just before the cutoff,

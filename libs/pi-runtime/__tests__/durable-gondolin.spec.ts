@@ -556,3 +556,72 @@ it('completes when the task reporter cannot record setup events', async () => {
     'durable.task_event_failed',
   );
 });
+
+it.each([
+  { name: 'confirmed cutoff retirement', closeFails: false, timeout: 600 },
+  { name: 'failed cutoff retirement', closeFails: true, timeout: 600 },
+  { name: 'ordinary shell timeout', closeFails: false, timeout: 0.01 },
+])(
+  'permits submission only for confirmed cutoff retirement: $name',
+  async ({ closeFails, timeout }) => {
+    const s = setup(false, ['bash', 'submit_freeform_output']);
+    s.claimed.task.runningTimeoutSec = 1;
+    s.allowedTools.mockResolvedValue({
+      enforcement: 'enforce',
+      runtimeKind: 'gondolin_pi_durable',
+      allowedTools: ['bash', 'submit_freeform_output'],
+      allowedShellCommands: [{ argvPrefix: ['sleep'] }],
+    });
+    const managed = await s.resumeVm({} as never);
+    const pending = new Promise<never>(() => {});
+    const exec = vi.fn((argv: string[]) => {
+      if (argv[2] !== 'sleep 300')
+        return Promise.resolve({ ok: true, exitCode: 0, stdout: '0\n' });
+      return Object.assign(pending, {
+        output: async function* () {
+          await pending;
+          yield { stream: 'stdout' as const, data: Buffer.alloc(0) };
+        },
+      });
+    });
+    Object.assign(managed.vm, { exec });
+    if (closeFails)
+      s.close.mockRejectedValue(new Error('VM retirement failed'));
+    s.faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall('bash', { command: 'sleep 300', timeout }),
+        { stopReason: 'toolUse' },
+      ),
+      fauxAssistantMessage(
+        fauxToolCall('submit_freeform_output', {
+          summary: 'Partial review; probe unfinished.',
+        }),
+        { stopReason: 'toolUse' },
+      ),
+    ]);
+    const run = createGondolinDurableTaskExecutor(s.options)(
+      s.claimed,
+      s.reporter,
+    );
+    if (closeFails || timeout < 1) {
+      await expect(run).rejects.toBeInstanceOf(TaskExecutionInterrupted);
+      expect(s.faux.state.callCount).toBe(1);
+    } else {
+      expect(await run).toMatchObject({
+        status: 'completed',
+        output: { summary: 'Partial review; probe unfinished.' },
+      });
+      expect(s.faux.state.callCount).toBe(2);
+    }
+    expect(
+      exec.mock.calls.filter(([argv]) => argv[2] === 'sleep 300'),
+    ).toHaveLength(1);
+    if (timeout >= 1)
+      expect(s.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'info',
+          payload: expect.objectContaining({ event: 'submission_deadline' }),
+        }),
+      );
+  },
+);

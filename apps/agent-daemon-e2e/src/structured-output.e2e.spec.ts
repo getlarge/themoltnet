@@ -226,11 +226,16 @@ describe('structured task submission through Pi (e2e)', () => {
     queuedArguments.length = 0;
     queuedArguments.push(
       ...argumentsToReturn.map((args) =>
-        'stall' in args
-          ? { stall: true as const }
-          : 'finalText' in args
-            ? { finalText: args.finalText as string }
-            : { toolName, args },
+        'toolCall' in args
+          ? {
+              toolName: args.toolCall as string,
+              args: args.arguments as Record<string, unknown>,
+            }
+          : 'stall' in args
+            ? { stall: true as const }
+            : 'finalText' in args
+              ? { finalText: args.finalText as string }
+              : { toolName, args },
       ),
     );
     const { sandboxRoot, agentRoot, piDir } =
@@ -365,6 +370,41 @@ describe('structured task submission through Pi (e2e)', () => {
       Date.parse(attempts[0]!.completedAt!) -
         Date.parse(attempts[0]!.startedAt!),
     ).toBeLessThan(60_000);
+    const info = await agent.tasks.listMessages(task.id, 1, { kind: ['info'] });
+    expect(
+      info.filter((message) => message.payload.event === 'submission_deadline'),
+    ).toHaveLength(1);
+  }, 180_000);
+
+  it('submits after the cutoff retires a VM with a running shell command', async () => {
+    const { task, taskRequests } = await runFixtureTask(
+      [
+        { toolCall: 'bash', arguments: { command: 'sleep 300', timeout: 600 } },
+        { summary: 'Partial review; shell verification was interrupted.' },
+      ],
+      'freeform',
+      {},
+      0,
+      60,
+    );
+    expect(taskRequests).toHaveLength(2);
+    expect(taskRequests[1].tools?.map((tool) => tool.function?.name)).toEqual([
+      FREEFORM_TOOL,
+    ]);
+    expect(JSON.stringify(taskRequests[1].messages)).toContain(
+      'investigation time is exhausted',
+    );
+    const final = await agent.tasks.get(task.id);
+    expect(final).toMatchObject({ status: 'completed', acceptedAttemptN: 1 });
+    const attempts = await agent.tasks.listAttempts(task.id);
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0].output).toMatchObject({
+      summary: 'Partial review; shell verification was interrupted.',
+    });
+    const elapsed =
+      Date.parse(attempts[0].completedAt!) - Date.parse(attempts[0].startedAt!);
+    expect(elapsed).toBeGreaterThanOrEqual(45_000);
+    expect(elapsed).toBeLessThan(60_000);
     const info = await agent.tasks.listMessages(task.id, 1, { kind: ['info'] });
     expect(
       info.filter((message) => message.payload.event === 'submission_deadline'),
