@@ -6,6 +6,8 @@ const config: KnipConfig = {
     '**/dist/**',
     // Deliberately incomplete source used as eval input.
     'evals/moltnet-practices/**/fixtures/**',
+    // Seeded source copied into eval sandboxes and inspected by the agent.
+    'evals-v2/*/workspace/**',
     // Standalone consumer example installed independently of this workspace.
     'examples/custom-pi-runtime/**',
   ],
