@@ -1,0 +1,19 @@
+{
+  "legreffier-adaptive-docs-review-v1": [
+    "legreffier-adaptive-focused-readonly-v1"
+  ],
+  "legreffier-adaptive-focused-review-v1": [
+    "legreffier-adaptive-focused-readonly-v1"
+  ],
+  "legreffier-adaptive-knowledge-review-v1": [
+    "legreffier-adaptive-knowledge-readonly-v1"
+  ],
+  "legreffier-complexity-review-v2": [
+    "legreffier-complexity-review-input-only-v1"
+  ],
+  "legreffier-issue-classifier-v1": ["legreffier-issue-triage-input-only-v1"],
+  "legreffier-issue-classifier-v2": ["legreffier-issue-triage-input-only-v1"],
+  "legreffier-issue-triage-v1": ["legreffier-issue-triage-input-only-v1"],
+  "legreffier-review-v1": ["legreffier-review-readonly-v1"],
+  "legreffier-security-review-v2": ["legreffier-security-review-readonly-v1"]
+}

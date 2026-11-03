@@ -1,56 +1,13 @@
 import {
+  CreateRuntimeProfileBodySchema,
   RuntimeProfile,
-  RuntimeProfileAllowedWorkspaceModes,
   RuntimeProfileContext,
-  RuntimeProfileEnvName,
-  RuntimeProfileMaxBashTimeouts,
-  RuntimeProfileMaxTurns,
-  RuntimeProfileModels,
-  RuntimeProfileName,
-  RuntimeProfileRuntimeKind,
   RuntimeProfileSandbox,
-  RuntimeProfileToolEnforcement,
-  RuntimeProfileToolName,
-  RuntimeProfileWorkspaceMode,
+  UpdateRuntimeProfileBodySchema,
 } from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
-export const CreateRuntimeProfileBodySchema = Type.Object(
-  {
-    name: RuntimeProfileName,
-    description: Type.Optional(Type.String({ maxLength: 4096 })),
-    models: RuntimeProfileModels,
-    runtimeKind: Type.Optional(RuntimeProfileRuntimeKind),
-    sandbox: RuntimeProfileSandbox,
-    defaultWorkspaceMode: Type.Optional(
-      Type.Union([RuntimeProfileWorkspaceMode, Type.Null()]),
-    ),
-    allowedWorkspaceModes: Type.Optional(RuntimeProfileAllowedWorkspaceModes),
-    maxTurns: Type.Optional(RuntimeProfileMaxTurns),
-    maxBashTimeouts: Type.Optional(RuntimeProfileMaxBashTimeouts),
-    toolEnforcement: Type.Optional(RuntimeProfileToolEnforcement),
-    requiredEnv: Type.Optional(
-      Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
-    ),
-    requiredTools: Type.Optional(
-      Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
-    ),
-    requiredExecutables: Type.Optional(
-      Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
-    ),
-    context: Type.Optional(Type.Array(RuntimeProfileContext, { maxItems: 5 })),
-  },
-  { $id: 'CreateRuntimeProfileBody', additionalProperties: false },
-);
-
-export const UpdateRuntimeProfileBodySchema = Type.Partial(
-  CreateRuntimeProfileBodySchema,
-  {
-    $id: 'UpdateRuntimeProfileBody',
-    additionalProperties: false,
-    minProperties: 1,
-  },
-);
+export { CreateRuntimeProfileBodySchema, UpdateRuntimeProfileBodySchema };
 
 export const RuntimeProfileListResponseSchema = Type.Object(
   {
