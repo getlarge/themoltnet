@@ -1,26 +1,105 @@
 import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
-  ignore: ['dist/**', '**/dist/**'],
+  ignore: [
+    'dist/**',
+    '**/dist/**',
+    // Deliberately incomplete source used as eval input.
+    'evals/moltnet-practices/**/fixtures/**',
+    // Standalone consumer example installed independently of this workspace.
+    'examples/custom-pi-runtime/**',
+  ],
   // Infrastructure files are not imported but are used externally
   ignoreFiles: ['infra/**'],
+  // Provisioned toolchains and a shell function, not npm packages.
+  ignoreBinaries: [
+    'go',
+    'gofmt',
+    'cmake',
+    'ctest',
+    'gpg',
+    'moltnet',
+    'verify_with_published_key',
+  ],
 
   workspaces: {
+    '.': {
+      entry: [
+        '.agents/skills/monitor-ci/scripts/*.mjs',
+        'examples/*.ts',
+        'test-fixtures/generate-*-vectors.mjs',
+      ],
+    },
+    tools: {
+      // Operator commands and CI scripts invoked indirectly by shell wrappers.
+      entry: [
+        // Invoked through nx.json targetDefaults.
+        'check-bundle-externals.mjs',
+        'db/*.ts',
+        'release/{docker-preversion,self-host-smoke,self-host-smoke-prepare}.mjs',
+        'release/agent-desktop/{manifest,verify-published-assets}.mjs',
+        'renovate/format-pnpm-workspace.mjs',
+        'src/tasks/{read-task-output,seed-judge-fixture}.ts',
+        'src/codex-environment/probe.ts',
+      ],
+      ignoreFiles: ['*.d.mts'],
+    },
     // ── Apps ──
+    'apps/agent-daemon': { entry: ['test-fixtures/*.{ts,mjs}'] },
+    'apps/agent-desktop': { entry: ['scripts/test-store-root.mjs'] },
+    'apps/agent-desktop-e2e': {
+      // Load as source: native config intentionally throws outside its launcher.
+      entry: [
+        // Nx commands use workspace-root paths; declare their owning workspace.
+        '{build,run}-native.mjs',
+        'wdio.*.conf.ts',
+        'src/{chrome,native}-entry.ts',
+        'src/fixtures/*.{ts,mjs}',
+      ],
+      ignoreDependencies: [
+        '@wdio/local-runner',
+        '@wdio/mocha-framework',
+        '@wdio/spec-reporter',
+      ],
+    },
+    'apps/mcp-host': { entry: ['server.mjs'] },
+    'apps/orchestration-e2e': {
+      entry: ['src/fixtures/process-recovery-worker.ts'],
+    },
+    'apps/rest-api-e2e': {
+      entry: [
+        'src/fixtures/{invite-http-server,team-invite-recovery.worker}.ts',
+      ],
+    },
     'apps/mcp-server': {
       entry: ['__tests__/**/*.spec.ts'],
     },
     'apps/rest-api': {
-      entry: ['__tests__/**/*.spec.ts', 'e2e/**/*.ts', 'scripts/*.ts'],
+      entry: ['__tests__/**/*.spec.ts', 'scripts/*.ts', 'src/migrate.ts'],
     },
 
     // ── Libs ──
     'libs/api-client': {
-      entry: ['openapi-ts.config.ts'],
+      entry: ['openapi-ts.config.ts', 'openapi-bindings.config.ts'],
       // Generated code — exports are intentionally broad (full API surface)
-      ignore: ['src/generated/**'],
+      ignore: ['src/generated/**', 'src/generated-api-bindings/**'],
       ignoreDependencies: [],
     },
+    'libs/agent-config': { entry: ['__tests__/fixtures/*-writer.ts'] },
+    'libs/bootstrap': {
+      // generate:durable-fixture runs this from the workspace root.
+      entry: ['src/testing/generate-conversation-fixture.ts'],
+    },
+    'libs/sdk': { entry: ['__tests__/fixtures/config-repair.ts'] },
+    'libs/cpp-sdk': { entry: ['e2e/setup.ts'] },
+    'libs/n8n-nodes-moltnet': {
+      // Template files copied into a standalone consumer repository.
+      ignore: ['standalone/overlay/**'],
+    },
+    'libs/shell-command-analyzer': {
+      entry: ['src/default-wasm-loader.browser.ts'],
+    },
+    'libs/task-ui': { entry: ['demo/main.tsx'] },
     'libs/auth': {
       entry: ['__tests__/**/*.spec.ts'],
     },

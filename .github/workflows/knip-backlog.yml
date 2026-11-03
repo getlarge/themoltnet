@@ -1,0 +1,50 @@
+name: Knip cleanup backlog
+
+on:
+  schedule:
+    - cron: '30 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: knip-backlog
+  cancel-in-progress: false
+
+jobs:
+  backlog:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          go: 'false'
+      - name: Analyze default branch
+        run: node tools/knip-report.mjs --out "$RUNNER_TEMP/knip-report"
+      - name: Maintain owned backlog
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { readFileSync } = require('node:fs');
+            const { pathToFileURL } = require('node:url');
+            const { publishBacklog } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/tools/knip-report.mjs`).href);
+            const { head } = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/knip-report/findings.json`, 'utf8'));
+            // Link to the latest runs: an unchanged backlog must not retain an
+            // expired artifact URL or need weekly edits just to refresh it.
+            const url = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/workflows/knip-backlog.yml`;
+            await publishBacklog(github, context.repo, head, url);
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: knip-report
+          path: ${{ runner.temp }}/knip-report/
+          retention-days: 30
