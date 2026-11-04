@@ -3,7 +3,11 @@ import {
   type ClaimedTask,
   TaskExecutionInterrupted,
 } from '@themoltnet/agent-runtime';
-import type { RuntimeSessionsNamespace } from '@themoltnet/sdk';
+import {
+  MoltNetError,
+  NetworkError,
+  type RuntimeSessionsNamespace,
+} from '@themoltnet/sdk';
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { acquireDurableTransport } from '../src/durable-transport.js';
@@ -52,6 +56,114 @@ it('renews the writer and stops progress on renewal failure', async () => {
   expect(stores.renew).toHaveBeenCalledTimes(1);
   expect(stores.release).toHaveBeenCalledTimes(1);
 });
+it('keeps the writer through a transient renewal failure within the lease', async () => {
+  vi.useFakeTimers();
+  const renew = vi
+    .fn()
+    .mockRejectedValueOnce(new NetworkError('fetch failed'))
+    .mockRejectedValueOnce(
+      new MoltNetError('Bad Gateway', { code: 'UNKNOWN', statusCode: 502 }),
+    )
+    .mockImplementation(async () => ({
+      writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+    }));
+  const writer = await acquireDurableTransport({
+    stores: {
+      open: async () => ({
+        storeId: 'store',
+        writerToken: 'writer',
+        writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+      }),
+      renew,
+      release: async () => {},
+    } as unknown as RuntimeSessionsNamespace,
+    claimed,
+    signal: new AbortController().signal,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(renew).toHaveBeenCalledTimes(2);
+    expect(writer.signal.aborted).toBe(false);
+    writer.check();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(renew).toHaveBeenCalledTimes(3);
+    // The confirmed renewal moved the deadline past the original lease.
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(writer.signal.aborted).toBe(false);
+  } finally {
+    await writer.transport.close(BACKGROUND_CONTEXT);
+  }
+});
+
+it('expires with the last transient renewal error when the API never recovers', async () => {
+  vi.useFakeTimers();
+  const outage = new MoltNetError('Service Unavailable', {
+    code: 'UNKNOWN',
+    statusCode: 503,
+  });
+  const writer = await acquireDurableTransport({
+    stores: {
+      open: async () => ({
+        storeId: 'store',
+        writerToken: 'writer',
+        writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+      }),
+      renew: async () => {
+        throw outage;
+      },
+      release: async () => {},
+    } as unknown as RuntimeSessionsNamespace,
+    claimed,
+    signal: new AbortController().signal,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(writer.signal.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(writer.signal.aborted).toBe(true);
+    const reason = writer.signal.reason as Error;
+    expect(reason).toBeInstanceOf(TaskExecutionInterrupted);
+    expect(reason.message).toContain('expiry (store store)');
+    expect((reason.cause as Error).cause).toBe(outage);
+  } finally {
+    await writer.transport.close(BACKGROUND_CONTEXT);
+  }
+});
+
+it('stops progress immediately when renewal reports a stale writer', async () => {
+  vi.useFakeTimers();
+  const stale = new MoltNetError('Runtime store writer is stale', {
+    code: 'conflict',
+    statusCode: 409,
+  });
+  const writer = await acquireDurableTransport({
+    stores: {
+      open: async () => ({
+        storeId: 'store',
+        writerToken: 'writer',
+        writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+      }),
+      renew: async () => {
+        throw stale;
+      },
+      release: async () => {},
+    } as unknown as RuntimeSessionsNamespace,
+    claimed,
+    signal: new AbortController().signal,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(writer.signal.aborted).toBe(true);
+    expect(writer.signal.reason).toMatchObject({
+      message: expect.stringContaining('renew (store store)'),
+      cause: stale,
+    });
+  } finally {
+    await writer.transport.close(BACKGROUND_CONTEXT);
+  }
+});
+
 it('does not turn a competing writer into a terminal task failure', async () => {
   const stores = {
     open: vi.fn(async () => {
