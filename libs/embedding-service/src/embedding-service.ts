@@ -5,7 +5,6 @@
  * via @huggingface/transformers (ONNX runtime).
  */
 
-import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 
 import { env, pipeline } from '@huggingface/transformers';
@@ -101,11 +100,7 @@ export function createEmbeddingService(
     (options?.executor ?? 'worker') === 'worker'
       ? createWorkerEmbedder(
           {
-            modulePath:
-              options?.transformersModulePath ??
-              createRequire(import.meta.url).resolve(
-                '@huggingface/transformers',
-              ),
+            modulePath: options?.transformersModulePath,
             modelId,
             quantization,
             localModelPath: cacheDir ? toLocalModelPath(cacheDir) : undefined,

@@ -6,81 +6,44 @@
  * request handled by the same event loop. The worker keeps that work off the
  * main thread; the OS time-slices the CPU, so the main thread keeps serving
  * I/O even on a single vCPU.
- *
- * The worker is an `eval` worker so it survives bundling: this library is
- * inlined into application bundles, while `@huggingface/transformers` stays an
- * external dependency whose path is resolved at runtime and passed in.
  */
 
+import { existsSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 
 import type { EmbeddingLogger } from './types.js';
 
 export interface EmbeddingWorkerConfig {
-  modulePath: string;
+  /** @internal Test seam replacing `@huggingface/transformers`. */
+  modulePath?: string;
   modelId: string;
-  quantization: string;
+  quantization: 'q8' | 'q4' | 'fp32' | 'fp16';
   localModelPath?: string;
   allowRemoteModels: boolean;
 }
 
-interface WorkerResult {
-  type: 'result';
+export interface WorkerRequest {
   id: number;
-  vector?: number[];
-  error?: { message: string; stack?: string };
+  text: string;
 }
 
-interface WorkerLoaded {
-  type: 'loaded';
-}
+export type WorkerMessage =
+  | { type: 'loaded' }
+  | {
+      type: 'result';
+      id: number;
+      vector?: number[];
+      error?: { message: string; stack?: string };
+    };
 
-type WorkerMessage = WorkerResult | WorkerLoaded;
-
-// CommonJS: eval workers run as scripts. Requests are processed one at a time
-// because inference saturates the CPU anyway. A failed model load is retried
-// by the next request, matching the in-process behaviour.
-const WORKER_SOURCE = `
-const { parentPort, workerData } = require('node:worker_threads');
-const { pathToFileURL } = require('node:url');
-const cfg = workerData;
-let extractorPromise;
-function load() {
-  if (!extractorPromise) {
-    extractorPromise = (async () => {
-      const mod = await import(pathToFileURL(cfg.modulePath).href);
-      const lib = typeof mod.pipeline === 'function' ? mod : mod.default;
-      lib.env.allowLocalModels = true;
-      lib.env.allowRemoteModels = cfg.allowRemoteModels;
-      if (cfg.localModelPath) lib.env.localModelPath = cfg.localModelPath;
-      const extractor = await lib.pipeline('feature-extraction', cfg.modelId, {
-        dtype: cfg.quantization,
-        ...(cfg.allowRemoteModels ? {} : { local_files_only: true }),
-      });
-      parentPort.postMessage({ type: 'loaded' });
-      return extractor;
-    })();
-    extractorPromise.catch(() => { extractorPromise = undefined; });
-  }
-  return extractorPromise;
+// Bundles emit the worker entry as `.js` next to the code that inlines this
+// module; source runs load the `.ts` file directly.
+function resolveWorkerEntry(): URL {
+  const built = new URL('./embedding-worker-thread.js', import.meta.url);
+  return existsSync(built)
+    ? built
+    : new URL('./embedding-worker-thread.ts', import.meta.url);
 }
-let queue = Promise.resolve();
-parentPort.on('message', (msg) => {
-  queue = queue.then(async () => {
-    try {
-      const extractor = await load();
-      const output = await extractor([msg.text], { pooling: 'mean', normalize: false });
-      parentPort.postMessage({ type: 'result', id: msg.id, vector: Array.from(output.tolist()[0]) });
-    } catch (err) {
-      parentPort.postMessage({
-        type: 'result',
-        id: msg.id,
-        error: { message: err && err.message ? err.message : String(err), stack: err && err.stack },
-      });
-    }
-  });
-});
-`;
 
 export interface WorkerEmbedder {
   embedRaw(text: string): Promise<number[]>;
@@ -110,10 +73,7 @@ export function createWorkerEmbedder(
       { modelId: config.modelId, quantization: config.quantization },
       'Loading embedding model in worker thread',
     );
-    const started = new Worker(WORKER_SOURCE, {
-      eval: true,
-      workerData: config,
-    });
+    const started = new Worker(resolveWorkerEntry(), { workerData: config });
     started.unref();
     started.on('message', (message: WorkerMessage) => {
       if (message.type === 'loaded') {
