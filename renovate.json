@@ -16,6 +16,18 @@
         "-\\s+gomod:\\s+(?<depName>(?:go\\.opentelemetry\\.io|github\\.com\\/open-telemetry)\\/\\S+)\\s+(?<currentValue>v\\d\\S*)",
         "otelcol_version:\\s+(?<currentValue>\\d\\S*)"
       ]
+    },
+    {
+      "autoReplaceStringTemplate": "https://unofficial-builds.nodejs.org/download/release/v{{{newValue}}}/node-v{{{newValue}}}",
+      "customType": "regex",
+      "datasourceTemplate": "node-version",
+      "depNameTemplate": "node",
+      "description": "Keep the sandbox Node musl download directory and archive version aligned with the toolchain",
+      "managerFilePatterns": ["/^sandbox\\.json$/"],
+      "matchStrings": [
+        "https://unofficial-builds\\.nodejs\\.org/download/release/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/node-v\\d+\\.\\d+\\.\\d+"
+      ],
+      "versioningTemplate": "node"
     }
   ],
   "dependencyDashboard": true,
@@ -244,7 +256,7 @@
       "description": "Keep Node.js tool-version files and node Docker base images in one update",
       "groupName": "Node.js toolchain",
       "matchDepNames": ["node", "nodejs"],
-      "matchManagers": ["nvm", "asdf", "dockerfile"]
+      "matchManagers": ["nvm", "asdf", "dockerfile", "custom.regex"]
     },
     {
       "automerge": false,
@@ -256,7 +268,7 @@
     {
       "description": "Prioritize runtime base refreshes while preserving non-major automerge and manual digest review",
       "groupName": "Runtime container bases",
-      "matchManagers": ["asdf", "nvm", "dockerfile"],
+      "matchManagers": ["asdf", "nvm", "dockerfile", "custom.regex"],
       "matchPackageNames": ["node", "nodejs", "nginx"],
       "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
       "prPriority": 20,
