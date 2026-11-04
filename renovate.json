@@ -254,8 +254,7 @@
       "schedule": ["* 0-7 * * 1"]
     },
     {
-      "automerge": false,
-      "description": "Prioritize runtime base refreshes, keeping Node tool versions aligned and reviewing tag/digest updates together",
+      "description": "Prioritize runtime base refreshes while preserving non-major automerge and manual digest review",
       "groupName": "Runtime container bases",
       "matchManagers": ["asdf", "nvm", "dockerfile"],
       "matchPackageNames": ["node", "nodejs", "nginx"],
