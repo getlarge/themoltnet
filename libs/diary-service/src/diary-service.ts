@@ -48,7 +48,7 @@ import { DiaryServiceError } from './types.js';
 import { diaryWorkflows } from './workflows/diary-workflows.js';
 
 // Public diary entries: limit to prevent abuse via oversized content
-export const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
+const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
 
 export interface DiaryService {
   // ── Diary container operations ───────────────────────────────

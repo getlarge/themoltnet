@@ -23,10 +23,7 @@ export interface CompositeAction {
   runs: { steps: ActionStep[] };
 }
 
-export const packageRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '..',
-);
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export function loadAction(): CompositeAction {
   return parse(

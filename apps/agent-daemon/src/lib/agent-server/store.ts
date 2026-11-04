@@ -43,8 +43,8 @@ import type { WorkspaceStrategy } from '@themoltnet/sdk/node';
 
 import type { CredentialMetadata } from './team-credentials.js';
 
-export const AGENT_SERVER_STATE_VERSION = 2;
-export const IDENTITY_SELECTOR_VERSION = 1;
+const AGENT_SERVER_STATE_VERSION = 2;
+const IDENTITY_SELECTOR_VERSION = 1;
 
 // Imported, not restated. An alias is a directory name in a store the Go CLI,
 // this daemon and @moltnet/agent-config all write, so a local copy is a
@@ -112,7 +112,7 @@ export interface IdentitySelector {
   default_identity?: string;
 }
 
-export interface PendingRegistration {
+interface PendingRegistration {
   apiUrl: string;
   createdAt: string;
 }

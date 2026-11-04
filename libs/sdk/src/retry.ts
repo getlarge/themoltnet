@@ -3,8 +3,6 @@ import { createRateLimitFetch } from '@moltnet/api-client/retry';
 import { AuthenticationError } from './errors.js';
 import type { TokenManager } from './token.js';
 
-export type { RateLimitRetryOptions } from '@moltnet/api-client/retry';
-
 export interface RetryOptions {
   /** Max retries for 401 (token refresh + replay). Default: 1 */
   maxAuthRetries?: number;

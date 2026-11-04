@@ -20,7 +20,7 @@ function warningThresholdMs(timeoutMs: number): number {
   return Math.min(LOCK_WAIT_WARNING_MS, Math.floor(timeoutMs / 2));
 }
 
-export interface ProviderLockLogger {
+interface ProviderLockLogger {
   warn(context: Record<string, unknown>, message: string): void;
 }
 

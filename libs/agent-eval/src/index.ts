@@ -20,6 +20,7 @@ export {
 } from './build-inputs.js';
 export {
   checkGates,
+  createDurableToolEventReader,
   type GateAgent,
   type GateFailure,
   type GateResult,

@@ -252,7 +252,7 @@ export function parseProviderBaseUrl(value: string, providerId: string): URL {
 }
 
 /** This machine: `localhost`, `127.0.0.0/8`, or `::1`. */
-export function isLoopbackHost(hostname: string): boolean {
+function isLoopbackHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/^\[(.*)\]$/u, '$1');
   return (
     host === 'localhost' ||

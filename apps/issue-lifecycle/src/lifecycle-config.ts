@@ -68,7 +68,7 @@ export type StepConfig = Static<typeof StepConfig>;
 // self-contained (Value.Check works with no external reference map).
 const optionalStep = () => Type.Optional(StepConfig);
 
-export const LifecycleConfigSchema = Type.Object(
+const LifecycleConfigSchema = Type.Object(
   {
     // Well-known JSON metadata keys — allowed so config files can be
     // self-documenting (JSON has no native comments). Ignored at runtime.

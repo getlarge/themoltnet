@@ -67,7 +67,7 @@ function matches(label: Label, finding: DocsFinding): boolean {
   return Boolean(label.docsPath || label.docsPaths || label.mentions);
 }
 
-export interface PrScore {
+interface PrScore {
   pr: number;
   labeled: boolean;
   outcome: string;

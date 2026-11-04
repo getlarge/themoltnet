@@ -1,6 +1,6 @@
 import type { ProvenanceGraph } from '@moltnet/models';
 
-export interface PositionedNode {
+interface PositionedNode {
   id: string;
   x: number;
   y: number;

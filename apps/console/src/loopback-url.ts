@@ -1,4 +1,4 @@
-export function loopbackUrl(value: string, label: string): URL {
+function loopbackUrl(value: string, label: string): URL {
   const url = new URL(value);
   if (
     (url.protocol !== 'http:' && url.protocol !== 'https:') ||

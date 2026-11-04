@@ -10,8 +10,8 @@
  * surfaces the thresholds in the response (see the API coordination note),
  * replace these constants with the response-provided values.
  */
-export const HIGH_FRICTION_TURNS = 8;
-export const HIGH_FRICTION_FAILED_TOOL_CALLS = 3;
+const HIGH_FRICTION_TURNS = 8;
+const HIGH_FRICTION_FAILED_TOOL_CALLS = 3;
 
 export const HIGH_FRICTION_CAPTION = `≥ ${HIGH_FRICTION_TURNS} turns or ≥ ${HIGH_FRICTION_FAILED_TOOL_CALLS} failed tool calls`;
 

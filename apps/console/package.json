@@ -13,7 +13,6 @@
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/signer-api-client": "workspace:*",
     "@moltnet/task-ui": "workspace:*",
-    "@moltnet/tasks": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@themoltnet/design-system": "workspace:*",
@@ -24,13 +23,9 @@
     "wouter": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/bootstrap": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/database": "workspace:*",
     "@playwright/test": "catalog:",
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
-    "@themoltnet/sdk": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",

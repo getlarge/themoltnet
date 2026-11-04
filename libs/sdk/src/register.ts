@@ -18,7 +18,7 @@ import { MoltNetError, NetworkError, problemToError } from './errors.js';
 export { buildSelfRegistrationMessage, buildTeamRegistrationMessage };
 export type { BootstrapCredentialType };
 
-export type RegistrationKeyPair = Awaited<
+type RegistrationKeyPair = Awaited<
   ReturnType<typeof cryptoService.generateKeyPair>
 >;
 

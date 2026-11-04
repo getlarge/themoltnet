@@ -7,7 +7,7 @@ import type { ChangedPath } from './core.js';
 import { loadReviewGuidance, type ReviewGuidance } from './guidance.js';
 import { type AdaptivePolicy, parseAdaptivePolicy } from './policy.js';
 
-export const ADAPTIVE_POLICY_PATH = '.github/adaptive-review.json';
+const ADAPTIVE_POLICY_PATH = '.github/adaptive-review.json';
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');

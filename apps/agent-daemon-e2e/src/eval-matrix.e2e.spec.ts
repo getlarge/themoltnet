@@ -29,6 +29,7 @@ import { join, resolve } from 'node:path';
 import {
   buildJudgeInput,
   checkGates,
+  createDurableToolEventReader,
   readScenario,
   readSubmitStructure,
   runMatrix,
@@ -298,6 +299,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   });
 
   it('sweeps the model matrix and scores gate-passing attempts', async () => {
+    const readToolEvents = createDurableToolEventReader();
     const matrix: ScoreMatrix = await runMatrix(models, scenarios, judgeModel, {
       log: (m) => console.log(`[eval-matrix] ${m}`),
       runProducer: async (model, scenario, trial) => {
@@ -374,6 +376,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
                   latest.attemptN,
                   scenario.taskType,
                   teamId,
+                  readToolEvents,
                 )
               : NO_SUBMIT_STRUCTURE,
             spend,
@@ -388,19 +391,27 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             final.acceptedAttemptN,
             scenario.taskType,
             teamId,
+            readToolEvents,
           ),
           spend,
         };
       },
       runGates: (model, scenario, producer) =>
-        checkGates(agent, producer.taskId, producer.attemptN, scenario.gates, {
-          model,
-          workspace: scenario.execution.workspace,
-          teamId,
-          taskType: scenario.taskType,
-          outputContract: scenario.outputContract,
-          runningTimeoutSec: scenario.runningTimeoutSec,
-        }),
+        checkGates(
+          agent,
+          producer.taskId,
+          producer.attemptN,
+          scenario.gates,
+          {
+            model,
+            workspace: scenario.execution.workspace,
+            teamId,
+            taskType: scenario.taskType,
+            outputContract: scenario.outputContract,
+            runningTimeoutSec: scenario.runningTimeoutSec,
+          },
+          readToolEvents,
+        ),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(
           agent.tasks

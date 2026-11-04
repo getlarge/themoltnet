@@ -284,7 +284,7 @@ export function resolveTaskWorktreePath(
   return join(mainRepo, '.worktrees', workspaceId);
 }
 
-export function resolveTaskScratchPath(
+function resolveTaskScratchPath(
   stateRoot: string,
   workspaceId: string,
 ): string {

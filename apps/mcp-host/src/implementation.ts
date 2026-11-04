@@ -22,7 +22,7 @@ export interface ServerInfo {
   tools: Map<string, Tool>;
 }
 
-export interface UiResourceData {
+interface UiResourceData {
   csp?: McpUiResourceCsp;
   html: string;
   permissions?: McpUiResourcePermissions;

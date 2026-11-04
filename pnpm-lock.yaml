@@ -482,9 +482,6 @@ catalogs:
     fastify-plugin:
       specifier: ^5.1.0
       version: 5.1.0
-    fastq:
-      specifier: ^1.20.1
-      version: 1.20.3
     globals:
       specifier: ^17.12.0
       version: 17.12.0
@@ -571,7 +568,7 @@ catalogs:
       version: 13.0.7
     smol-toml:
       specifier: ^1.7.1
-      version: 1.9.0
+      version: 1.9.1
     strip-json-comments:
       specifier: ^5.0.3
       version: 5.0.3
@@ -587,9 +584,6 @@ catalogs:
     tree-sitter-bash:
       specifier: ^0.25.1
       version: 0.25.1
-    tslib:
-      specifier: ^2.8.1
-      version: 2.8.1
     tsx:
       specifier: ^4.23.15
       version: 4.23.15
@@ -675,10 +669,6 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      tslib:
-        specifier: ^2.3.0
-        version: 2.8.1
     devDependencies:
       '@commitlint/cli':
         specifier: 'catalog:'
@@ -692,6 +682,9 @@ importers:
       '@eslint/js':
         specifier: 'catalog:'
         version: 9.39.4
+      '@noble/ed25519':
+        specifier: 'catalog:'
+        version: 2.3.0
       '@nx-go/nx-go':
         specifier: 'catalog:'
         version: 4.0.0(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))
@@ -815,9 +808,6 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-      vite-plugin-dts:
-        specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@8.1.1)(typescript@5.9.3)(vite@8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -954,15 +944,9 @@ importers:
       '@fastify/swagger':
         specifier: 'catalog:'
         version: 9.9.2(supports-color@10.2.2)
-      '@moltnet/agent-eval':
-        specifier: workspace:*
-        version: link:../../libs/agent-eval
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
@@ -1020,9 +1004,6 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
-      '@moltnet/observability':
-        specifier: workspace:*
-        version: link:../../libs/observability
       '@moltnet/runtime-profiles':
         specifier: workspace:*
         version: link:../../libs/runtime-profiles
@@ -1035,9 +1016,6 @@ importers:
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime
-      '@themoltnet/pi-extension':
-        specifier: workspace:*
-        version: link:../../libs/pi-extension
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -1145,9 +1123,6 @@ importers:
       '@themoltnet/agent-daemon':
         specifier: workspace:*
         version: link:../agent-daemon
-      '@themoltnet/design-system':
-        specifier: workspace:*
-        version: link:../../libs/design-system
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -1176,12 +1151,6 @@ importers:
       '@wdio/tauri-service':
         specifier: 'catalog:'
         version: 1.5.0(expect-webdriverio@6.0.10)(supports-color@8.1.1)(tsx@4.23.15)(webdriverio@9.31.9(supports-color@8.1.1))
-      react:
-        specifier: 'catalog:'
-        version: 19.3.0
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.0(react@19.3.0)
       tsx:
         specifier: 'catalog:'
         version: 4.23.15
@@ -1218,9 +1187,6 @@ importers:
       '@moltnet/task-ui':
         specifier: workspace:*
         version: link:../../libs/task-ui
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.66
@@ -1246,15 +1212,6 @@ importers:
         specifier: 'catalog:'
         version: 3.9.0(react@19.3.0)
     devDependencies:
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../../libs/crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.64.1
@@ -1264,9 +1221,6 @@ importers:
       '@testing-library/react':
         specifier: 'catalog:'
         version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../../libs/sdk
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -1411,9 +1365,6 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../../libs/crypto-service
       '@moltnet/entry-explore-mcp-app':
         specifier: workspace:*
         version: link:../../libs/entry-explore-mcp-app
@@ -1483,9 +1434,6 @@ importers:
       '@opentelemetry/semantic-conventions':
         specifier: 'catalog:'
         version: 1.43.0
-      '@themoltnet/design-system':
-        specifier: workspace:*
-        version: link:../../libs/design-system
       fastify:
         specifier: 'catalog:'
         version: 5.12.6
@@ -1505,21 +1453,6 @@ importers:
         specifier: 'catalog:'
         version: 1.3.27
     devDependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: 'catalog:'
-        version: 1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.6.7)
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
-      '@moltnet/mcp-test-harness':
-        specifier: workspace:*
-        version: link:../../libs/mcp-test-harness
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pino-pretty:
         specifier: 'catalog:'
         version: 13.1.3
@@ -1544,15 +1477,9 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../../libs/database
       '@moltnet/mcp-test-harness':
         specifier: workspace:*
         version: link:../../libs/mcp-test-harness
@@ -1560,6 +1487,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/models
     devDependencies:
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1748,6 +1678,9 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
+      '@noble/ed25519':
+        specifier: 'catalog:'
+        version: 2.3.0
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.1
@@ -1853,9 +1786,6 @@ importers:
       thread-stream:
         specifier: 'catalog:'
         version: 3.1.0
-      tslib:
-        specifier: 'catalog:'
-        version: 2.8.1
       typebox:
         specifier: 'catalog:'
         version: 1.3.27
@@ -1866,12 +1796,6 @@ importers:
         specifier: 'catalog:'
         version: 4.7.0
     devDependencies:
-      '@moltnet/api-client':
-        specifier: workspace:*
-        version: link:../../libs/api-client
-      '@moltnet/bootstrap':
-        specifier: workspace:*
-        version: link:../../libs/bootstrap
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -1930,9 +1854,6 @@ importers:
       '@noble/curves':
         specifier: 'catalog:'
         version: 2.0.1
-      '@themoltnet/ctap':
-        specifier: workspace:*
-        version: link:../../libs/ctap
       '@themoltnet/yubikey-preview-sign':
         specifier: workspace:*
         version: link:../../libs/yubikey-preview-sign
@@ -1951,9 +1872,6 @@ importers:
       '@moltnet/runtime-profiles':
         specifier: workspace:*
         version: link:../libs/runtime-profiles
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../libs/tasks
     devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*
@@ -2299,9 +2217,6 @@ importers:
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../tasks-orchestrator
-      multiformats:
-        specifier: 'catalog:'
-        version: 13.4.2
       typebox:
         specifier: 'catalog:'
         version: 1.3.27
@@ -2309,9 +2224,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2321,24 +2233,6 @@ importers:
 
   libs/context-distill:
     devDependencies:
-      '@moltnet/crypto-service':
-        specifier: workspace:*
-        version: link:../crypto-service
-      '@moltnet/database':
-        specifier: workspace:*
-        version: link:../database
-      '@testcontainers/postgresql':
-        specifier: 'catalog:'
-        version: 11.12.0(supports-color@10.2.2)
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.16.0
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
-      pg:
-        specifier: 'catalog:'
-        version: 8.18.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2363,9 +2257,6 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
-      '@noble/hashes':
-        specifier: 'catalog:'
-        version: 1.8.0
     devDependencies:
       typescript:
         specifier: 'catalog:'
@@ -2602,12 +2493,6 @@ importers:
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
-      fastify:
-        specifier: 'catalog:'
-        version: 5.12.6
-      testcontainers:
-        specifier: 'catalog:'
-        version: 11.12.0(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2726,9 +2611,6 @@ importers:
       '@testing-library/jest-dom':
         specifier: 'catalog:'
         version: 6.9.1
-      '@testing-library/react':
-        specifier: 'catalog:'
-        version: 16.3.3(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -3379,9 +3261,6 @@ importers:
       '@moltnet/runtime-profiles':
         specifier: workspace:*
         version: link:../runtime-profiles
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../tasks
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.1
@@ -4092,12 +3971,6 @@ importers:
       '@moltnet/rest-api':
         specifier: workspace:*
         version: link:../apps/rest-api
-      '@moltnet/runtime-profiles':
-        specifier: workspace:*
-        version: link:../libs/runtime-profiles
-      '@moltnet/tasks':
-        specifier: workspace:*
-        version: link:../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.66
@@ -4107,9 +3980,6 @@ importers:
       '@themoltnet/github-agent':
         specifier: workspace:*
         version: link:../packages/github-agent
-      '@themoltnet/pi-extension':
-        specifier: workspace:*
-        version: link:../libs/pi-extension
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../libs/pi-runtime
@@ -4122,18 +3992,12 @@ importers:
       '@zip.js/zip.js':
         specifier: 'catalog:'
         version: 2.8.26
-      drizzle-orm:
-        specifier: 'catalog:'
-        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
-      fastq:
-        specifier: 'catalog:'
-        version: 1.20.3
       jose:
         specifier: 'catalog:'
         version: 6.2.14
       smol-toml:
         specifier: 'catalog:'
-        version: 1.9.0
+        version: 1.9.1
       tar:
         specifier: 'catalog:'
         version: 7.5.22
@@ -5950,6 +5814,7 @@ packages:
 
   '@github/keytar@7.10.6':
     resolution: {integrity: sha512-mRW6cUsSG+nj4jp5gp8e91zPySaT73r+2JM6VyMZfrEgksjPmjSMr+tPGNOK3HUHV+GUU9B1LAiiYy/wmAnIxA==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@google/genai@2.21.0':
     resolution: {integrity: sha512-+PDtco2/Z0ONdzCGekCoCT+O1VJS9xJQNN4XzQpXG/t3El/SWWMkCWlFRO1KmivOHPa4Q0VjUYu1HBKCZ/v33Q==}
@@ -14223,8 +14088,8 @@ packages:
     resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
     engines: {node: '>= 18'}
 
-  smol-toml@1.9.0:
-    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
     engines: {node: '>= 18'}
 
   socks-proxy-agent@8.0.5:
@@ -21475,7 +21340,7 @@ snapshots:
       esbuild: 0.28.2
       find-up-simple: 1.0.1
       json5: 2.2.3
-      smol-toml: 1.9.0
+      smol-toml: 1.9.1
       yaml: 2.9.1
     optionalDependencies:
       tsx: 4.23.15
@@ -24997,7 +24862,7 @@ snapshots:
       oxc-parser: 0.155.0
       oxc-resolver: 11.24.2
       picomatch: 4.0.7
-      smol-toml: 1.9.0
+      smol-toml: 1.9.1
       strip-json-comments: 5.0.3
       tinyglobby: 0.2.17
       unbash: 6.0.3
@@ -27476,7 +27341,7 @@ snapshots:
 
   smol-toml@1.6.1: {}
 
-  smol-toml@1.9.0: {}
+  smol-toml@1.9.1: {}
 
   socks-proxy-agent@8.0.5(supports-color@8.1.1):
     dependencies:
@@ -28308,25 +28173,6 @@ snapshots:
       '@vue/language-core': 2.2.0(typescript@5.9.3)
       compare-versions: 6.1.1
       debug: 4.4.3(supports-color@10.2.2)
-      kolorist: 1.8.0
-      local-pkg: 1.1.2
-      magic-string: 0.30.21
-      typescript: 5.9.3
-    optionalDependencies:
-      vite: 8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-    transitivePeerDependencies:
-      - '@types/node'
-      - rollup
-      - supports-color
-
-  vite-plugin-dts@4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@8.1.1)(typescript@5.9.3)(vite@8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
-    dependencies:
-      '@microsoft/api-extractor': 7.57.2(@types/node@22.19.19)
-      '@rollup/pluginutils': 5.3.0(rollup@4.60.1)
-      '@volar/typescript': 2.4.28(typescript@5.9.3)
-      '@vue/language-core': 2.2.0(typescript@5.9.3)
-      compare-versions: 6.1.1
-      debug: 4.4.3(supports-color@8.1.1)
       kolorist: 1.8.0
       local-pkg: 1.1.2
       magic-string: 0.30.21

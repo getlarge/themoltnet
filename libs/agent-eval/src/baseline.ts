@@ -27,8 +27,8 @@ import {
 } from './score-matrix.js';
 
 /** Non-gate failure-mode keys, alongside the per-gate keys from `GateFailure`. */
-export const NOT_COMPLETED = 'not_completed';
-export const RUN_ERROR = 'error';
+const NOT_COMPLETED = 'not_completed';
+const RUN_ERROR = 'error';
 
 /** One independent producer run of a scenario. */
 export interface BaselineRun {

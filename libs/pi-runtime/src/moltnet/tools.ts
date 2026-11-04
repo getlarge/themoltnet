@@ -90,7 +90,7 @@ export interface MoltNetTaskContext {
   correlationId: string | null;
 }
 
-export interface HostExecAutoApproveRule {
+interface HostExecAutoApproveRule {
   /** Exact executable name. Must still pass HOST_EXEC_ALLOWED. */
   executable: string;
   /** Optional ordered argument prefix; flags after the prefix are allowed. */
@@ -1648,7 +1648,7 @@ const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
  * A signer whose every operation goes through the capability router, so a
  * tool cannot obtain a host signature the session policy would deny.
  */
-export function createPolicyCheckedSigner(
+function createPolicyCheckedSigner(
   router: HostCapabilityRouter,
   identity: AgentIdentity,
 ): AgentSigningCapability {
@@ -1693,7 +1693,7 @@ export function resolveHostExecBaseEnv(
   }
   return names;
 }
-export async function openVmWorkspaceFileForRead(config: {
+async function openVmWorkspaceFileForRead(config: {
   vm: VM;
   cwdPath: string;
   guestWorkspace: string;

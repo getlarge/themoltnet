@@ -21,7 +21,7 @@ export type PathOf<T extends { path?: unknown }> = Exclude<
   T['path'],
   undefined
 >;
-export type HeadersOf<T extends { headers?: unknown }> = Exclude<
+type HeadersOf<T extends { headers?: unknown }> = Exclude<
   T['headers'],
   undefined
 >;
@@ -34,7 +34,7 @@ export type TeamIdHeaderOf<
   T extends { headers?: { 'x-moltnet-team-id'?: unknown } },
 > = HeadersOf<T>['x-moltnet-team-id'];
 
-export type SnakeCase<S extends string> = S extends `${infer H}${infer T}`
+type SnakeCase<S extends string> = S extends `${infer H}${infer T}`
   ? H extends Lowercase<H>
     ? `${H}${SnakeCase<T>}`
     : `_${Lowercase<H>}${SnakeCase<T>}`

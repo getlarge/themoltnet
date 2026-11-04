@@ -520,8 +520,9 @@ describe('Nx release configuration', () => {
       );
     }
 
+    // The nginx-only console has no Node packaging inputs or server-side
+    // dependencies after the E2E manifest cleanup.
     const nodePackagingProjects = [
-      '@moltnet/console',
       '@moltnet/database',
       '@moltnet/mcp-server',
       '@moltnet/rest-api',

@@ -26,7 +26,7 @@ export const UPDATE_RELEASES_URL =
 const RELEASE_TAG_PREFIX = 'agent-daemon-v';
 export const UPDATE_NPM_REGISTRY_URL =
   'https://registry.npmjs.org/@themoltnet/agent-daemon/latest';
-export const UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_ERROR_CACHE_TTL_MS = 5 * 60 * 1000;
 export type DaemonInstallMethod = 'bundle' | 'npm' | 'direct';
 export interface UpdateResult {

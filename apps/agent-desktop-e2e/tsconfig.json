@@ -7,9 +7,6 @@
       "path": "../../libs/sdk"
     },
     {
-      "path": "../../libs/design-system"
-    },
-    {
       "path": "../agent-daemon"
     },
     {

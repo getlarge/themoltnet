@@ -63,7 +63,7 @@ export interface TaskArtifactTaskInput extends TaskArtifactSubject {
   teamId: string;
 }
 
-export interface TaskArtifactAttemptInput extends TaskArtifactTaskInput {
+interface TaskArtifactAttemptInput extends TaskArtifactTaskInput {
   attemptN: number;
 }
 

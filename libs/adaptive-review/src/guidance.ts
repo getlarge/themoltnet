@@ -9,8 +9,8 @@ export interface ReviewGuidance {
 }
 
 export const MAX_REVIEW_GUIDANCE_FILE_BYTES = 16 * 1024;
-export const MAX_REVIEW_GUIDANCE_BYTES = 128 * 1024;
-export const MAX_REVIEW_GUIDANCE_FILES = 128;
+const MAX_REVIEW_GUIDANCE_BYTES = 128 * 1024;
+const MAX_REVIEW_GUIDANCE_FILES = 128;
 
 /** Read ordinary Git blobs from the pinned base, never the working tree. */
 export function loadReviewGuidance(git: Git, base: string): ReviewGuidance[] {

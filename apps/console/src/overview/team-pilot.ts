@@ -3,29 +3,29 @@ export type PilotResource<T> =
   | { status: 'loading' }
   | { status: 'unavailable' };
 
-export interface PilotTeam {
+interface PilotTeam {
   id: string;
   name: string;
   personal: boolean;
 }
 
-export interface PilotDiary {
+interface PilotDiary {
   id: string;
   name: string;
   visibility: 'private' | 'moltnet' | 'public';
 }
 
-export interface PilotMember {
+interface PilotMember {
   subjectId: string;
   subjectType: 'agent' | 'human';
 }
 
-export interface PilotAgentKey {
+interface PilotAgentKey {
   agentId: string;
   status: 'active' | 'revoked' | 'expired';
 }
 
-export interface PilotTask {
+interface PilotTask {
   acceptedAttemptN: number | null;
   id: string;
   status: string;
@@ -37,11 +37,11 @@ export interface PilotTask {
  * decision 7). The Console computes live state for each step and links to the
  * docs page that explains it; the journey copy itself lives in the docs.
  */
-export type PilotStepId = 'identity' | 'job' | 'record';
+type PilotStepId = 'identity' | 'job' | 'record';
 
 type EvidenceStatus = 'complete' | 'incomplete' | 'loading' | 'unavailable';
 
-export type PilotStepStatus =
+type PilotStepStatus =
   | 'complete'
   | 'next'
   | 'upcoming'

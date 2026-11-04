@@ -8,12 +8,5 @@
   "exclude": ["node_modules", "dist", "__tests__", "e2e"],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../database/tsconfig.lib.json"
-    },
-    {
-      "path": "../crypto-service/tsconfig.lib.json"
-    }
-  ]
+  "references": []
 }

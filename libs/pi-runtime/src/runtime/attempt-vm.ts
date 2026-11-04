@@ -14,7 +14,7 @@ import {
 import type { GondolinDurableTaskOptions } from './durable-task-options.js';
 import type { PiTaskExecutionPlan } from './execution-plan.js';
 
-export class HostCapabilityContextMissingError extends Error {
+class HostCapabilityContextMissingError extends Error {
   constructor() {
     super(
       'runtime declares host capabilities but no agent identity and authenticated host Agent were injected',

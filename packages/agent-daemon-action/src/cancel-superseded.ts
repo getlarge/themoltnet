@@ -17,7 +17,7 @@ function requiredString(value: unknown, label: keyof TaskSpecIdentity): string {
   return value.trim();
 }
 
-export function readTaskSpecIdentity(path: string): TaskSpecIdentity {
+function readTaskSpecIdentity(path: string): TaskSpecIdentity {
   const parsed = JSON.parse(readFileSync(path, 'utf8')) as Record<
     string,
     unknown

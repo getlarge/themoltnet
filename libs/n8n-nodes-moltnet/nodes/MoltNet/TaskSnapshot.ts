@@ -20,7 +20,7 @@ export interface TaskSnapshot {
   terminal: boolean;
 }
 
-export function isTerminalTaskStatus(status: Task['status']): boolean {
+function isTerminalTaskStatus(status: Task['status']): boolean {
   return terminalStatuses.has(status);
 }
 

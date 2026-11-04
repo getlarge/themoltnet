@@ -9,7 +9,7 @@ import {
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
-export type RuntimeWorkspaceKind = 'origin' | 'fork' | 'scratch';
+type RuntimeWorkspaceKind = 'origin' | 'fork' | 'scratch';
 
 export interface BeginRuntimeSlotInput {
   teamId: string;

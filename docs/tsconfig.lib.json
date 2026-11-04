@@ -16,9 +16,6 @@
   ],
   "references": [
     {
-      "path": "../libs/tasks/tsconfig.lib.json"
-    },
-    {
       "path": "../libs/design-system/tsconfig.lib.json"
     },
     {

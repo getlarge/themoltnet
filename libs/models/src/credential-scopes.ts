@@ -173,6 +173,7 @@ export const AGENT_OAUTH_SCOPES = Object.freeze(
 );
 
 /** Human sessions may also access human-profile capabilities. */
+/** @alias Shared policy, with a domain-specific name at call sites. */
 export const HUMAN_SESSION_SCOPES = ALL_CREDENTIAL_SCOPES;
 
 /**

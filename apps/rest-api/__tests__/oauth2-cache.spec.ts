@@ -69,6 +69,9 @@ describe('POST /oauth2/token caching', () => {
   beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, null);
+    // A shuffled concurrency test may be the first request. Finish plugin
+    // startup before its bounded wait for the upstream fetch begins.
+    await app.ready();
   });
 
   afterAll(async () => {
@@ -110,6 +113,7 @@ describe('POST /oauth2/token caching', () => {
 
     // Assert — upstream said 3600; the cached reply must report less, by at
     // least the expiry buffer, and must not echo the original lifetime.
+    expect(fresh.statusCode, fresh.body).toBe(200);
     expect(fresh.json().expires_in).toBe(3600);
     expect(cached.json().expires_in).toBeLessThanOrEqual(3570);
     expect(cached.json().expires_in).toBeGreaterThan(3500);

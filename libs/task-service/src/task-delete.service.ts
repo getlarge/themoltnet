@@ -8,6 +8,7 @@ import {
 import { TaskServiceError } from './task-service.shared.js';
 import type { TaskServiceDeps } from './task-service.types.js';
 
+/** @public Named in the inferred return type of createTaskService. */
 export interface DeleteManyInput {
   ids: string[];
   teamId?: string;

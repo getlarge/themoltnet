@@ -1,4 +1,4 @@
-export interface KetoSubjectSet {
+interface KetoSubjectSet {
   namespace: string;
   object: string;
   relation: string;
@@ -11,7 +11,7 @@ export interface KetoTuple {
   subject_set: KetoSubjectSet;
 }
 
-export interface Page<T> {
+interface Page<T> {
   items: T[];
   nextPageToken?: string;
 }

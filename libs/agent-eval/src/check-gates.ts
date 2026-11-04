@@ -63,7 +63,7 @@ export interface GateTaskAttempt {
 }
 
 /** Minimal shape of a task artifact (a structural subset of `TaskArtifact`). */
-export interface GateTaskArtifact {
+interface GateTaskArtifact {
   cid: string;
   attemptN: number | null;
   title: string;
@@ -71,7 +71,7 @@ export interface GateTaskArtifact {
 
 /** Minimal shape of an artifact download (a structural subset of
  * `TaskArtifactDownload`). */
-export interface GateArtifactDownload {
+interface GateArtifactDownload {
   stream: AsyncIterable<Uint8Array>;
 }
 
@@ -319,6 +319,38 @@ export async function readDurableToolEvents(
   return events;
 }
 
+/** Share a settled attempt's evidence between scorers within one eval run.
+ * Retain only the most recently read attempt, never a process-wide history. */
+export function createDurableToolEventReader(): typeof readDurableToolEvents {
+  let cached:
+    | {
+        agent: Parameters<typeof readDurableToolEvents>[0];
+        taskId: string;
+        attemptN: number;
+        teamId: string | undefined;
+        result: ReturnType<typeof readDurableToolEvents>;
+      }
+    | undefined;
+  return (agent, taskId, attemptN, teamId) => {
+    if (
+      !cached ||
+      cached.agent !== agent ||
+      cached.taskId !== taskId ||
+      cached.attemptN !== attemptN ||
+      cached.teamId !== teamId
+    ) {
+      cached = {
+        agent,
+        taskId,
+        attemptN,
+        teamId,
+        result: readDurableToolEvents(agent, taskId, attemptN, teamId),
+      };
+    }
+    return cached.result;
+  };
+}
+
 /** Decode an artifact byte stream to text, capped so a hostile large upload
  * cannot exhaust memory during a content scan. */
 async function readStreamText(
@@ -361,6 +393,7 @@ export async function checkGates(
     runningTimeoutSec?: number;
     outputContract?: { version: 1; schema: Record<string, unknown> };
   },
+  readToolEvents: typeof readDurableToolEvents = readDurableToolEvents,
 ): Promise<GateResult> {
   const failures: GateFailure[] = [];
   let deadline: GateResult['deadline'];
@@ -371,7 +404,7 @@ export async function checkGates(
   } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
   let messages = await listAllMessages(agent, taskId, attemptN);
   try {
-    const evidence = await readDurableToolEvents(
+    const evidence = await readToolEvents(
       agent,
       taskId,
       attemptN,

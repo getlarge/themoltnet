@@ -26,7 +26,7 @@ import type { DaemonCredentialSource } from './agent-context.js';
 export const DAEMON_REQUIRED_SCOPES = DAEMON_MINIMUM_SCOPES;
 
 /** What `moltnet agents keys create` should mint for a new daemon. */
-export const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
+const DAEMON_RECOMMENDED_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
 /**
  * Optional scopes this credential does not carry.

@@ -44,7 +44,7 @@ import {
 
 // --- Handler functions ---
 
-export async function handleGrantCreate(
+async function handleGrantCreate(
   args: GrantCreateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -76,7 +76,7 @@ export async function handleGrantCreate(
   return structuredResult(data);
 }
 
-export async function handleGrantRevoke(
+async function handleGrantRevoke(
   args: GrantRevokeInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -108,7 +108,7 @@ export async function handleGrantRevoke(
   return structuredResult(data);
 }
 
-export async function handleGrantList(
+async function handleGrantList(
   args: GrantListInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -132,7 +132,7 @@ export async function handleGrantList(
   return structuredResult(data);
 }
 
-export async function handleTaskGrantCreate(
+async function handleTaskGrantCreate(
   args: TaskGrantCreateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -157,7 +157,7 @@ export async function handleTaskGrantCreate(
   return data ? structuredResult(data) : errorResult('Failed to create grant');
 }
 
-export async function handleTaskGrantRevoke(
+async function handleTaskGrantRevoke(
   args: TaskGrantRevokeInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -182,7 +182,7 @@ export async function handleTaskGrantRevoke(
   return data ? structuredResult(data) : errorResult('Failed to revoke grant');
 }
 
-export async function handleTaskGrantList(
+async function handleTaskGrantList(
   args: TaskGrantListInput,
   deps: McpDeps,
   context: HandlerContext,

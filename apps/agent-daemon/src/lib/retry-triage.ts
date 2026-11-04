@@ -8,7 +8,7 @@ import {
   sanitizeProviderDiagnostic,
 } from '@themoltnet/pi-runtime';
 
-export type RetryTriageResult = PiRetryTriageResult;
+type RetryTriageResult = PiRetryTriageResult;
 
 export interface RetryTriageInput {
   task: Pick<Task, 'id' | 'taskType' | 'teamId' | 'input'>;

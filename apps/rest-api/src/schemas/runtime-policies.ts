@@ -11,14 +11,14 @@ import {
 } from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
-export { CreateRuntimePolicyBodySchema, ShellCommandRuleSchema };
+export { CreateRuntimePolicyBodySchema };
 
-export const ToolEnforcementSchema = {
+const ToolEnforcementSchema = {
   ...CanonicalToolEnforcementSchema,
   $id: 'ToolEnforcement',
 };
 
-export const RuntimePolicySchema = Type.Object(
+const RuntimePolicySchema = Type.Object(
   {
     id: UuidSchema,
     teamId: UuidSchema,

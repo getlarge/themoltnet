@@ -32,6 +32,7 @@ import { join, resolve } from 'node:path';
 import {
   type BaselineReport,
   checkGates,
+  createDurableToolEventReader,
   readScenario,
   readSubmitStructure,
   runBaseline,
@@ -180,6 +181,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
   });
 
   it('measures the producer baseline across the corpus', async () => {
+    const readToolEvents = createDurableToolEventReader();
     const report: BaselineReport = await runBaseline(
       scenarios,
       LIVE_MODEL,
@@ -243,6 +245,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               lastAttempt.attemptN,
               scenario.taskType,
               teamId,
+              readToolEvents,
             );
             structures.push({
               scenario: scenario.slug,
@@ -285,6 +288,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               taskType: scenario.taskType,
               outputContract: scenario.outputContract,
             },
+            readToolEvents,
           ),
       },
     );

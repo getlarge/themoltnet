@@ -9,7 +9,7 @@ import type {
 } from '@moltnet/database';
 import type { VerificationMethod } from '@moltnet/models';
 
-export interface SigningServiceLogger {
+interface SigningServiceLogger {
   error(fields: Record<string, unknown>, message: string): void;
 }
 

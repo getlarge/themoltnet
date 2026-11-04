@@ -1,4 +1,4 @@
-export interface KetoSubjectSet {
+interface KetoSubjectSet {
   namespace: string;
   object: string;
   relation: string;
@@ -23,7 +23,7 @@ export interface LegacySelfTupleAdapters {
   deleteTuple(tuple: KetoTuple): Promise<void>;
 }
 
-export interface LegacySelfTupleCounts {
+interface LegacySelfTupleCounts {
   pages: number;
   scanned: number;
   directSubjects: number;

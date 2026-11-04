@@ -15,7 +15,7 @@ import {
   validateRuntimeProfilePrerequisites,
 } from '@themoltnet/agent-runtime';
 
-export type ProfileBlockerCode =
+type ProfileBlockerCode =
   | 'env_missing'
   | 'tool_missing'
   | 'executable_missing'

@@ -37,12 +37,6 @@
       "path": "../../libs/context-distill/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/bootstrap/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/api-client/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/task-workflows/tsconfig.lib.json"
     },
     {

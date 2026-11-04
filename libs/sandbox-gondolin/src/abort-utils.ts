@@ -6,7 +6,7 @@ export function throwIfAborted(
   throw abortError(label, signal);
 }
 
-export function abortError(label: string, signal: AbortSignal): Error {
+function abortError(label: string, signal: AbortSignal): Error {
   const reason = signal.reason;
   const suffix =
     reason instanceof Error

@@ -11,7 +11,7 @@ import ts from 'typescript';
  * - `*-e2e` projects contain only tests and keep their layout (suffix only).
  */
 
-export const TEST_FILE_PATTERN = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
+const TEST_FILE_PATTERN = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const LEGACY_E2E_PATTERN = /\.e2e\.[cm]?[jt]sx?$/;
 const CODE_FILE_PATTERN = /\.[cm]?[jt]sx?$/;
 const DECLARATION_PATTERN = /\.d\.[cm]?ts$/;
@@ -58,7 +58,7 @@ export function relocateUnderTests(relativePath: string): string {
 }
 
 /** Files inside a dedicated test folder that is not the canonical one. */
-export function isInLegacyTestDir(relativePath: string): boolean {
+function isInLegacyTestDir(relativePath: string): boolean {
   const segments = relativePath.split('/');
   if (segments[0] === 'tests') return true;
   return segments.slice(1, -1).includes(TESTS_DIR);
@@ -68,13 +68,6 @@ export interface ProjectFiles {
   project: ProjectInfo;
   /** Project-relative paths of every tracked file. */
   files: string[];
-}
-
-export interface SupportCandidate {
-  /** Project-relative path. */
-  file: string;
-  /** Project-relative paths of the files that reference it. */
-  importers: string[];
 }
 
 export interface PlanInput {
@@ -98,7 +91,7 @@ export interface MovePlan {
 const SUPPORT_NAME_PATTERN =
   /(?:^|[-.])test(?:-|$)|test-support|harness$|fixtures?$|fakes?$|^setup-tests$/;
 
-export function isSupportName(file: string): boolean {
+function isSupportName(file: string): boolean {
   return SUPPORT_NAME_PATTERN.test(
     path.basename(file).replace(/\.[cm]?[jt]sx?$/, ''),
   );
@@ -243,7 +236,7 @@ function findSupportFiles(
 // Reference extraction and rewriting
 // ---------------------------------------------------------------------------
 
-export type ReferenceKind = 'module' | 'url' | 'path-call';
+type ReferenceKind = 'module' | 'url' | 'path-call';
 
 export interface Reference {
   kind: ReferenceKind;
@@ -416,7 +409,7 @@ const IMPLICIT_EXTENSIONS = ['.ts', '.tsx', '.mts', '.js', '.jsx', '.mjs'];
  * Resolves a workspace-relative specifier path to an existing file, and
  * returns how to map that file's new location back to specifier form.
  */
-export function resolveTarget(
+function resolveTarget(
   specPath: string,
   exists: (p: string) => boolean,
 ): { file: string; toSpec: (moved: string) => string } | undefined {

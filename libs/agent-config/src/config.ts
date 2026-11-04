@@ -93,13 +93,13 @@ interface MoltNetConfigBase {
  * The durable local anchor. Canonical documents use the MoltNet subject;
  * identity_id is accepted only while the explicit compatibility reader ships.
  */
-export interface CanonicalMoltNetConfigAnchor {
+interface CanonicalMoltNetConfigAnchor {
   subject_id: string;
   subject_type: AgentSubjectType;
   identity_id?: never;
 }
 
-export interface LegacyMoltNetConfigAnchor {
+interface LegacyMoltNetConfigAnchor {
   subject_id?: never;
   subject_type?: never;
   identity_id: string;

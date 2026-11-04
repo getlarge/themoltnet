@@ -25,9 +25,7 @@ export type ConnectionSettings = typeof RELEASE_CONNECTION;
 export type ConnectionOverrides = Partial<ConnectionSettings>;
 const KEYS = Object.keys(RELEASE_CONNECTION) as (keyof ConnectionSettings)[];
 
-export function validateConnectionOverrides(
-  value: unknown,
-): ConnectionOverrides {
+function validateConnectionOverrides(value: unknown): ConnectionOverrides {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Connection settings must be an object');
   const result: ConnectionOverrides = {};

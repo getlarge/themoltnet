@@ -6,10 +6,5 @@
 // surface the docs components and validation script import.
 export {
   resolveRuntimeProfileContextRecipe,
-  RUNTIME_PROFILE_CONTEXT_CATALOGUE,
-  type RuntimeProfileContextCatalogue,
-  type ContextRef as RuntimeProfileContextEntry,
-  type RuntimeProfileContextRecipe,
   runtimeProfileContextRecipeDescription,
-  runtimeProfileContextRecipeIds,
 } from '@moltnet/runtime-profiles/context-recipes';

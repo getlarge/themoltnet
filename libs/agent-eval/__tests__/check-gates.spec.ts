@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   checkGates,
+  createDurableToolEventReader,
   type GateAgent,
   type GateTaskAttempt,
   type GateTaskMessage,
 } from '../src/check-gates.js';
 import type { GateExpectations } from '../src/scenario.js';
+import { readSubmitStructure } from '../src/submit-structure.js';
 
 const EXPECTED = { model: 'qwen3-coder:480b-cloud', workspace: 'none' };
 
@@ -144,6 +146,81 @@ const completedAttempt: GateTaskAttempt = {
 };
 
 describe('checkGates', () => {
+  it('shares paginated evidence with submit scoring and isolates attempt identities', async () => {
+    const operational = messages().map((message, index) => ({
+      ...message,
+      seq: index + 1,
+    }));
+    const baseAgent = fakeAgent([], completedAttempt);
+    const list = vi.fn().mockResolvedValue({
+      items: [{ conversationId: 'main' }],
+    });
+    const get = vi
+      .fn()
+      .mockImplementation(
+        async (_taskId, _attemptN, _conversationId, _options, query) => ({
+          messages: [
+            {
+              inherited: false,
+              entryId: query.beforeEntryId ? '1' : '2',
+              message: {
+                role: 'toolResult',
+                toolName: 'submit_run_eval_output',
+                isError: Boolean(query.beforeEntryId),
+              },
+            },
+          ],
+          nextBeforeEntryId: query.beforeEntryId ? null : '2',
+        }),
+      );
+    const agent = {
+      tasks: {
+        ...baseAgent.tasks,
+        conversations: { list, get },
+        listMessages: async (
+          _taskId: string,
+          _attemptN: number,
+          query?: { afterSeq?: number },
+        ) => operational.filter(({ seq }) => seq > (query?.afterSeq ?? 0)),
+      },
+    };
+    const readToolEvents = createDurableToolEventReader();
+
+    const structure = await readSubmitStructure(
+      agent,
+      't1',
+      1,
+      'run_eval',
+      'team-1',
+      readToolEvents,
+    );
+    const gates = await checkGates(
+      agent,
+      't1',
+      1,
+      {},
+      EXPECTED_WITH_TEAM,
+      readToolEvents,
+    );
+
+    expect(structure.invalidSubmitCalls).toBe(1);
+    expect(gates.failures).toContainEqual(
+      expect.objectContaining({ gate: 'submit_clean' }),
+    );
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledTimes(2);
+
+    await readToolEvents(agent, 't2', 1, 'team-1');
+    await readToolEvents(agent, 't2', 2, 'team-1');
+    await readToolEvents(agent, 't2', 2, 'team-2');
+    await readToolEvents({ tasks: agent.tasks }, 't2', 2, 'team-2');
+    expect(list).toHaveBeenCalledTimes(5);
+    expect(get).toHaveBeenCalledTimes(10);
+    // Returning to an earlier attempt rereads it: there is no unbounded cache.
+    await readToolEvents(agent, 't1', 1, 'team-1');
+    expect(list).toHaveBeenCalledTimes(6);
+  });
+
   it.each([
     [false, 1],
     [true, 1],

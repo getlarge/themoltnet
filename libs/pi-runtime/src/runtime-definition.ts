@@ -829,7 +829,7 @@ export function enabledPiToolNames(input: {
 }
 
 /** Exact tool names the selected runtime and effective policy expose. */
-export function modelVisiblePiToolNames(input: {
+function modelVisiblePiToolNames(input: {
   tools: readonly ToolDefinition[];
   extensions?: readonly PiExtensionContribution[];
   policy?: ModelVisibleToolPolicy;

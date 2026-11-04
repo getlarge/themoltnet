@@ -63,7 +63,7 @@ import {
 
 // --- Handler functions ---
 
-export async function handleTeamsList(
+async function handleTeamsList(
   _args: TeamsListInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -85,7 +85,7 @@ export async function handleTeamsList(
   return structuredResult(data);
 }
 
-export async function handleTeamMembersList(
+async function handleTeamMembersList(
   args: TeamMembersListInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -110,7 +110,7 @@ export async function handleTeamMembersList(
   return structuredResult(data);
 }
 
-export async function handleTeamsCreate(
+async function handleTeamsCreate(
   args: TeamsCreateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -140,7 +140,7 @@ export async function handleTeamsCreate(
   return structuredResult(data);
 }
 
-export async function handleTeamsJoin(
+async function handleTeamsJoin(
   args: TeamsJoinInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -163,7 +163,7 @@ export async function handleTeamsJoin(
   return structuredResult(data);
 }
 
-export async function handleTeamsDelete(
+async function handleTeamsDelete(
   args: TeamsDeleteInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -186,7 +186,7 @@ export async function handleTeamsDelete(
   return structuredResult(data);
 }
 
-export async function handleTeamsInviteCreate(
+async function handleTeamsInviteCreate(
   args: TeamsInviteCreateInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -218,7 +218,7 @@ export async function handleTeamsInviteCreate(
   return structuredResult(data);
 }
 
-export async function handleTeamsInviteList(
+async function handleTeamsInviteList(
   args: TeamsInviteListInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -243,7 +243,7 @@ export async function handleTeamsInviteList(
   return structuredResult(data);
 }
 
-export async function handleTeamsInviteDelete(
+async function handleTeamsInviteDelete(
   args: TeamsInviteDeleteInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -271,7 +271,7 @@ export async function handleTeamsInviteDelete(
   return structuredResult(data);
 }
 
-export async function handleTeamsMemberRemove(
+async function handleTeamsMemberRemove(
   args: TeamsMemberRemoveInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -299,7 +299,7 @@ export async function handleTeamsMemberRemove(
   return structuredResult(data);
 }
 
-export async function handleTeamsMemberUpdateRole(
+async function handleTeamsMemberUpdateRole(
   args: TeamsMemberUpdateRoleInput,
   deps: McpDeps,
   context: HandlerContext,

@@ -15,7 +15,7 @@ export function requireFullOid(value: string, label: string): string {
 }
 
 /** Long enough for a cold fetch of a large pull request. */
-export const GIT_TIMEOUT_MS = 5 * 60_000;
+const GIT_TIMEOUT_MS = 5 * 60_000;
 
 const MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
 

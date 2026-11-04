@@ -188,8 +188,6 @@ export async function rowToResponseWithCreator<
  * This is a thin re-export of `resolvePrincipal` for routes that don't
  * want to depend on `@moltnet/database` directly.
  */
-export { resolvePrincipal } from '@moltnet/database';
-
 /**
  * Batch variant of `rowToResponseWithCreator` for list endpoints.
  *

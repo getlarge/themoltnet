@@ -312,7 +312,7 @@ export async function handleDiariesGet(
 
 // --- Tool registration ---
 
-export async function handleDiaryTags(
+async function handleDiaryTags(
   args: DiaryTagsInput,
   deps: McpDeps,
   context: HandlerContext,

@@ -58,19 +58,19 @@ export interface CatalogueProjectPage {
  * Coarse and additive: `forbidden` needs access changes, `unreachable` is worth
  * a retry, `invalid_response` is a server fault, `truncated` is informational.
  */
-export type ProjectErrorCode =
+type ProjectErrorCode =
   | 'forbidden'
   | 'unreachable'
   | 'invalid_response'
   | 'truncated';
 
-export interface ProjectError {
+interface ProjectError {
   teamId: string;
   code: ProjectErrorCode;
   message: string;
 }
 
-export type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
+type CatalogueTeamRecord = Pick<SdkTeam, 'id' | 'name'>;
 export type CatalogueDiaryRecord = Pick<SdkDiary, 'id' | 'name' | 'teamId'>;
 
 /**
@@ -128,7 +128,7 @@ export interface CatalogueAgentPort {
   }>;
 }
 
-export interface CatalogueTeam {
+interface CatalogueTeam {
   teamId: string;
   teamName: string;
   available: boolean;
@@ -143,7 +143,7 @@ export interface CatalogueTeam {
   defaultDiaryId: string | null;
 }
 
-export interface CatalogueProfile extends CatalogueProfileRecord {
+interface CatalogueProfile extends CatalogueProfileRecord {
   ready: boolean;
   blockers: ProfileBlocker[];
 }
@@ -168,7 +168,7 @@ export interface IdentityDefaultBinding {
  * must fit inside Desktop's 15 s control timeout with room to spare: a slow
  * team degrades to a blocker instead of failing the whole catalogue.
  */
-export const CATALOGUE_TEAM_BUDGET_MS = 8_000;
+const CATALOGUE_TEAM_BUDGET_MS = 8_000;
 
 /** What the network said about one team, before this machine's view is applied. */
 export type CatalogueTeamSource =

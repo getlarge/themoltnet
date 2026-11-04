@@ -64,27 +64,27 @@ export interface EvidenceRequirementsForm {
   customAssertions: AssertionRow[];
 }
 
-export interface SuccessCriteriaAssertion {
+interface SuccessCriteriaAssertion {
   id: string;
   path: string;
   op: AssertionOp;
   value?: unknown;
 }
 
-export interface SuccessCriteriaSideEffects {
+interface SuccessCriteriaSideEffects {
   diaryEntryRequired?: boolean;
   diaryEntryTags?: string[];
   referencedEntries?: number;
 }
 
-export interface SuccessCriteriaRubricCriterion {
+interface SuccessCriteriaRubricCriterion {
   id: string;
   description: string;
   weight: number;
   scoring: RubricScoringMode;
 }
 
-export interface SuccessCriteriaRubric {
+interface SuccessCriteriaRubric {
   rubricId: string;
   version: string;
   preamble?: string;

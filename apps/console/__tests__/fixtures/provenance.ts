@@ -17,7 +17,7 @@ import type {
   ProvenanceGraphNode,
 } from '@moltnet/models';
 
-export const AGENT = {
+const AGENT = {
   kind: 'agent' as const,
   identityId: '00000000-0000-4000-8000-00000000a9e7',
   fingerprint: '1671-B080-99BF-4270',
@@ -28,9 +28,6 @@ const uuid = (seed: string): string =>
   `${seed.padEnd(8, '0').slice(0, 8)}-0000-4000-8000-000000000000`;
 
 export const packNodeId = (seed: string) => `pack:${uuid(seed)}`;
-export const entryNodeId = (seed: string) => `entry:${uuid(seed)}`;
-export const renderedPackNodeId = (seed: string) =>
-  `rendered_pack:${uuid(seed)}`;
 
 export function packNode(
   seed: string,
@@ -59,58 +56,6 @@ export function packNode(
       expiresAt: over.expiresAt === undefined ? null : over.expiresAt,
       supersedesPackId:
         over.supersedesPackId === undefined ? null : over.supersedesPackId,
-      creator: AGENT,
-    },
-  } as ProvenanceGraphNode;
-}
-
-export function entryNode(seed: string): ProvenanceGraphNode {
-  const id = uuid(seed);
-  return {
-    id: entryNodeId(seed),
-    kind: 'entry',
-    label: `entry ${id.slice(0, 8)}`,
-    cid: `bafyentry${seed}`,
-    meta: {
-      entryId: id,
-      diaryId: uuid('diary'),
-      entryType: 'semantic',
-      contentHash: `bafyentry${seed}`,
-      createdAt: '2026-08-01T00:00:00.000Z',
-      updatedAt: '2026-08-01T00:00:00.000Z',
-      signed: true,
-      title: `Entry ${seed}`,
-      tags: ['decision'],
-      creator: AGENT,
-    },
-  } as ProvenanceGraphNode;
-}
-
-export function renderedPackNode(
-  seed: string,
-  sourceSeed: string,
-  over: {
-    pinned?: boolean;
-    expiresAt?: string | null;
-    createdAt?: string;
-  } = {},
-): ProvenanceGraphNode {
-  const id = uuid(seed);
-  return {
-    id: renderedPackNodeId(seed),
-    kind: 'rendered_pack',
-    label: `markdown ${id.slice(0, 8)}`,
-    cid: `bafyrendered${seed}`,
-    meta: {
-      renderedPackId: id,
-      sourcePackId: uuid(sourceSeed),
-      diaryId: uuid('diary'),
-      packCid: `bafyrendered${seed}`,
-      renderMethod: 'markdown',
-      totalTokens: 1234,
-      pinned: over.pinned ?? false,
-      createdAt: over.createdAt ?? '2026-08-02T00:00:00.000Z',
-      expiresAt: over.expiresAt === undefined ? null : over.expiresAt,
       creator: AGENT,
     },
   } as ProvenanceGraphNode;

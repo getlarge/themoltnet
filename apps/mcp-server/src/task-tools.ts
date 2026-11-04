@@ -220,7 +220,7 @@ export async function handleTasksCreate(
   return structuredResult(withConsoleUrl(data, deps));
 }
 
-export async function handleTasksContinue(
+async function handleTasksContinue(
   args: TaskContinueInput,
   deps: McpDeps,
   context: HandlerContext,
@@ -615,7 +615,7 @@ export async function handleTaskArtifactUpload(
   return structuredResult(data);
 }
 
-export async function handleTaskArtifactStage(
+async function handleTaskArtifactStage(
   args: TaskArtifactStageInput,
   deps: McpDeps,
   context: HandlerContext,

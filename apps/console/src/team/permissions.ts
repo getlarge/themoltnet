@@ -4,6 +4,7 @@ export function canManageTeam(role: string | null | undefined): boolean {
   return role === 'owner' || role === 'manager';
 }
 
+/** @alias Shared policy, with a domain-specific name at call sites. */
 export const canManageRuntime = canManageTeam;
 
 /** Roles that carry task write authority: they can claim and execute tasks. */

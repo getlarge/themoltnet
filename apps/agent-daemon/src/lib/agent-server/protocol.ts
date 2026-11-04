@@ -42,17 +42,17 @@ function schemaRef(schema: TSchema) {
   return Type.Ref(id);
 }
 
-export const AgentServerHealthSchema = Type.Object(
+const AgentServerHealthSchema = Type.Object(
   { status: Type.Literal('ok') },
   { $id: 'AgentServerHealth' },
 );
 
-export const AgentServerProblemSchema = Type.Object(
+const AgentServerProblemSchema = Type.Object(
   { code: Type.String(), message: Type.String() },
   { $id: 'AgentServerProblem' },
 );
 
-export const AgentServerAgentSchema = Type.Object(
+const AgentServerAgentSchema = Type.Object(
   {
     kind: Type.Union([Type.Literal('managed'), Type.Literal('external')]),
     agentName: Type.String(),
@@ -69,7 +69,7 @@ export const AgentServerAgentSchema = Type.Object(
   { $id: 'AgentServerAgent' },
 );
 
-export const AgentServerIdentitySchema = Type.Object(
+const AgentServerIdentitySchema = Type.Object(
   {
     alias: Type.String(),
     activated: Type.Boolean(),
@@ -78,12 +78,12 @@ export const AgentServerIdentitySchema = Type.Object(
   { $id: 'AgentServerIdentity' },
 );
 
-export const AgentServerTaskTypeSchema = Type.Union(
+const AgentServerTaskTypeSchema = Type.Union(
   REGISTERED_TASK_TYPES.map((taskType) => Type.Literal(taskType)),
   { $id: 'AgentServerTaskType' },
 );
 
-export const AgentServerProviderSchema = Type.Object(
+const AgentServerProviderSchema = Type.Object(
   {
     api: Type.String(),
     baseUrl: Type.String({ format: 'uri' }),
@@ -102,7 +102,7 @@ const CredentialMetadataSchema = Type.Object({
   scopes: StringList,
 });
 
-export const AgentServerCatalogueTeamSchema = Type.Object(
+const AgentServerCatalogueTeamSchema = Type.Object(
   {
     teamId: Type.String(),
     teamName: Type.String(),
@@ -129,7 +129,7 @@ export const AgentServerCatalogueTeamSchema = Type.Object(
  * the wire contract cannot drift from the profile the API serves — and so the
  * constrained fields keep their real unions instead of degrading to `string`.
  */
-export const AgentServerCatalogueProfileSchema = Type.Intersect(
+const AgentServerCatalogueProfileSchema = Type.Intersect(
   [
     Type.Pick(RuntimeProfile, [
       'id',
@@ -162,7 +162,7 @@ export const AgentServerCatalogueProfileSchema = Type.Intersect(
   { $id: 'AgentServerCatalogueProfile' },
 );
 
-export const AgentServerCatalogueSchema = Type.Object(
+const AgentServerCatalogueSchema = Type.Object(
   {
     teams: Type.Array(schemaRef(AgentServerCatalogueTeamSchema)),
     hiddenTeamIds: Type.Array(Type.String()),
@@ -193,14 +193,14 @@ export const AgentServerCatalogueSchema = Type.Object(
   { $id: 'AgentServerCatalogue' },
 );
 
-export const CatalogueQuerySchema = Type.Object({
+const CatalogueQuerySchema = Type.Object({
   /** Local alias of the identity whose teams and profiles are listed. */
   identity: Type.String({ minLength: 1 }),
   /** Skip the shared read and verify every team now, for explicit refreshes. */
   refresh: Type.Optional(Type.Boolean()),
 });
 
-export const AgentServerProjectLocationSchema = Type.Object(
+const AgentServerProjectLocationSchema = Type.Object(
   {
     name: Type.String({ minLength: 1 }),
     apiUrl: Type.String(),
@@ -323,7 +323,7 @@ const RunWorkspaceSchema = Type.Object({
   ]),
 });
 
-export const AgentServerRunRecordSchema = Type.Object(
+const AgentServerRunRecordSchema = Type.Object(
   {
     ...RunProjectFields,
     workspace: Type.Optional(RunWorkspaceSchema),
@@ -353,7 +353,7 @@ export const AgentServerRunRecordSchema = Type.Object(
   { $id: 'AgentServerRunRecord' },
 );
 
-export const AgentServerRunSchema = Type.Intersect(
+const AgentServerRunSchema = Type.Intersect(
   [
     schemaRef(AgentServerRunRecordSchema),
     Type.Object({ active: Type.Boolean() }),
@@ -361,7 +361,7 @@ export const AgentServerRunSchema = Type.Intersect(
   { $id: 'AgentServerRun' },
 );
 
-export const AgentServerSubscriptionSchema = Type.Object(
+const AgentServerSubscriptionSchema = Type.Object(
   {
     id: Type.String(),
     name: Type.String(),
@@ -370,7 +370,7 @@ export const AgentServerSubscriptionSchema = Type.Object(
   { $id: 'AgentServerSubscription' },
 );
 
-export const AgentServerSubscriptionLoginSchema = Type.Object(
+const AgentServerSubscriptionLoginSchema = Type.Object(
   {
     providerId: Type.String(),
     status: Type.Union([
@@ -387,7 +387,7 @@ export const AgentServerSubscriptionLoginSchema = Type.Object(
   { $id: 'AgentServerSubscriptionLogin' },
 );
 
-export const AgentServerStatusSchema = Type.Object(
+const AgentServerStatusSchema = Type.Object(
   {
     version: Type.String(),
     platform: Type.String(),
@@ -405,11 +405,11 @@ export const AgentServerStatusSchema = Type.Object(
   { $id: 'AgentServerStatus' },
 );
 
-export const ProviderParamsSchema = Type.Object({ providerId: Type.String() });
-export const AgentParamsSchema = Type.Object({ agentName: Type.String() });
-export const RunParamsSchema = Type.Object({ runId: Type.String() });
+const ProviderParamsSchema = Type.Object({ providerId: Type.String() });
+const AgentParamsSchema = Type.Object({ agentName: Type.String() });
+const RunParamsSchema = Type.Object({ runId: Type.String() });
 
-export const CreateAgentSchema = Type.Union([
+const CreateAgentSchema = Type.Union([
   Type.Object({
     kind: Type.Literal('managed'),
     name: Type.String(),
@@ -422,11 +422,11 @@ export const CreateAgentSchema = Type.Union([
   }),
 ]);
 
-export const ReconcileAgentSchema = Type.Object({
+const ReconcileAgentSchema = Type.Object({
   action: Type.Union([Type.Literal('resume'), Type.Literal('abandon')]),
 });
 
-export const ReconcileAgentResultSchema = Type.Union(
+const ReconcileAgentResultSchema = Type.Union(
   [
     schemaRef(AgentServerAgentSchema),
     Type.Object({ abandoned: Type.Literal(true) }),
@@ -434,7 +434,7 @@ export const ReconcileAgentResultSchema = Type.Union(
   { $id: 'ReconcileAgentResult' },
 );
 
-export const PutProviderSchema = Type.Object({
+const PutProviderSchema = Type.Object({
   api: Type.String(),
   baseUrl: Type.String({ format: 'uri' }),
   supportsDeveloperRole: Type.Optional(Type.Boolean()),
@@ -451,7 +451,7 @@ const DiscoveryFailureList = Type.Array(
   ]),
 );
 
-export const DiscoverModelsSchema = Type.Object(
+const DiscoverModelsSchema = Type.Object(
   {
     // Entries, not ids: discovery resolves input modalities, and the console
     // saves what it was given rather than re-deriving them client-side.
@@ -465,7 +465,7 @@ export const DiscoverModelsSchema = Type.Object(
   { $id: 'DiscoveredModels' },
 );
 
-export const StartRunSchema = Type.Object({
+const StartRunSchema = Type.Object({
   ...RunProjectFields,
   agent: Type.String(),
   teamId: Type.String(),
@@ -476,12 +476,12 @@ export const StartRunSchema = Type.Object({
   mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
 });
 
-export const CancelledSubscriptionSchema = Type.Object(
+const CancelledSubscriptionSchema = Type.Object(
   { providerId: Type.String(), status: Type.Literal('cancelled') },
   { $id: 'CancelledSubscription' },
 );
 
-export const LogStreamSchema = Type.String({
+const LogStreamSchema = Type.String({
   $id: 'AgentServerLogStream',
   contentMediaType: 'text/event-stream',
 });

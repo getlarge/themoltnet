@@ -190,7 +190,7 @@ export const ListTasksQuerySchema = Type.Object(
   { $id: 'ListTasksQuery' },
 );
 
-export const TaskActivityAnalyticsGroupBySchema = Type.Union(
+const TaskActivityAnalyticsGroupBySchema = Type.Union(
   [
     Type.Literal('none'),
     Type.Literal('day'),
@@ -392,7 +392,7 @@ export const AppendMessagesResponseSchema = Type.Object(
 const Rate = Type.Number({ minimum: 0, maximum: 1 });
 const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
 
-export const TaskActivityProductMetricsSchema = Type.Object(
+const TaskActivityProductMetricsSchema = Type.Object(
   {
     success: Type.Object(
       {
@@ -559,7 +559,7 @@ export const TaskActivityAnalyticsResponseSchema = Type.Object(
   { $id: 'TaskActivityAnalyticsResponse' },
 );
 
-export const TaskTypeDescriptorSchema = Type.Object(
+const TaskTypeDescriptorSchema = Type.Object(
   {
     taskType: Type.String(),
     outputKind: Type.Union([

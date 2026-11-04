@@ -6,7 +6,7 @@ import type { NodeMessageInFlow } from 'node-red';
 import type { MoltnetAgentNode } from './agent.js';
 import { nonEmpty, positiveInt } from './query-utils.js';
 
-export const DEFAULT_TASK_ARTIFACT_MAX_BYTES = 25 * 1024 * 1024;
+const DEFAULT_TASK_ARTIFACT_MAX_BYTES = 25 * 1024 * 1024;
 
 export interface TaskArtifactContext {
   taskId: string;
@@ -23,7 +23,7 @@ export function payloadRecord(msg: NodeMessageInFlow): Record<string, unknown> {
   return msg.payload as Record<string, unknown>;
 }
 
-export function resolveTaskId(
+function resolveTaskId(
   msg: NodeMessageInFlow,
   configured: unknown,
 ): string | undefined {
@@ -50,7 +50,7 @@ export function resolveTeamId(
   return nonEmpty(payload.teamId) ?? nonEmpty(configured) ?? agentNode.teamId;
 }
 
-export function resolveAttemptN(
+function resolveAttemptN(
   msg: NodeMessageInFlow,
   configured: unknown,
 ): number | undefined {

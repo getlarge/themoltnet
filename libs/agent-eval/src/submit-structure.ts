@@ -62,6 +62,7 @@ export async function readSubmitStructure(
   attemptN: number,
   taskType: string,
   teamId?: string,
+  readToolEvents: typeof readDurableToolEvents = readDurableToolEvents,
 ): Promise<SubmitStructure> {
   const messages = await listAllStructureMessages(agent, taskId, attemptN);
   const submitName = `submit_${taskType}_output`;
@@ -69,8 +70,7 @@ export async function readSubmitStructure(
   // may never emit a tool_call_end progress event. Use the same authoritative
   // evidence as checkGates, once, rather than counting mirrored progress too.
   const toolMessages = teamId
-    ? ((await readDurableToolEvents(agent, taskId, attemptN, teamId)) ??
-      messages)
+    ? ((await readToolEvents(agent, taskId, attemptN, teamId)) ?? messages)
     : messages;
   const invalidSubmitCalls = toolMessages.filter(
     (message) =>

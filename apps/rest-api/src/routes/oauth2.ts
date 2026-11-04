@@ -146,7 +146,7 @@ function resolveClientId(
 }
 
 /** Key prefix owning every cached grant for a client. */
-export function clientCacheKeyPrefix(clientId: string): string {
+function clientCacheKeyPrefix(clientId: string): string {
   return `${clientId}|`;
 }
 

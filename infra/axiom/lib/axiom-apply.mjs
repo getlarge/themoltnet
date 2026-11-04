@@ -164,5 +164,3 @@ export async function run(
 
   console.log(`All ${config.label} definitions applied.`);
 }
-
-export { ApiClient, HttpError };
