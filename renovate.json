@@ -28,7 +28,7 @@
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-6 * * 1,4"]
+    "schedule": ["* 0-6 * * *"]
   },
   "osvVulnerabilityAlerts": true,
   "packageRules": [
@@ -248,10 +248,25 @@
     },
     {
       "automerge": false,
-      "description": "A digest update means a tag now points at different content with no new version (the tag-mutation attack pattern); review these by hand, batched weekly",
+      "description": "Review digest changes manually; runtime container bases use their own daily update group",
       "groupName": "digest updates",
       "matchUpdateTypes": ["digest"],
       "schedule": ["* 0-7 * * 1"]
+    },
+    {
+      "automerge": false,
+      "description": "Prioritize runtime base refreshes, keeping Node tool versions aligned and reviewing tag/digest updates together",
+      "groupName": "Runtime container bases",
+      "matchManagers": ["asdf", "nvm", "dockerfile"],
+      "matchPackageNames": ["node", "nodejs", "nginx"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "prPriority": 20,
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "Keep transitive lockfile refreshes ahead of routine direct dependency updates",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "prPriority": 10
     },
     {
       "automerge": false,
