@@ -7,7 +7,10 @@
 # Browser SPA served by nginx. Built on the host by `nx run @moltnet/console:build`
 # (vite → apps/console/dist/); image is pure packaging.
 
-FROM nginx:1.31.6-alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2 AS production
+FROM nginx:1.31.8-alpine@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606 AS production
+
+# Refresh distribution packages when assembling the pinned upstream image.
+RUN apk upgrade --no-cache
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet web console"
