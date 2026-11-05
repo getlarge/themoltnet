@@ -21,6 +21,8 @@ minimumReleaseAgeExclude:
   - fastify@5.12.6
   # Renovate security update: undici@7.30.1
   - undici@7.30.1
+  # Renovate security update: minimatch@11.0.4
+  - minimatch@11.0.4
 allowBuilds:
   '@github/keytar': true
   '@google/genai': false
@@ -42,7 +44,7 @@ allowBuilds:
   unrs-resolver: true
 overrides:
   # Nx 22 and other build tools require the makeRe API removed in v11.
-  'minimatch': '>=10.2.6 <11'
+  'minimatch': '>=10.2.6 <12'
   '@fastify/otel>minimatch': '>=11.0.1 <12'
   '@earendil-works/pi-coding-agent>minimatch': '>=11.0.1 <12'
   'brace-expansion@1': '>=1.1.13'
