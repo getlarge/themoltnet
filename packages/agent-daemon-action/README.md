@@ -129,6 +129,12 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
   own Node runtime — so the daemon does not depend on the runner's Node.
   `daemon-version` therefore names a release (or `latest`), not an npm
   semver range.
+- **Release lookup authentication** — `daemon-version: latest` uses
+  `github-release-token` (default: `${{ github.token }}`) to resolve a published
+  stable release before creating tasks. The token is used only for that
+  GitHub.com API lookup through `actions/github-script`; the signed installer
+  receives the exact version.
+  An exact `daemon-version` or `workspace` needs no release lookup or token.
 - **Node.js >= 23.6** — gondolin's engine constraint, and the version the
   action's own steps run on (task composition, dispatch). The action
   defaults `node-version` to `'24'` (the LTS sibling). Override via
@@ -139,6 +145,32 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
   runner user, so the sandbox boots with hardware acceleration. Where
   `/dev/kvm` is absent, Gondolin falls back to TCG software emulation,
   which boots much more slowly.
+
+To use the MoltNet GitHub App's rate limit, mint a separate token with
+`contents: read` and pass it as an input. The App must be installed on the
+release repository:
+
+```yaml
+- name: Mint release-reading App token
+  id: release-token
+  uses: actions/create-github-app-token@v3
+  with:
+    client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+    private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+    owner: getlarge
+    repositories: themoltnet
+    permission-contents: read
+
+- uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+  with:
+    github-release-token: ${{ steps.release-token.outputs.token }}
+    # Add your task/profile inputs and agent environment as shown above.
+```
+
+Adopters whose App is installed only on their own repository can use the
+default workflow token for the public release lookup. Workflows pinned to an
+older action commit must update to a release containing `github-release-token`
+before using this input.
 
 ## Required secrets / vars
 

@@ -142,6 +142,14 @@ inputs:
       or "latest" — an npm semver range such as "^1.2" will not resolve.
     required: false
     default: 'latest'
+  github-release-token:
+    description: >
+      GitHub.com token used only to resolve daemon-version: latest from
+      getlarge/themoltnet releases. Defaults to the workflow token; pass a
+      repository-scoped GitHub App token with contents: read to use the App's
+      rate limit. Unused for an exact version or workspace mode.
+    required: false
+    default: ${{ github.token }}
   running-timeout-sec:
     description: >
       Proposer-side cap on a single attempt's wall-clock runtime, in
@@ -218,6 +226,51 @@ runs:
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version: ${{ inputs.node-version }}
+
+    - name: Validate daemon version
+      id: daemon-version
+      shell: bash
+      env:
+        REQUESTED_VERSION: ${{ inputs.daemon-version }}
+      run: |
+        if [[ "$REQUESTED_VERSION" != latest && "$REQUESTED_VERSION" != workspace && ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo '::error::daemon-version must be an exact release version, latest, or workspace' >&2
+          exit 1
+        fi
+
+    - name: Resolve daemon release
+      id: daemon-release
+      if: ${{ inputs.daemon-version == 'latest' }}
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      with:
+        github-token: ${{ inputs.github-release-token }}
+        base-url: https://api.github.com
+        retries: '0'
+        script: |
+          github.hook.before('request', (options) => {
+            options.request = {
+              ...options.request,
+              redirect: 'error',
+              signal: AbortSignal.timeout(15000),
+            };
+          });
+          for await (const { data: releases } of github.paginate.iterator(
+            github.rest.repos.listReleases,
+            { owner: 'getlarge', repo: 'themoltnet', per_page: 100 },
+          )) {
+            if (!Array.isArray(releases)) {
+              throw new Error('Expected a GitHub release list');
+            }
+            const release = releases.find((item) =>
+              item?.draft === false && item.prerelease === false &&
+              /^agent-daemon-v[0-9]+\.[0-9]+\.[0-9]+$/.test(item.tag_name),
+            );
+            if (release) {
+              core.setOutput('version', release.tag_name.slice('agent-daemon-v'.length));
+              return;
+            }
+          }
+          throw new Error('No published stable agent-daemon release found');
 
     - name: Detect cache write access
       id: cache-write-access
@@ -877,9 +930,8 @@ runs:
     # the script the runner actually executes. The in-repo copy ships those
     # fields empty and cannot verify anything.
     #
-    # MOLTNET_AGENT_VERSION overrides the installer's own pin, so the daemon
-    # tracks the newest published release rather than whatever version the
-    # served installer shipped with.
+    # Pass the resolved exact version so the signed installer does not need
+    # a GitHub API request or the release-reading token.
     - name: Install agent release bundle
       id: install-daemon
       if: ${{ inputs.daemon-version != 'workspace' }}
@@ -891,7 +943,7 @@ runs:
         MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
         MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
         GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
-        MOLTNET_AGENT_VERSION: ${{ inputs.daemon-version }}
+        MOLTNET_AGENT_VERSION: ${{ steps.daemon-release.outputs.version || inputs.daemon-version }}
       run: |
         set -euo pipefail
         curl -fsSL https://themolt.net/install | sh
