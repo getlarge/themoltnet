@@ -16,6 +16,9 @@ const TaskBudgetSchema = Type.Object(
 export type TaskBudget = Static<typeof TaskBudgetSchema>;
 // The route job has 55 minutes; leave time for setup and artifact publication.
 export const CLASSIFIER_STAGE_BUDGET_SEC = 45 * 60;
+// A separate work limit for fast packets; larger diffs still get classified
+// up to this ceiling rather than skipping classification altogether.
+export const MAX_CLASSIFIER_TASKS = 16;
 export const REVIEW_BUDGET_KEYS = ['classifier', 'focused', ...LANES] as const;
 type ReviewBudgetKey = (typeof REVIEW_BUDGET_KEYS)[number];
 export type ReviewTaskBudgets = Record<ReviewBudgetKey, TaskBudget>;

@@ -14,6 +14,7 @@ import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { runComplexityLane } from './complexity-lane.js';
 import {
   CLASSIFIER_STAGE_BUDGET_SEC,
+  MAX_CLASSIFIER_TASKS,
   type ReviewTaskBudgets,
   validateReviewTaskBudgets,
 } from './config.js';
@@ -208,10 +209,16 @@ export async function prepareAdaptiveReview(
   for (const [index, packet] of packets.entries()) {
     // Keep the same per-packet request and idempotency key on replay. Only
     // dispatch another task when its full budget fits the remaining stage.
-    if (index > 0 && Date.now() + classifierTaskMs > classifierDeadline) {
+    const budgetReached =
+      index >= MAX_CLASSIFIER_TASKS
+        ? 'task'
+        : index > 0 && Date.now() + classifierTaskMs > classifierDeadline
+          ? 'time'
+          : undefined;
+    if (budgetReached) {
       classifierSkipped = true;
       gaps.push(
-        `Classifier time budget reached after ${index} of ${packets.length} packets; ${packets.length - index} packets remain unclassified; all lanes routed for review.`,
+        `Classifier ${budgetReached} budget reached after ${index} of ${packets.length} packets; unclassified packets: ${packets.length - index}; all lanes routed for review.`,
       );
       break;
     }

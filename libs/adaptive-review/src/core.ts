@@ -369,7 +369,7 @@ export function decideRoutes(
   const answerById = new Map(
     answers.map((answer) => [answer.packetId, answer]),
   );
-  // A deliberate skip (time budget) routes every lane like a failure but
+  // A deliberate skip (work budget) routes every lane like a failure but
   // is not one; keep the two apart so the report labels it accurately.
   const classifierFailed =
     !classifierSkipped &&

@@ -1135,11 +1135,61 @@ describe('adaptive review orchestration', () => {
         ),
       );
       expect(preparation.gaps).toContain(
-        'Classifier time budget reached after 1 of 2 packets; 1 packets remain unclassified; all lanes routed for review.',
+        'Classifier time budget reached after 1 of 2 packets; unclassified packets: 1; all lanes routed for review.',
       );
       if (!classifierFails) {
         expect(preparation.routing.scores['code-complexity']).toBe(1);
         expect(preparation.routing.routes[0].probability).toBe(0.01);
+      }
+    },
+  );
+
+  it.each([
+    { packetCount: 16, classifierFails: false },
+    { packetCount: 17, classifierFails: false },
+    { packetCount: 17, classifierFails: true },
+  ])(
+    'bounds fast classifier dispatches: $packetCount packets, failure=$classifierFails',
+    async ({ packetCount, classifierFails }) => {
+      policyOverride = JSON.stringify({
+        version: 1,
+        lanes: LANES,
+        rules: [],
+        checks: [],
+      });
+      mocks.buildEvidence.mockReturnValue(largeEvidence(packetCount));
+      vi.spyOn(Date, 'now').mockReturnValue(0);
+      vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+      const { tasks, createTask } = harness({ classifierFails });
+
+      expect(classifierTaskPossible(cwd, identity.base, identity.head)).toBe(
+        true,
+      );
+      const preparation = await prepareAdaptiveReview(reviewOptions(tasks));
+
+      expect(createTask).toHaveBeenCalledTimes(16);
+      expect(preparation.classifierTaskIds).toHaveLength(16);
+      expect(preparation.packetCount).toBe(packetCount);
+      expect(preparation.routing.classifierFailed).toBe(classifierFails);
+      if (packetCount > 16) {
+        expect(preparation.routing.routes.every((route) => route.run)).toBe(
+          true,
+        );
+        expect(preparation.routing.routes.map((route) => route.reason)).toEqual(
+          LANES.map(() =>
+            classifierFails ? 'classifier-error' : 'classifier-skipped',
+          ),
+        );
+        expect(preparation.gaps).toContain(
+          'Classifier task budget reached after 16 of 17 packets; unclassified packets: 1; all lanes routed for review.',
+        );
+        if (!classifierFails)
+          expect(preparation.routing.scores['code-complexity']).toBe(1);
+      } else {
+        expect(preparation.gaps).toEqual([]);
+        expect(preparation.routing.routes.every((route) => !route.run)).toBe(
+          true,
+        );
       }
     },
   );
