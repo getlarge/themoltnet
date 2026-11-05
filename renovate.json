@@ -212,11 +212,10 @@
       "matchPackageNames": ["dtolnay/rust-toolchain"]
     },
     {
-      "description": "Self-repository reusable workflows must continue to load from main",
-      "matchDepTypes": ["workflow"],
+      "description": "MoltNet action and reusable workflow pins are maintained as verified release bundles by the consumer synchronizers",
+      "enabled": false,
       "matchManagers": ["github-actions"],
-      "matchPackageNames": ["getlarge/themoltnet"],
-      "pinDigests": false
+      "matchPackageNames": ["getlarge/themoltnet"]
     },
     {
       "description": "The Renovate Docker version is a plain action input, not a pinned container reference",
