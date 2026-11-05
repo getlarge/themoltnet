@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 import { parseReviewTaskBudgets } from '../src/config.js';
+import { REVIEW_REPAIR_LIMITS } from '../src/lane.js';
 
 const root = resolve(import.meta.dirname, '../../..');
 
@@ -61,7 +62,7 @@ describe('adaptive review task budgets', () => {
     ).toBeGreaterThanOrEqual(22);
   });
 
-  it('leaves review-job time for both sequential security stages', () => {
+  it('leaves review-job time for both security stages and all bounded corrections', () => {
     const { security } = callerBudgets();
     const workflow = readFileSync(
       resolve(root, '.github/workflows/adaptive-review-reusable.yml'),
@@ -73,10 +74,15 @@ describe('adaptive review task budgets', () => {
       );
     expect(review).not.toBeNull();
     const jobSec = Number(review?.[1]) * 60;
+    const repairSec =
+      REVIEW_REPAIR_LIMITS.maxRepairs *
+      (REVIEW_REPAIR_LIMITS.runningTimeoutSec +
+        REVIEW_REPAIR_LIMITS.dispatchTimeoutSec);
     const twoStagesSec =
-      2 * (security.dispatchTimeoutSec + security.runningTimeoutSec);
+      2 *
+      (security.dispatchTimeoutSec + security.runningTimeoutSec + repairSec);
 
-    expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(10 * 60);
+    expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(5 * 60);
     expect(
       workflow.match(
         /ADAPTIVE_TASK_BUDGETS: \$\{\{ inputs\.task-budgets \}\}/g,

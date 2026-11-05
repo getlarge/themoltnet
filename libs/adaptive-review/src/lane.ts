@@ -165,7 +165,15 @@ export async function accepted<T>(
   return result.state;
 }
 
-/** One semantic correction; execution failures and exhausted repairs stay failures. */
+// Corrections reuse a warm conversation, not the full investigation budget.
+// Two security stages plus all corrections must fit the review job timeout.
+export const REVIEW_REPAIR_LIMITS = {
+  maxRepairs: 2,
+  runningTimeoutSec: 120,
+  dispatchTimeoutSec: 30,
+} as const;
+
+/** Bounded semantic corrections; execution failures and exhausted repairs stay failures. */
 export async function acceptedReview<T>(
   tasks: TaskClient,
   task: SdkTask,
@@ -174,14 +182,31 @@ export async function acceptedReview<T>(
   parse: (output: unknown) => T,
 ): Promise<T> {
   taskIds.push(task.id);
+  const runningTimeoutSec = Math.min(
+    body.runningTimeoutSec ?? REVIEW_REPAIR_LIMITS.runningTimeoutSec,
+    REVIEW_REPAIR_LIMITS.runningTimeoutSec,
+  );
+  const dispatchTimeoutSec = Math.min(
+    body.dispatchTimeoutSec ?? REVIEW_REPAIR_LIMITS.dispatchTimeoutSec,
+    REVIEW_REPAIR_LIMITS.dispatchTimeoutSec,
+  );
+  const repairBody = {
+    ...body,
+    runningTimeoutSec,
+    dispatchTimeoutSec,
+    expiresInSec: Math.min(
+      body.expiresInSec ?? runningTimeoutSec + dispatchTimeoutSec,
+      runningTimeoutSec + dispatchTimeoutSec,
+    ),
+  };
   const outcome = await waitForValidatedTask(task, {
     tasks,
     ctx: { ...createSleepingContext(), executionId: task.id },
     pollIntervalSec: 2,
     parse,
-    maxRepairs: 1,
+    maxRepairs: REVIEW_REPAIR_LIMITS.maxRepairs,
     createRepairTask: async (args) => {
-      const repair = await createFreeformRepairTask(tasks, body, args);
+      const repair = await createFreeformRepairTask(tasks, repairBody, args);
       taskIds.push(repair.id);
       return repair;
     },
