@@ -8,7 +8,7 @@
 # so the image needs no node_modules at runtime — just the built static
 # assets and the server script.
 
-FROM node:24.22.2-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS production
+FROM node:24.22.2-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS production
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
