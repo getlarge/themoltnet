@@ -136,7 +136,7 @@ jobs:
           permission-contents: read
 
       - id: agent
-        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@720f99f3c5aa8f80d9719899bd28bd712d5ee894 # v0.8.1
         with:
           github-release-token: ${{ steps.release-token.outputs.token || github.token }}
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
