@@ -77,12 +77,16 @@ export async function resolveBundle(
   api,
   component,
   version,
-  { published = true } = {},
+  { published = true, releases } = {},
 ) {
   if (!actions[component]) throw new Error(`Unknown action ${component}`);
   compareVersions(version, '0.0.0');
   const tag = `${component}-v${version}`;
-  const release = await api(`releases/tags/${tag}`, { optional: true });
+  // GitHub's tag endpoint excludes drafts. Repair callers reuse the
+  // authenticated release listing; consumer pins still require publication.
+  const release = published
+    ? await api(`releases/tags/${tag}`, { optional: true })
+    : (releases ?? (await listReleases(api))).find((r) => r.tag_name === tag);
   if (!release || release.prerelease || (published && release.draft))
     return undefined;
   if (release.tag_name !== tag)
@@ -150,10 +154,12 @@ export async function planRepairs(api, { explicitTag = '', force = [] } = {}) {
   const matrix = [];
   for (const tag of tags) {
     const [, component, version] = /^(.*)-v(\d+\.\d+\.\d+)$/.exec(tag);
-    const release = await api(`releases/tags/${tag}`);
+    const release = releases.find((r) => r.tag_name === tag);
+    if (!release) throw new Error(`Cannot find release ${tag} in release list`);
     if (release.prerelease) throw new Error(`Cannot promote prerelease ${tag}`);
     const bundle = await resolveBundle(api, component, version, {
       published: false,
+      releases,
     });
     const major = await api(
       `git/ref/tags/${actions[component].prefix}${version.split('.')[0]}`,
