@@ -9,10 +9,12 @@ release without changing its identity.
 ## Inspect or retry a release
 
 The **Release** workflow reconciles action publications on eligible pushes to
-`main` and every hour. Pushes that only change documentation or the other
-ignored paths in `release.yml` do not trigger it. An ordinary run repairs
-incomplete latest action releases and the exact action version required by the
-latest published daemon. It leaves older abandoned drafts alone.
+`main` and explicit legacy workflow dispatches. Pushes that only change
+documentation or the other ignored paths in `release.yml` do not trigger it. An
+ordinary run repairs incomplete latest action releases and the exact action
+version required by the latest published daemon. It leaves older abandoned
+drafts alone. There is no scheduled publication sweep: if a run fails and no new
+eligible push occurs, rerun the failed jobs or dispatch recovery explicitly.
 
 From a checkout containing the current release tooling, inspect the proposed
 action jobs without publishing anything:
@@ -91,19 +93,22 @@ no compiled `dist/` and cannot be substituted for a bundle SHA.
 ```mermaid
 flowchart TD
     A[Release Please: source tag and draft release] --> R[Reconciler selects action versions]
-    T[Hourly check or manual retry] --> R
+    T[Eligible main push or explicit legacy dispatch] --> R
     R --> B[Publisher builds and validates original source]
     B --> P[Atomic push: exact bundle and retention tags]
     P --> N[Record bundle SHA in release notes]
     N --> F[Finalize GitHub release]
-    F --> C[Consumer sync checks eligible published versions]
+    F --> C[Consumer sync after all pin producers finish]
+    CLI[CLI platform packages and wrapper published] --> C
+    D[Daemon signed assets and release finalized] --> C
     C --> PR[Update pins in an existing release PR]
 ```
 
 The atomic push also promotes the moving major alias when it would not downgrade
-that alias. Consumer sync runs after action publication jobs finish, including
-failed or skipped jobs; it can adopt other eligible publications while one
-release awaits recovery.
+that alias. Consumer sync waits for action publication, CLI wrapper publication
+(which depends on platform packages), and daemon release finalization. Failed or
+skipped producers do not suppress synchronization: it can adopt other eligible
+publications while one release awaits recovery.
 
 **Finalization is last**, as it is for npm, Docker and binary publications. A
 tag may briefly point to a built bundle while its release is still a draft;
@@ -133,11 +138,12 @@ workflow runs are serialized, and action jobs run one at a time.
 
 ## Consumer updates and versioning
 
-Consumer synchronization is a separate job after action publication. It runs on
-the same legacy triggers, including an exact-version manual retry, and can still
-run when discovery or publication fails. Cancelled runs do not synchronize pins.
-It updates an existing open Release Please PR; if none exists, it waits for a
-later run rather than creating a release PR or publishing directly to `main`.
+Consumer synchronization is a separate job after all pin producers finish. It
+runs on the same legacy triggers, including an exact-version manual retry, and
+can still run when discovery or publication fails. Cancelled runs do not
+synchronize pins. It updates an existing open Release Please PR; if none exists,
+it waits for a later run rather than creating a release PR or publishing
+directly to `main`.
 
 | Consumer family         | Candidate and eligibility                                                                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |

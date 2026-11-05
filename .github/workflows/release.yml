@@ -1,8 +1,6 @@
 name: Release
 
 on:
-  schedule:
-    - cron: '41 * * * *'
   push:
     branches: [main]
     paths-ignore:
@@ -295,7 +293,7 @@ jobs:
     needs: release-please
     if: >-
       always() && !cancelled() &&
-      (github.event_name == 'push' || github.event_name == 'schedule' || inputs.engine == 'legacy')
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.engine == 'legacy'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Draft releases are only visible to a write-scoped GitHub token.
@@ -734,7 +732,7 @@ jobs:
     needs: release-please
     if: >-
       always() && !cancelled() &&
-      (github.event_name == 'push' || github.event_name == 'schedule' || inputs.engine == 'legacy')
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.engine == 'legacy'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Draft release discovery requires write-scoped credentials.
@@ -862,10 +860,17 @@ jobs:
 
   sync-consumer-pins:
     name: Sync published consumer pins
-    needs: [release-please, publish-actions]
+    # Adopt only after every producer of a consumer pin has finished.
+    needs:
+      [
+        release-please,
+        publish-actions,
+        publish-cli-wrapper,
+        finalize-agent-daemon-release,
+      ]
     if: >-
       always() && !cancelled() &&
-      (github.event_name == 'push' || github.event_name == 'schedule' || inputs.engine == 'legacy')
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.engine == 'legacy'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -24,9 +24,15 @@ interface Step {
   env?: Record<string, string>;
 }
 interface Workflow {
+  on: Record<string, unknown>;
   jobs: Record<
     string,
-    { steps: Step[]; needs?: string | string[]; env?: Record<string, string> }
+    {
+      steps: Step[];
+      needs?: string | string[];
+      if?: string;
+      env?: Record<string, string>;
+    }
   >;
 }
 const workflow = (name: string): Workflow =>
@@ -214,6 +220,36 @@ jq -r "$filter | $expr" "${join(root, 'releases.json')}"
 });
 
 describe('action publication transaction', () => {
+  it('runs legacy recovery only on pushes or explicit legacy dispatches', () => {
+    const release = workflow('release');
+    expect(Object.keys(release.on).sort()).toEqual([
+      'push',
+      'workflow_dispatch',
+    ]);
+    for (const id of [
+      'resolve-publish',
+      'reconcile-actions',
+      'sync-consumer-pins',
+    ]) {
+      expect(release.jobs[id].if?.trim()).toBe(
+        "always() && !cancelled() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.engine == 'legacy'))",
+      );
+    }
+  });
+
+  it('waits for action bundles, CLI npm packages and finalized daemon assets before pin sync', () => {
+    const jobs = workflow('release').jobs;
+    expect(jobs['sync-consumer-pins'].needs).toEqual([
+      'release-please',
+      'publish-actions',
+      'publish-cli-wrapper',
+      'finalize-agent-daemon-release',
+    ]);
+    // Failure or a skipped producer must not suppress independent pin families.
+    expect(jobs['sync-consumer-pins'].if).toContain('always()');
+    expect(jobs['sync-consumer-pins'].if).not.toMatch(/!failure\(\)|\.result/);
+  });
+
   it('publishes the release only after its remote bundle and notes exist', () => {
     const push = steps.indexOf(
       named('Commit bundles, tag them, and promote the stable major tag'),

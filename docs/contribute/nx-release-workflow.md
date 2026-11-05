@@ -18,8 +18,10 @@ Its `workflow_dispatch` `engine` input defaults to `legacy`. Use `engine: nx`
 only for a deliberately scheduled Nx rehearsal or production release; it is
 mutually exclusive with the legacy jobs and serialized with all other release
 runs. Eligible pushes to `main` run Release Please. The legacy path also
-reconciles incomplete action publications and synchronizes published consumer
-pins every hour. Selecting `engine: nx` does not run those legacy repair jobs.
+reconciles incomplete action publications on eligible pushes and explicit legacy
+dispatches, then synchronizes consumer pins after their publishers finish. There
+is no scheduled publication sweep. Selecting `engine: nx` does not run those
+legacy repair jobs.
 
 Remove the legacy jobs, Release Please configuration, and recovery workflow only
 after Nx has completed several production releases, including npm OIDC, GHCR, Go
