@@ -11,7 +11,10 @@ import type {
 } from '@themoltnet/tasks-orchestrator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { parseReviewTaskBudgets } from '../src/config.js';
+import {
+  CLASSIFIER_STAGE_BUDGET_SEC,
+  parseReviewTaskBudgets,
+} from '../src/config.js';
 import { LANES, type ReviewIdentity } from '../src/core.js';
 import type { PriorFindingOutcome } from '../src/prior-findings.js';
 import { hasIncompleteCoverage, renderAdaptiveComment } from '../src/report.js';
@@ -108,6 +111,26 @@ const evidence: ReviewEvidence = {
   bytes: Buffer.byteLength(patch),
   generatedPaths: [],
 };
+function largeEvidence(count: number): ReviewEvidence {
+  const files = Array.from({ length: count }, (_, index) => {
+    const path = `apps/rest-api/src/routes/large-${index}.ts`;
+    const patch = [
+      `diff --git a/${path} b/${path}`,
+      `--- a/${path}`,
+      `+++ b/${path}`,
+      '@@ -1 +1 @@',
+      '-old',
+      `+${'x'.repeat(18_000)}`,
+    ].join('\n');
+    return { path, patch, bytes: Buffer.byteLength(patch) };
+  });
+  return {
+    manifest: files.map((file) => file.path).join('\n'),
+    files,
+    bytes: files.reduce((total, file) => total + file.bytes, 0),
+    generatedPaths: [],
+  };
+}
 let policyOverride: string | undefined;
 let guidanceEnabled = false;
 const gitCalls: string[][] = [];
@@ -1060,49 +1083,66 @@ describe('adaptive review orchestration', () => {
     expect(report.taskIds).toEqual(['task-1', 'task-2']);
   });
 
-  it('bounds classifier tasks and deep-reviews every lane when packets exceed the budget', async () => {
-    const files = Array.from({ length: 5 }, (_, index) => {
-      const path = `apps/rest-api/src/routes/large-${index}.ts`;
-      const filePatch = [
-        `diff --git a/${path} b/${path}`,
-        `--- a/${path}`,
-        `+++ b/${path}`,
-        '@@ -1 +1 @@',
-        '-old',
-        `+${'x'.repeat(18_000)}`,
-      ].join('\n');
-      return {
-        path,
-        patch: filePatch,
-        bytes: Buffer.byteLength(filePatch),
-      };
+  it('starts the classifier and screens all five packets instead of skipping large reviews', async () => {
+    policyOverride = JSON.stringify({
+      version: 1,
+      lanes: LANES,
+      rules: [],
+      checks: [],
     });
-    mocks.buildEvidence.mockReturnValue({
-      manifest: files.map((file) => file.path).join('\n'),
-      files,
-      bytes: files.reduce((total, file) => total + file.bytes, 0),
-      generatedPaths: [],
-    });
+    mocks.buildEvidence.mockReturnValue(largeEvidence(5));
     const { tasks, createTask } = harness();
 
     const preparation = await prepareAdaptiveReview(reviewOptions(tasks));
 
     expect(preparation.packetCount).toBe(5);
     expect(classifierTaskPossible(cwd, identity.base, identity.head)).toBe(
-      false,
+      true,
     );
-    expect(preparation.classifierTaskIds).toEqual([]);
-    expect(createTask).not.toHaveBeenCalled();
+    expect(preparation.classifierTaskIds).toHaveLength(5);
+    expect(createTask).toHaveBeenCalledTimes(5);
     expect(preparation.routing.classifierFailed).toBe(false);
     expect(
       preparation.routing.routes.every(
-        (route) => route.run && route.reason === 'classifier-skipped',
+        (route) => !route.run && route.reason === 'screened',
       ),
     ).toBe(true);
-    expect(preparation.gaps).toContain(
-      'Classifier packet budget exceeded: 5 > 4; all lanes routed for review.',
-    );
+    expect(preparation.gaps).toEqual([]);
   });
+
+  it.each([false, true])(
+    'stops before another classifier task would exceed the stage budget (earlier failure: %s)',
+    async (classifierFails) => {
+      mocks.buildEvidence.mockReturnValue(largeEvidence(2));
+      const { tasks, createTask } = harness({ classifierFails });
+      let now = 0;
+      vi.spyOn(Date, 'now').mockImplementation(() => now);
+      const poll = mocks.waitForTaskOutcome.getMockImplementation()!;
+      mocks.waitForTaskOutcome.mockImplementation((...args) => {
+        now = (CLASSIFIER_STAGE_BUDGET_SEC - 1) * 1000;
+        return poll(...args);
+      });
+
+      const preparation = await prepareAdaptiveReview(reviewOptions(tasks));
+
+      expect(createTask).toHaveBeenCalledTimes(1);
+      expect(preparation.classifierTaskIds).toEqual(['task-1']);
+      expect(preparation.routing.classifierFailed).toBe(classifierFails);
+      expect(preparation.routing.routes.every((route) => route.run)).toBe(true);
+      expect(preparation.routing.routes.map((route) => route.reason)).toEqual(
+        LANES.map(() =>
+          classifierFails ? 'classifier-error' : 'classifier-skipped',
+        ),
+      );
+      expect(preparation.gaps).toContain(
+        'Classifier time budget reached after 1 of 2 packets; 1 packets remain unclassified; all lanes routed for review.',
+      );
+      if (!classifierFails) {
+        expect(preparation.routing.scores['code-complexity']).toBe(1);
+        expect(preparation.routing.routes[0].probability).toBe(0.01);
+      }
+    },
+  );
 
   it('runs every deep lane and records a gap when classification fails', async () => {
     const { tasks, createTask, created } = harness({ classifierFails: true });

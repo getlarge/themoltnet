@@ -77,6 +77,10 @@ complexity:
     ['docs: { expiresInSec: 3600 }', 'unknown; use timeout'],
     ['docs: { timeout: 2m, timeout: 3m }', 'duplicate keys'],
     [
+      'classifier: { timeout: 41m }',
+      'dispatch and running budgets must fit the 2700s classification stage',
+    ],
+    [
       'security: { timeout: 1h }',
       'expires before its dispatch and running budgets',
     ],
