@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.2](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.4.1...yubikey-preview-sign-v0.4.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/ctap bumped to 0.2.1
+
 ## [0.4.1](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.4.0...yubikey-preview-sign-v0.4.1) (2026-08-19)
 
 

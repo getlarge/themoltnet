@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.4](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.3...agent-desktop-v0.12.4) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
 ## [0.12.3](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.2...agent-desktop-v0.12.3) (2026-10-31)
 
 

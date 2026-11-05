@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.74.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.3...agent-daemon-v0.74.4) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **ci:** make Knip findings actionable ([3c664c0](https://github.com/getlarge/themoltnet/commit/3c664c0028ebd9a47a3b3ebb098319a8f7412bc6))
+* **deps:** remove stale workspace edges and declare runtime imports ([b2963e0](https://github.com/getlarge/themoltnet/commit/b2963e08ea0658f6e66c5e119b46fa52c2c8a948))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.20.0
+    * @themoltnet/pi-runtime bumped to 0.29.2
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [0.74.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.2...agent-daemon-v0.74.3) (2026-11-01)
 
 

@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.69.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.5...rest-api-v0.69.0) (2026-11-05)
+
+
+### Features
+
+* **agent-eval:** run evals under committed runtime profiles ([e781299](https://github.com/getlarge/themoltnet/commit/e781299489236560f9fb1a58fda26ce72a9ce340))
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **auth:** resolve agent OAuth clients by durable ID ([d0de7b9](https://github.com/getlarge/themoltnet/commit/d0de7b9f82438a15fdfbbe94e58c6d2831e4fe3d))
+* **auth:** use durable agent IDs for Hydra clients ([f556076](https://github.com/getlarge/themoltnet/commit/f55607622cb87959fa6cafcec06431d5a1e8edd7))
+* **ci:** make Knip findings actionable ([3c664c0](https://github.com/getlarge/themoltnet/commit/3c664c0028ebd9a47a3b3ebb098319a8f7412bc6))
+* **deps:** remove stale workspace edges and declare runtime imports ([b2963e0](https://github.com/getlarge/themoltnet/commit/b2963e08ea0658f6e66c5e119b46fa52c2c8a948))
+* **docker:** refresh runtime bases and trim package tooling ([4db5a7d](https://github.com/getlarge/themoltnet/commit/4db5a7d06794337f7c52a07fb394e7c212d3b5d5))
+* **embedding-service:** run embedding inference on a worker thread ([b97fce9](https://github.com/getlarge/themoltnet/commit/b97fce99334edb2b6158e4cf5b216bac55f0af50))
+* **embedding-service:** run embedding inference on a worker thread ([8e87d56](https://github.com/getlarge/themoltnet/commit/8e87d56e5921f971c7570828382c088868888532))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* **oauth:** omit Kratos IDs from agent clients ([612d3be](https://github.com/getlarge/themoltnet/commit/612d3beab5d0ba04bd02cb70c06bd273ab8069b5))
+* **oauth:** repair legacy agent clients by durable identity ([ccd2c0b](https://github.com/getlarge/themoltnet/commit/ccd2c0b54d70085a4f1d946a60ca79c9435dff28))
+* refresh runtime images and prioritize dependency maintenance ([adc9a5c](https://github.com/getlarge/themoltnet/commit/adc9a5c84d96c17085699194034ce7b7d3a86f06))
+* **rest-api:** declare the embedding worker entry as a build output ([9b9843b](https://github.com/getlarge/themoltnet/commit/9b9843b9c3f9056f2b9e4a2713b9f4772fbb80e8))
+* **signing:** require internal human IDs for constraints ([c18e185](https://github.com/getlarge/themoltnet/commit/c18e1851c96af4a10ac4d85ccc0089267585512d))
+* **signing:** use internal human IDs in signer constraints ([b450909](https://github.com/getlarge/themoltnet/commit/b450909f8eadb4a3efb420c5840eed23dd303e43))
+* **tooling:** upgrade Knip and repair Nx discovery ([a58a4ac](https://github.com/getlarge/themoltnet/commit/a58a4ac0783bcb356ce218b88c005f17cae760c5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.5
+
 ## [0.68.5](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.4...rest-api-v0.68.5) (2026-10-30)
 
 

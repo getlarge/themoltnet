@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.18.8](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.18.7...node-red-contrib-core-v0.18.8) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [0.18.7](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.18.6...node-red-contrib-core-v0.18.7) (2026-10-30)
 
 

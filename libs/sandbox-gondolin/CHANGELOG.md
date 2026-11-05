@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.2](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.8.1...sandbox-gondolin-v0.8.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* **sandbox-gondolin:** prepare snapshots before VM integration tests ([d80146d](https://github.com/getlarge/themoltnet/commit/d80146d5ded144cde61ae7d587c5fd33f95c6de2))
+* **sandbox-gondolin:** prepare snapshots before VM integration tests ([d1b4cc5](https://github.com/getlarge/themoltnet/commit/d1b4cc53856a52a21c59cfc56a9eefe2950a36eb))
+
 ## [0.8.1](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.8.0...sandbox-gondolin-v0.8.1) (2026-10-28)
 
 

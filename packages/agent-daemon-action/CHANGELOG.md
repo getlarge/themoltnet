@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.8.0...agent-daemon-action-v0.8.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** authenticate latest release resolution ([4a04c15](https://github.com/getlarge/themoltnet/commit/4a04c151f4ba2db70495c255f67c84794ea34cb6))
+* **agent-daemon-action:** authenticate latest release resolution ([2557fda](https://github.com/getlarge/themoltnet/commit/2557fda07940c1b831a77d7cd19a4d7fe98daeb3))
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.7.1...agent-daemon-action-v0.8.0) (2026-10-31)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.154.3](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.2...sdk-v0.154.3) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
 ## [0.154.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.1...sdk-v0.154.2) (2026-10-28)
 
 

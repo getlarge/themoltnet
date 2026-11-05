@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.20.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.19.0...agent-runtime-v1.20.0) (2026-11-05)
+
+
+### Bug Fixes
+
+* **pi-runtime:** reserve running time for structured submission ([a972024](https://github.com/getlarge/themoltnet/commit/a97202485d0acf629d4d553f075e8203fa965bc8))
+* **pi-runtime:** reserve task time for structured submission ([1096c20](https://github.com/getlarge/themoltnet/commit/1096c20f0419fd3e1e2b918a16b2c7c7d2b8ad28))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [1.19.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.18.0...agent-runtime-v1.19.0) (2026-10-28)
 
 
