@@ -10,7 +10,7 @@
 ARG PNPM_VERSION=12.14.0
 
 # ---------- base ----------
-FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS base
+FROM node:24.22.2-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS base
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm/bin:$PATH" \
     HUSKY=0 \
@@ -32,11 +32,15 @@ RUN pnpm install --offline --frozen-lockfile --prod
 RUN pnpm --filter @moltnet/database deploy --legacy --prod /out
 
 # ---------- production ----------
-FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS production
+FROM node:24.22.2-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c AS production
 
 RUN apt-get update -qq \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
+
+# Runtime entrypoints use Node directly; package managers stay in build stages.
+RUN rm -rf /usr/local/lib/node_modules/npm /opt/yarn-* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet database migration runner"

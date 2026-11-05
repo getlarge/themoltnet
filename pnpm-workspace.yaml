@@ -41,7 +41,10 @@ allowBuilds:
   tree-sitter-bash: true
   unrs-resolver: true
 overrides:
-  'minimatch': '>=10.2.5'
+  # Nx 22 and other build tools require the makeRe API removed in v11.
+  'minimatch': '>=10.2.6 <11'
+  '@fastify/otel>minimatch': '>=11.0.1 <12'
+  '@earendil-works/pi-coding-agent>minimatch': '>=11.0.1 <12'
   'brace-expansion@1': '>=1.1.13'
   'brace-expansion@2': '>=2.0.3'
   'brace-expansion': '>=5.0.12 <6'
