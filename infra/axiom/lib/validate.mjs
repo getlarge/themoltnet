@@ -15,6 +15,7 @@ const ACTIVE_METRICS = new Set([
   'http.server.active_requests',
   'http.server.request.duration',
   'http.server.request.total',
+  'nodejs.eventloop.delay.max',
   'nodejs.eventloop.delay.p99',
   'nodejs.eventloop.utilization',
   'v8js.gc.duration',
