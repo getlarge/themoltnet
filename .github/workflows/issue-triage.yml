@@ -100,30 +100,6 @@ jobs:
           repositories: ${{ github.event.repository.name }}
           permission-contents: read
 
-      # Resolve once with the App token, then give both signed installs the
-      # same published version. Authenticated listings can include drafts.
-      - name: Resolve published daemon release
-        id: daemon-release
-        if: steps.prepare.outputs.eligible == 'true'
-        env:
-          GH_TOKEN: ${{ steps.release-token.outputs.token }}
-        run: |
-          set -euo pipefail
-          page=1
-          while :; do
-            releases=$(gh api --hostname github.com "repos/getlarge/themoltnet/releases?per_page=100&page=$page")
-            version=$(jq -r '[.[] | select(.draft == false and .prerelease == false) | .tag_name | select(test("^agent-daemon-v[0-9]+\\.[0-9]+\\.[0-9]+$"))][0] // empty | ltrimstr("agent-daemon-v")' <<< "$releases")
-            if [ -n "$version" ]; then
-              echo "version=$version" >> "$GITHUB_OUTPUT"
-              break
-            fi
-            if [ "$(jq 'length' <<< "$releases")" -lt 100 ]; then
-              echo '::error::No published stable agent-daemon release found' >&2
-              exit 1
-            fi
-            page=$((page + 1))
-          done
-
       # Register both profiles and the input-only policy on the team before use.
       - name: Extract issue evidence with MoltNet
         id: extract
@@ -139,7 +115,7 @@ jobs:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         with:
           task-spec-path: ${{ steps.prepare.outputs.spec }}
-          daemon-version: ${{ steps.daemon-release.outputs.version }}
+          github-release-token: ${{ steps.release-token.outputs.token }}
           profile: legreffier-issue-triage-v1
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           running-timeout-sec: '240'
@@ -173,7 +149,7 @@ jobs:
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         with:
           task-spec-path: ${{ steps.classifier-spec.outputs.spec }}
-          daemon-version: ${{ steps.daemon-release.outputs.version }}
+          github-release-token: ${{ steps.release-token.outputs.token }}
           profile: legreffier-issue-classifier-v2
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           running-timeout-sec: '240'
