@@ -132,7 +132,8 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
 - **Release lookup authentication** — `daemon-version: latest` uses
   `github-release-token` (default: `${{ github.token }}`) to resolve a published
   stable release before creating tasks. The token is used only for that
-  GitHub.com API request; the signed installer receives the exact version.
+  GitHub.com API lookup through `actions/github-script`; the signed installer
+  receives the exact version.
   An exact `daemon-version` or `workspace` needs no release lookup or token.
 - **Node.js >= 23.6** — gondolin's engine constraint, and the version the
   action's own steps run on (task composition, dispatch). The action

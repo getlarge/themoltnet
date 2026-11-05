@@ -227,69 +227,50 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
-    - name: Resolve daemon release
-      id: daemon-release
-      if: ${{ inputs.daemon-version != 'workspace' }}
+    - name: Validate daemon version
+      id: daemon-version
       shell: bash
       env:
         REQUESTED_VERSION: ${{ inputs.daemon-version }}
-        RELEASE_TOKEN: ${{ inputs.github-release-token }}
       run: |
-        node --input-type=module <<'NODE'
-        import { appendFileSync } from 'node:fs';
+        if [[ "$REQUESTED_VERSION" != latest && "$REQUESTED_VERSION" != workspace && ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo '::error::daemon-version must be an exact release version, latest, or workspace' >&2
+          exit 1
+        fi
 
-        const exactVersion = /^[0-9]+\.[0-9]+\.[0-9]+$/;
-        const requested = process.env.REQUESTED_VERSION;
-        function output(version) {
-          appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
-        }
-        async function resolve() {
-          if (exactVersion.test(requested ?? '')) {
-            output(requested);
-            return;
-          }
-          if (requested !== 'latest') {
-            throw new Error('daemon-version must be an exact release version, latest, or workspace');
-          }
-          if (!process.env.RELEASE_TOKEN) {
-            throw new Error('github-release-token is required to resolve latest');
-          }
-          for (let page = 1; ; page++) {
-            const response = await fetch(`https://api.github.com/repos/getlarge/themoltnet/releases?per_page=100&page=${page}`, {
-              headers: {
-                accept: 'application/vnd.github+json',
-                authorization: `Bearer ${process.env.RELEASE_TOKEN}`,
-              },
+    - name: Resolve daemon release
+      id: daemon-release
+      if: ${{ inputs.daemon-version == 'latest' }}
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      with:
+        github-token: ${{ inputs.github-release-token }}
+        base-url: https://api.github.com
+        retries: '0'
+        script: |
+          github.hook.before('request', (options) => {
+            options.request = {
+              ...options.request,
               redirect: 'error',
               signal: AbortSignal.timeout(15000),
-            });
-            if (!response.ok) {
-              throw new Error(`Cannot list daemon releases (HTTP ${response.status})`);
-            }
-            const releases = await response.json();
+            };
+          });
+          for await (const { data: releases } of github.paginate.iterator(
+            github.rest.repos.listReleases,
+            { owner: 'getlarge', repo: 'themoltnet', per_page: 100 },
+          )) {
             if (!Array.isArray(releases)) {
               throw new Error('Expected a GitHub release list');
             }
             const release = releases.find((item) =>
               item?.draft === false && item.prerelease === false &&
-              typeof item.tag_name === 'string' &&
-              item.tag_name.startsWith('agent-daemon-v') &&
-              exactVersion.test(item.tag_name.slice('agent-daemon-v'.length)),
+              /^agent-daemon-v[0-9]+\.[0-9]+\.[0-9]+$/.test(item.tag_name),
             );
             if (release) {
-              output(release.tag_name.slice('agent-daemon-v'.length));
+              core.setOutput('version', release.tag_name.slice('agent-daemon-v'.length));
               return;
             }
-            if (releases.length < 100) {
-              throw new Error('No published stable agent-daemon release found');
-            }
           }
-        }
-        resolve().catch((error) => {
-          console.error(error.message);
-          process.exitCode = 1;
-        });
-        NODE
+          throw new Error('No published stable agent-daemon release found');
 
     - name: Detect cache write access
       id: cache-write-access
@@ -962,7 +943,7 @@ runs:
         MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
         MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
         GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
-        MOLTNET_AGENT_VERSION: ${{ steps.daemon-release.outputs.version }}
+        MOLTNET_AGENT_VERSION: ${{ steps.daemon-release.outputs.version || inputs.daemon-version }}
       run: |
         set -euo pipefail
         curl -fsSL https://themolt.net/install | sh
