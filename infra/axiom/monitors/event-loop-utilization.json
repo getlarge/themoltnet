@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Sustained event-loop saturation on one process, from nodejs.eventloop.utilization over moltnet-metrics (0 = idle, 1 = always busy). Baseline is below 0.15. A 5-minute average at or above 0.7 means the process spends most of its time in synchronous work and queues I/O behind it. Group shows service.name and service.instance.id: compare with request volume and CPU-heavy spans on that instance.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`nodejs.eventloop.utilization`\n| align to 5m using avg\n| group by `service.name`, `service.instance.id` using max",
+  "name": "MoltNet event loop saturation by instance",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 0.7,
+  "triggerAfterNPositiveResults": 1,
+  "triggerFromNRuns": 1,
+  "type": "Threshold"
+}

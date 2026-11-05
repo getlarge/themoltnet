@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Single long event-loop stall on one process, from nodejs.eventloop.delay.max over moltnet-metrics. Percentile delay hides a few multi-second stalls among many short ticks; the maximum does not. A stall delays every request on that instance, including heartbeats and commits. Group shows service.name and service.instance.id: find traces on that instance around the alert time with the longest synchronous span. Values are seconds.",
+  "intervalMinutes": 1,
+  "mplQuery": "`moltnet-metrics`:`nodejs.eventloop.delay.max`\n| align to 5m using max\n| group by `service.name`, `service.instance.id` using max",
+  "name": "MoltNet event loop stall by instance",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 2,
+  "triggerAfterNPositiveResults": 1,
+  "triggerFromNRuns": 1,
+  "type": "Threshold"
+}
