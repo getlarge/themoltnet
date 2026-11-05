@@ -9,6 +9,7 @@
  */
 
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
 
 import type { EmbeddingLogger } from './types.js';
@@ -36,13 +37,22 @@ export type WorkerMessage =
       error?: { message: string; stack?: string };
     };
 
-// Bundles emit the worker entry as `.js` next to the code that inlines this
-// module; source runs load the `.ts` file directly.
+// Source runs (this module is a `.ts` file) load the worker's `.ts` file
+// directly. Bundles must emit the worker entry as `embedding-worker-thread.js`
+// next to the file that inlines this module, and declare it as a build output.
 function resolveWorkerEntry(): URL {
+  if (import.meta.url.endsWith('.ts')) {
+    return new URL('./embedding-worker-thread.ts', import.meta.url);
+  }
   const built = new URL('./embedding-worker-thread.js', import.meta.url);
-  return existsSync(built)
-    ? built
-    : new URL('./embedding-worker-thread.ts', import.meta.url);
+  if (!existsSync(built)) {
+    throw new Error(
+      `Embedding worker entry not found: ${fileURLToPath(built)}. ` +
+        'Build @moltnet/embedding-service/worker-thread as an entry next to ' +
+        'the bundle and include it in the build outputs.',
+    );
+  }
+  return built;
 }
 
 export interface WorkerEmbedder {
@@ -117,7 +127,13 @@ export function createWorkerEmbedder(
       if (closed) {
         return Promise.reject(new Error('Embedding service closed'));
       }
-      worker ??= start();
+      try {
+        worker ??= start();
+      } catch (error) {
+        return Promise.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        );
+      }
       const active = worker;
       const id = nextId++;
       return new Promise<number[]>((resolve, reject) => {
