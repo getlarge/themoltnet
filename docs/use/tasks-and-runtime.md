@@ -965,8 +965,8 @@ guarantee a successful submission.
 
 When cutoff cancellation retires the sandbox successfully, submission can finish
 in the host process. Task cancellation, lost writer ownership, and failed
-sandbox retirement still stop execution. Tasks that omit `runningTimeoutSec`
-keep the existing server timeout behavior without this submission reserve.
+sandbox retirement still stop execution. Tasks that omit `runningTimeoutSec` use
+server-enforced timeouts without a submission reserve.
 
 ### Which schema reaches the model?
 

@@ -403,12 +403,17 @@ describe('structured task submission through Pi (e2e)', () => {
     });
     const elapsed =
       Date.parse(attempts[0].completedAt!) - Date.parse(attempts[0].startedAt!);
-    expect(elapsed).toBeGreaterThanOrEqual(45_000);
     expect(elapsed).toBeLessThan(60_000);
     const info = await agent.tasks.listMessages(task.id, 1, { kind: ['info'] });
-    expect(
-      info.filter((message) => message.payload.event === 'submission_deadline'),
-    ).toHaveLength(1);
+    const cutoffs = info.filter(
+      (message) => message.payload.event === 'submission_deadline',
+    );
+    expect(cutoffs).toHaveLength(1);
+    // The first heartbeat stamps startedAt, then markRunning can overwrite it.
+    // Check the executor's pinned deadline rather than subtracting the later
+    // server timestamp. Allow one millisecond for host timer granularity.
+    expect(cutoffs[0].payload.remainingMs).toBeGreaterThan(0);
+    expect(cutoffs[0].payload.remainingMs).toBeLessThanOrEqual(15_001);
   }, 180_000);
 
   it('keeps the hard deadline when the final submission request also stalls', async () => {
