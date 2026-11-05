@@ -8,6 +8,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./worker-thread": {
+      "import": "./src/embedding-worker-thread.ts",
+      "types": "./src/embedding-worker-thread.ts"
     }
   },
   "scripts": {},

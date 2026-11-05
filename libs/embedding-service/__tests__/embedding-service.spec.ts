@@ -45,7 +45,7 @@ describe('createEmbeddingService', () => {
   });
 
   it('returns an object with embedPassage and embedQuery methods', () => {
-    const service = createEmbeddingService();
+    const service = createEmbeddingService({ executor: 'inline' });
 
     expect(typeof service.embedPassage).toBe('function');
     expect(typeof service.embedQuery).toBe('function');
@@ -56,7 +56,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       await service.embedPassage('hello world');
@@ -72,7 +72,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = makeRawVector(384, 1.0);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       const result = await service.embedPassage('test');
@@ -89,7 +89,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       await service.embedQuery('search term');
@@ -105,7 +105,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = makeRawVector(384, 2.0);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       const result = await service.embedQuery('test');
@@ -122,7 +122,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = Array.from({ length: 384 }, (_, i) => (i + 1) * 0.1);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       const result = await service.embedPassage('text');
@@ -136,7 +136,7 @@ describe('createEmbeddingService', () => {
       // Arrange
       const raw = makeRawVector(384, 0);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       const result = await service.embedPassage('empty');
@@ -154,7 +154,7 @@ describe('createEmbeddingService', () => {
       const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       await service.embedPassage('first');
@@ -178,7 +178,7 @@ describe('createEmbeddingService', () => {
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
       (pipelineSpy as any).mockResolvedValueOnce(mockExtractor);
 
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act — first call fails
       await expect(service.embedPassage('first')).rejects.toThrow(
@@ -201,8 +201,14 @@ describe('createEmbeddingService', () => {
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
 
-      const serviceA = createEmbeddingService({ modelId: 'model-a' });
-      const serviceB = createEmbeddingService({ modelId: 'model-b' });
+      const serviceA = createEmbeddingService({
+        executor: 'inline',
+        modelId: 'model-a',
+      });
+      const serviceB = createEmbeddingService({
+        executor: 'inline',
+        modelId: 'model-b',
+      });
 
       // Act
       await serviceA.embedPassage('text');
@@ -225,7 +231,7 @@ describe('createEmbeddingService', () => {
       const raw = makeRawVector(256, 1.0);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
       const logger = createMockLogger();
-      const service = createEmbeddingService({ logger });
+      const service = createEmbeddingService({ executor: 'inline', logger });
 
       // Act
       const result = await service.embedPassage('text');
@@ -247,6 +253,7 @@ describe('createEmbeddingService', () => {
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
 
       const service = createEmbeddingService({
+        executor: 'inline',
         modelId: 'custom/model',
         quantization: 'fp32',
       });
@@ -272,7 +279,10 @@ describe('createEmbeddingService', () => {
         return mockExtractor;
       });
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService({ cacheDir: '/tmp/models' });
+      const service = createEmbeddingService({
+        executor: 'inline',
+        cacheDir: '/tmp/models',
+      });
 
       // Act
       await service.embedPassage('text');
@@ -287,7 +297,10 @@ describe('createEmbeddingService', () => {
       const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService({ allowRemoteModels: false });
+      const service = createEmbeddingService({
+        executor: 'inline',
+        allowRemoteModels: false,
+      });
 
       // Act
       await service.embedPassage('text');
@@ -306,7 +319,7 @@ describe('createEmbeddingService', () => {
       const { pipeline } = await import('@huggingface/transformers');
       const raw = makeRawVector(384);
       mockExtractor.mockResolvedValue({ tolist: () => [raw] });
-      const service = createEmbeddingService();
+      const service = createEmbeddingService({ executor: 'inline' });
 
       // Act
       await service.embedPassage('text');

@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
@@ -26,14 +28,21 @@ function rejectBundledDBOSInternals(): Plugin {
 export default defineConfig({
   plugins: [rejectBundledDBOSInternals()],
   build: {
-    ssr: 'src/main.ts',
+    // `ssr: true` (not an entry path) so Vite builds every entry in
+    // rolldownOptions.input; a string here would override that map. The
+    // input map also lets @nx/vite/plugin recognize this as buildable (its
+    // isBuildable check does not read build.ssr).
+    ssr: true,
     outDir: 'dist',
-    // Mirror the SSR entry as rolldownOptions.input so @nx/vite/plugin
-    // recognizes this as buildable (its isBuildable check reads
-    // build.lib || builder.buildApp || rollupOptions.input ||
-    // rolldownOptions.input — but NOT build.ssr).
     rolldownOptions: {
-      input: 'src/main.ts',
+      input: {
+        main: 'src/main.ts',
+        // Worker thread entry loaded by @moltnet/embedding-service at runtime
+        // from `./embedding-worker-thread.js` next to main.js.
+        'embedding-worker-thread': fileURLToPath(
+          import.meta.resolve('@moltnet/embedding-service/worker-thread'),
+        ),
+      },
     },
   },
   ssr: {
