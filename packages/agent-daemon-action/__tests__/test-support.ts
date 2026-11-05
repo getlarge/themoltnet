@@ -16,6 +16,7 @@ export interface ActionStep {
   run?: string;
   uses?: string;
   env?: Record<string, string>;
+  with?: Record<string, string>;
 }
 
 export interface CompositeAction {
