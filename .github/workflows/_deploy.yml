@@ -257,6 +257,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    # Serialize Fly releases per app so an older run cannot finish after a
+    # newer one and roll production back. Scoped to this job, not the whole
+    # workflow, so a run held at an earlier gate cannot block later deploys.
+    # GitHub keeps only the newest pending run per group; in-flight releases
+    # are never cancelled.
+    concurrency:
+      group: fly-deploy-${{ inputs.fly-app }}
+      cancel-in-progress: false
     permissions:
       contents: read
     if: ${{ inputs.deploy && needs.preflight.outputs.image-exists == 'true' }}
