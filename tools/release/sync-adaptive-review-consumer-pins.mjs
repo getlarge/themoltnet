@@ -3,6 +3,13 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
+import {
+  github,
+  latest,
+  listReleases,
+  resolveBundle,
+} from './action-release-state.mjs';
+
 import { compareVersions } from './sync-cli-consumer-pins.mjs';
 
 export const pinFiles = [
@@ -11,8 +18,6 @@ export const pinFiles = [
 ];
 const majorTag = 'adaptive-review-action-v0';
 const packageRoot = 'packages/adaptive-review-action';
-const apiRoot = 'https://api.github.com/repos/getlarge/themoltnet';
-const shaPattern = /^[a-f0-9]{40}$/;
 
 function callerPin(source, file) {
   const workflow = file.replace('.yml', '-reusable.yml');
@@ -34,18 +39,7 @@ export async function main({
   get = globalThis.fetch,
   token = process.env.GH_TOKEN,
 } = {}) {
-  async function api(path) {
-    const response = await get(`${apiRoot}/${path}`, {
-      headers: {
-        accept: 'application/vnd.github+json',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Cannot read ${path} (${response.status})`);
-    }
-    return response.json();
-  }
+  const api = github(get, token);
 
   async function versionAt(sha) {
     const file = await api(`contents/${packageRoot}/package.json?ref=${sha}`);
@@ -64,41 +58,22 @@ export async function main({
       return { file, source, ...callerPin(source, file) };
     }),
   );
-  const ref = await api(`git/ref/tags/${majorTag}`);
-  const sha = ref.object?.sha;
-  if (ref.object?.type !== 'commit' || !shaPattern.test(sha ?? '')) {
-    throw new Error(`${majorTag} must point directly to a bundle commit`);
-  }
-  const version = await versionAt(sha);
-  if (!version.startsWith('0.')) {
-    throw new Error(
-      `${majorTag} points to a different major version: ${version}`,
+  const release = latest(
+    (await listReleases(api)).filter((r) => !r.draft),
+    'adaptive-review-action',
+  );
+  if (!release) throw new Error('No published adaptive-review action');
+  const version = release.tag_name.slice('adaptive-review-action-v'.length);
+  if (!version.startsWith('0.'))
+    throw new Error(`Review the caller major before adopting ${version}`);
+  const bundle = await resolveBundle(api, 'adaptive-review-action', version);
+  if (!bundle) {
+    process.stderr.write(
+      `::warning::Adaptive review ${version} awaits its bundle; retaining current callers.\n`,
     );
+    return;
   }
-  const tag = `adaptive-review-action-v${version}`;
-  const release = await api(`releases/tags/${tag}`);
-  if (release.draft || release.prerelease || release.tag_name !== tag) {
-    throw new Error(`${tag} is not a published stable release`);
-  }
-  const tree = await api(`git/trees/${sha}?recursive=1`);
-  const required = [
-    ...pinFiles.map((file) => file.replace('.yml', '-reusable.yml')),
-    ...['review.js', 'publish.js', 'outcomes.js'].map(
-      (entry) => `${packageRoot}/dist/${entry}`,
-    ),
-  ];
-  if (
-    tree.truncated ||
-    required.some(
-      (path) =>
-        !tree.tree?.some(
-          (entry) =>
-            entry.path === path && entry.type === 'blob' && entry.size > 0,
-        ),
-    )
-  ) {
-    throw new Error(`${sha} is missing required adaptive-review release files`);
-  }
+  const { sha, tag } = bundle;
   for (const current of new Set(callers.map((caller) => caller.sha))) {
     if (
       current !== sha &&

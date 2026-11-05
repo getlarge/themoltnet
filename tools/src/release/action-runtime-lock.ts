@@ -114,14 +114,20 @@ function main(argv: string[]): number {
   const root = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
   }).trim();
+  const projectIndex = argv.indexOf('--project-root');
+  const projectRoot = projectIndex < 0 ? undefined : argv[projectIndex + 1];
+  if (projectIndex >= 0 && (!projectRoot || projectRoot.startsWith('--'))) {
+    throw new Error('--project-root requires a package path');
+  }
+  const locks = projectRoot ? locksForProject(projectRoot) : RUNTIME_LOCKS;
   if (argv.includes('--write')) {
-    for (const spec of RUNTIME_LOCKS) {
+    for (const spec of locks) {
       writeFileSync(join(root, spec.lock), computeLock(root, spec));
     }
     return 0;
   }
   if (argv.includes('--check')) {
-    const stale = staleLocks(root);
+    const stale = staleLocks(root, locks);
     for (const lock of stale) {
       process.stderr.write(
         `::error file=${lock}::${lock} is out of date. Stage your changes, run 'node tools/src/release/action-runtime-lock.ts --write', and commit the lock in a fix or feat commit, so the action is released with the change.\n`,

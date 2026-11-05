@@ -24,7 +24,16 @@ interface Step {
   env?: Record<string, string>;
 }
 interface Workflow {
-  jobs: Record<string, { steps: Step[]; env?: Record<string, string> }>;
+  on: Record<string, unknown>;
+  jobs: Record<
+    string,
+    {
+      steps: Step[];
+      needs?: string | string[];
+      if?: string;
+      env?: Record<string, string>;
+    }
+  >;
 }
 const workflow = (name: string): Workflow =>
   parse(
@@ -55,8 +64,8 @@ describe('action publishing authorization and source validation', () => {
     });
     expect(token.uses).toMatch(/^actions\/create-github-app-token@/);
     expect(
-      named('Commit bundles, tag them, and move the stable major tag').env,
-    ).toEqual({
+      named('Commit bundles, tag them, and promote the stable major tag').env,
+    ).toMatchObject({
       GITHUB_ACTION_RELEASE_TOKEN: `\${{ steps.${token.id}.outputs.token }}`,
     });
     expect(steps.indexOf(token)).toBeGreaterThan(
@@ -67,14 +76,60 @@ describe('action publishing authorization and source validation', () => {
     );
     expect(job.env).toBeUndefined();
     expect(
-      steps.find((step) => step.uses?.startsWith('actions/checkout@'))?.with,
+      steps.filter((step) => step.uses?.startsWith('actions/checkout@'))[1]
+        ?.with,
     ).toMatchObject({ ref: '${{ matrix.tag }}', 'persist-credentials': false });
   });
 
+  it('rejects a source package whose version disagrees with the requested tag', () => {
+    const root = mkdtempSync(join(tmpdir(), 'action-source-'));
+    try {
+      mkdirSync(join(root, 'packages/agent-daemon-action'), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(root, 'packages/agent-daemon-action/package.json'),
+        JSON.stringify({
+          name: '@themoltnet/agent-daemon-action',
+          version: '0.8.0',
+        }),
+      );
+      const run = (tag: string) =>
+        execFileSync(
+          'bash',
+          ['-e', '-c', named('Verify release source identity').run!],
+          {
+            cwd: root,
+            env: { ...process.env, COMPONENT: 'agent-daemon-action', TAG: tag },
+            stdio: 'pipe',
+          },
+        );
+      expect(() => run('agent-daemon-action-v0.8.0')).not.toThrow();
+      expect(() => run('agent-daemon-action-v0.9.0')).toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('limits consumer maintenance to repository contents, workflow writes and PR reads', () => {
+    const token = workflow('release').jobs['sync-consumer-pins'].steps.find(
+      (step) => step.id === 'app-token',
+    );
+    expect(token?.with).toEqual({
+      'client-id': '${{ secrets.MOLTNET_RELEASE_APP_ID }}',
+      'private-key': '${{ secrets.MOLTNET_RELEASE_APP_KEY }}',
+      owner: 'getlarge',
+      repositories: 'themoltnet',
+      'permission-contents': 'write',
+      'permission-workflows': 'write',
+      'permission-pull-requests': 'read',
+    });
+  });
+
   it('rejects stale release source before dependency installation and building', () => {
-    const check = named('Check release source runtime locks');
+    const check = named('Check component release source runtime locks');
     expect(check.run).toBe(
-      'node tools/src/release/action-runtime-lock.ts --check',
+      'node "$RUNNER_TEMP/action-release-control/action-runtime-lock.ts" --check --project-root "packages/$COMPONENT"',
     );
     expect(check.if).toBeUndefined();
     expect(steps.indexOf(check)).toBeLessThan(
@@ -155,36 +210,112 @@ jq -r "$filter | $expr" "${join(root, 'releases.json')}"
     }
   }
 
-  it('republishes an already-published action by moving its major tag', () => {
-    const outputs = resolveTargets('agent-daemon-action', [
-      { tagName: 'sdk-v1.4.0', isDraft: false },
-      { tagName: 'agent-daemon-action-v0.8.0', isDraft: false },
-      { tagName: 'agent-daemon-action-v0.7.0', isDraft: false },
-    ]);
-    expect(outputs['agent-daemon-action']).toBe('true');
-    expect(JSON.parse(outputs['actions-matrix'])).toEqual([
-      {
-        project: '@themoltnet/agent-daemon-action',
-        tag: 'agent-daemon-action-v0.8.0',
-      },
-    ]);
-  });
-
-  it('prefers a pending draft over the latest published action release', () => {
-    const outputs = resolveTargets('adaptive-review-action', [
-      { tagName: 'adaptive-review-action-v0.2.0', isDraft: true },
-      { tagName: 'adaptive-review-action-v0.1.2', isDraft: false },
-    ]);
-    expect(outputs['adaptive-review-action-tag']).toBe(
-      'adaptive-review-action-v0.2.0',
-    );
-  });
-
   it('never republishes a published npm version', () => {
     const outputs = resolveTargets('sdk', [
       { tagName: 'sdk-v1.4.0', isDraft: false },
     ]);
     expect(outputs.sdk).toBe('false');
-    expect(outputs['actions-matrix']).toBe('[]');
+    expect(outputs['actions-matrix']).toBeUndefined();
+  });
+});
+
+describe('action publication transaction', () => {
+  it('runs legacy recovery only on pushes or explicit legacy dispatches', () => {
+    const release = workflow('release');
+    expect(Object.keys(release.on).sort()).toEqual([
+      'push',
+      'workflow_dispatch',
+    ]);
+    for (const id of [
+      'resolve-publish',
+      'reconcile-actions',
+      'sync-consumer-pins',
+    ]) {
+      expect(release.jobs[id].if?.trim()).toBe(
+        "always() && !cancelled() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.engine == 'legacy'))",
+      );
+    }
+  });
+
+  it('waits for action bundles, CLI npm packages and finalized daemon assets before pin sync', () => {
+    const jobs = workflow('release').jobs;
+    expect(jobs['sync-consumer-pins'].needs).toEqual([
+      'release-please',
+      'publish-actions',
+      'publish-cli-wrapper',
+      'finalize-agent-daemon-release',
+    ]);
+    // Failure or a skipped producer must not suppress independent pin families.
+    expect(jobs['sync-consumer-pins'].if).toContain('always()');
+    expect(jobs['sync-consumer-pins'].if).not.toMatch(/!failure\(\)|\.result/);
+  });
+
+  it('publishes the release only after its remote bundle and notes exist', () => {
+    const push = steps.indexOf(
+      named('Commit bundles, tag them, and promote the stable major tag'),
+    );
+    const record = steps.indexOf(
+      named('Record the exact action pin in release notes'),
+    );
+    const finalize = steps.indexOf(named('Publish the release'));
+    expect(push).toBeLessThan(record);
+    expect(record).toBeLessThan(finalize);
+    expect(named('Publish the release').if).toBeUndefined();
+  });
+
+  it('uses current recovery code when building historical release sources', () => {
+    const preserve = steps.indexOf(
+      named('Preserve current release controller'),
+    );
+    const checkouts = steps.flatMap((step, i) =>
+      step.uses?.startsWith('actions/checkout@') ? [i] : [],
+    );
+    expect(checkouts).toHaveLength(2);
+    expect(checkouts[0]).toBeLessThan(preserve);
+    expect(preserve).toBeLessThan(checkouts[1]);
+    expect(named('Verify the built bundles').run).toContain(
+      '$RUNNER_TEMP/action-release-control/',
+    );
+    expect(
+      named('Commit bundles, tag them, and promote the stable major tag').run,
+    ).toContain('$RUNNER_TEMP/action-release-control/');
+  });
+
+  it('isolates action reconciliation from npm and Docker target resolution', () => {
+    const jobs = workflow('release').jobs;
+    expect(jobs['publish-actions'].needs).toBe('reconcile-actions');
+    expect(jobs['resolve-publish'].needs).toBe('release-please');
+    expect(jobs['reconcile-actions'].needs).toBe('release-please');
+  });
+
+  it('passes manual republish and exact-version inputs to the action reconciler', () => {
+    const reconcile = workflow('release').jobs['reconcile-actions'].steps.find(
+      (step) => step.id === 'actions',
+    );
+    expect(reconcile?.env).toMatchObject({
+      ACTION_TAG: "${{ inputs.action-tag || '' }}",
+      REPUBLISH: "${{ inputs.republish || '' }}",
+    });
+  });
+
+  it('keeps pin maintenance out of Release Please and reports isolated failures', () => {
+    const jobs = workflow('release').jobs;
+    expect(
+      jobs['release-please'].steps.some((s) =>
+        s.run?.includes('sync-daemon-consumer-pins'),
+      ),
+    ).toBe(false);
+    const sync = jobs['sync-consumer-pins'].steps;
+    expect(
+      sync.find((s) => s.name === 'Commit consumer pins to release PR')?.run,
+    ).toContain('fix(adaptive-review-action): sync published runtime pins');
+    expect(
+      sync.find((s) => s.name === 'Report independent sync failures')?.if,
+    ).toContain("steps.daemon.outcome == 'failure'");
+    expect(
+      sync.find(
+        (s) => s.name === 'Refresh runtime locks and stage consumer pins',
+      )?.run,
+    ).toContain('action-runtime-lock.ts');
   });
 });

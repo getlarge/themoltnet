@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type RuntimeLock, staleLocks } from './action-runtime-lock.js';
@@ -43,7 +43,12 @@ export function missingBundleEntries(
   if (entries.length === 0) {
     throw new Error('--entries must name at least one bundle entry');
   }
-  return entries.filter((entry) => !existsSync(join(bundleDir, entry)));
+  return entries.filter((entry) => {
+    const path = join(bundleDir, entry);
+    return (
+      !existsSync(path) || !statSync(path).isFile() || statSync(path).size === 0
+    );
+  });
 }
 
 export interface GitCommand {
@@ -64,14 +69,22 @@ export function tagPushCommand(
   token?: string,
   serverUrl = 'https://github.com',
   keepTags: readonly string[] = [],
+  expectedMajor?: string,
 ): GitCommand {
   return {
     args: [
       'push',
       '--atomic',
+      ...(expectedMajor === undefined
+        ? []
+        : [`--force-with-lease=refs/tags/${tag}:${expectedMajor}`]),
       'origin',
       ...keepTags.map((keep) => `refs/tags/${keep}:refs/tags/${keep}`),
-      `+refs/tags/${tag}:refs/tags/${tag}`,
+      ...(tag
+        ? [
+            `${expectedMajor === undefined ? '+' : ''}refs/tags/${tag}:refs/tags/${tag}`,
+          ]
+        : []),
     ],
     env: token
       ? {
@@ -141,4 +154,155 @@ export function createReleaseCommit(
   git('add', '-f', '--', ...bundleDirs);
   git('commit', '-m', message);
   return git('rev-parse', 'HEAD');
+}
+
+export interface PublishBundleOptions {
+  root: string;
+  project: string;
+  projectRoot: string;
+  version: string;
+  prefix: string;
+  bundleDir: string;
+  bundleDirs: string[];
+  entries: string[];
+  token?: string;
+  serverUrl?: string;
+}
+
+/** Idempotent immutable mapping plus compare-and-swap major promotion. */
+export function publishBundleTags(options: PublishBundleOptions): string {
+  const git = (
+    args: string[],
+    command: { stdio?: 'inherit'; env?: Record<string, string> } = {},
+  ) =>
+    execFileSync('git', args, {
+      cwd: options.root,
+      encoding: 'utf8',
+      stdio: command.stdio,
+      env: { ...process.env, ...command.env },
+    })?.trim() ?? '';
+  const source = git(['rev-parse', 'HEAD']);
+  const stableTag = stableMajorTagFor(options.version, options.prefix);
+  const message = `chore(actions): bundle ${options.project} ${options.version}`;
+  // One immutable version-to-bundle mapping. Historical SHA-suffixed tags
+  // remain valid; retries reuse their current major target when appropriate.
+  const exactTag = `bundles/${options.project.replace('@themoltnet/', '')}-v${options.version}`;
+  const remote = (tag: string) =>
+    git(['ls-remote', 'origin', `refs/tags/${tag}`]).split(/\s/)[0];
+  const fetchCommit = (sha: string) => {
+    if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Expected a commit SHA');
+    git(['fetch', '--no-tags', 'origin', sha]);
+  };
+  const versionAt = (sha: string) => {
+    const metadata = JSON.parse(
+      git(['show', `${sha}:${options.projectRoot}/package.json`]),
+    ) as { version: string };
+    if (!/^\d+\.\d+\.\d+$/.test(metadata.version))
+      throw new Error('Invalid action version');
+    return metadata.version;
+  };
+  const compare = (a: string, b: string) => {
+    const left = a.split('.').map(Number);
+    const right = b.split('.').map(Number);
+    for (let i = 0; i < 3; i++)
+      if (left[i] !== right[i]) return left[i] - right[i];
+    return 0;
+  };
+  const previousMajor = remote(stableTag);
+  if (previousMajor) fetchCommit(previousMajor);
+  let target = remote(exactTag);
+  if (target) fetchCommit(target);
+  // Adopt a legacy bundle, without rebuilding or changing its identity.
+  if (!target && previousMajor && versionAt(previousMajor) === options.version)
+    target = previousMajor;
+  if (target) {
+    if (
+      git(['rev-parse', `${target}^`]) !== source ||
+      git(['rev-list', '--parents', '-n', '1', target]).split(' ').length !== 2
+    ) {
+      throw new Error(
+        `${exactTag} does not descend directly from this source tag`,
+      );
+    }
+    if (versionAt(target) !== options.version)
+      throw new Error('Immutable bundle version mismatch');
+    const changes = git([
+      'diff-tree',
+      '--no-commit-id',
+      '--name-only',
+      '-r',
+      target,
+    ]).split('\n');
+    if (
+      changes.some(
+        (path) => !options.bundleDirs.some((dir) => path.startsWith(`${dir}/`)),
+      )
+    )
+      throw new Error('Bundle changes files outside dist/');
+    for (const entry of options.entries) {
+      if (
+        Number(
+          git(['cat-file', '-s', `${target}:${options.bundleDir}/${entry}`]),
+        ) <= 0
+      )
+        throw new Error(`Empty bundle entry ${entry}`);
+    }
+  } else {
+    target = createReleaseCommit(
+      git(['rev-parse', '--show-toplevel']),
+      options.bundleDirs,
+      message,
+    );
+  }
+  const bundleTag = bundleTagFor(options.version, options.prefix, target);
+  const promote =
+    !previousMajor || compare(versionAt(previousMajor), options.version) <= 0;
+  if (
+    previousMajor &&
+    versionAt(previousMajor) === options.version &&
+    previousMajor !== target
+  ) {
+    throw new Error(
+      'Refusing to replace an existing action version with a different bundle',
+    );
+  }
+  process.stdout.write(
+    `built commit: ${target}\nbundle tag: ${exactTag} -> ${target}\n`,
+  );
+  // Local tags can be recreated; remote immutable tags are never forced.
+  git(['tag', '-f', exactTag, target], { stdio: 'inherit' });
+  git(['tag', '-f', bundleTag, target], { stdio: 'inherit' });
+  if (promote) git(['tag', '-f', stableTag, target], { stdio: 'inherit' });
+  else
+    process.stdout.write(
+      `Keeping newer ${stableTag}; retaining historical ${exactTag} only\n`,
+    );
+
+  // The release job checks out without persisted credentials and hands the
+  // token to this one push.
+  const token = options.token;
+  if (token && process.env.GITHUB_ACTIONS === 'true') {
+    process.stdout.write(`::add-mask::${authHeaderValue(token)}\n`);
+  }
+  const keepTags = [exactTag, bundleTag];
+  if (previousMajor) {
+    const previousRetention = bundleTagFor(
+      versionAt(previousMajor),
+      options.prefix,
+      previousMajor,
+    );
+    git(['tag', '-f', previousRetention, previousMajor]);
+    if (!keepTags.includes(previousRetention)) keepTags.push(previousRetention);
+  }
+  const push = tagPushCommand(
+    promote ? stableTag : '',
+    token,
+    options.serverUrl,
+    keepTags,
+    promote ? previousMajor : undefined,
+  );
+  git(push.args, { stdio: 'inherit', env: push.env });
+  if (remote(exactTag) !== target)
+    throw new Error('Published bundle ref failed read-back');
+  return target;
 }

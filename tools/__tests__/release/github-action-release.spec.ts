@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,6 +18,7 @@ import {
   bundleTagFor,
   createReleaseCommit,
   missingBundleEntries,
+  publishBundleTags,
   releaseProblems,
   stableMajorTagFor,
   tagPushCommand,
@@ -62,7 +69,7 @@ describe('missingBundleEntries', () => {
     dir = mkdtempSync(join(tmpdir(), 'action-bundle-'));
     mkdirSync(join(dir, 'assets'));
     writeFileSync(join(dir, 'assets', 'chunk.js'), '');
-    writeFileSync(join(dir, 'review.js'), '');
+    writeFileSync(join(dir, 'review.js'), 'export {};');
   });
 
   afterEach(() => {
@@ -73,6 +80,14 @@ describe('missingBundleEntries', () => {
     // Act / Assert
     expect(missingBundleEntries(dir, ['review.js', 'comment.js'])).toEqual([
       'comment.js',
+    ]);
+  });
+
+  it('rejects an empty entry as well as an absent entry', () => {
+    writeFileSync(join(dir, 'empty.js'), '');
+    expect(missingBundleEntries(dir, ['empty.js', 'absent.js'])).toEqual([
+      'empty.js',
+      'absent.js',
     ]);
   });
 
@@ -271,3 +286,152 @@ describe('parsePublisherArgs', () => {
     });
   });
 });
+
+// Real Git subprocesses can exceed Vitest's 5s unit-test budget on busy CI hosts.
+describe(
+  'immutable publication against a real Git remote',
+  { timeout: 30_000 },
+  () => {
+    let root: string;
+    let remote: string;
+    let source: string;
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: 'pipe',
+      }).trim();
+    const projectRoot = 'packages/agent-daemon-action';
+    const publish = (version = '0.8.0') =>
+      publishBundleTags({
+        root,
+        project: '@themoltnet/agent-daemon-action',
+        projectRoot,
+        version,
+        prefix: 'v',
+        bundleDir: `${projectRoot}/dist`,
+        bundleDirs: [`${projectRoot}/dist`],
+        entries: ['main.js'],
+      });
+    const resetSource = () => git('checkout', '--detach', '-f', source);
+    const remoteSha = (tag: string) =>
+      git('ls-remote', 'origin', `refs/tags/${tag}`).split(/\s/)[0];
+    beforeEach(() => {
+      root = mkdtempSync(join(tmpdir(), 'action-push-'));
+      remote = join(root, 'remote.git');
+      git('init', '-q');
+      git('config', 'user.email', 'test@example.com');
+      git('config', 'user.name', 'test');
+      git('config', 'commit.gpgsign', 'false');
+      git('config', 'tag.gpgsign', 'false');
+      git('init', '--bare', remote);
+      git('remote', 'add', 'origin', remote);
+      mkdirSync(join(root, projectRoot, 'dist'), { recursive: true });
+      writeFileSync(
+        join(root, projectRoot, 'package.json'),
+        JSON.stringify({ version: '0.8.0' }),
+      );
+      writeFileSync(join(root, projectRoot, 'dist/main.js'), 'export {};\n');
+      writeFileSync(join(root, '.gitignore'), '**/dist/\nremote.git/\n');
+      git('add', '.');
+      git('commit', '-qm', 'source');
+      source = git('rev-parse', 'HEAD');
+      git('tag', 'agent-daemon-action-v0.8.0');
+      git('push', 'origin', 'refs/tags/agent-daemon-action-v0.8.0');
+      resetSource();
+    });
+    afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+    it('retains source history, publishes immutable identity, and reuses it on retry', () => {
+      const first = publish();
+      expect(remoteSha('bundles/agent-daemon-action-v0.8.0')).toBe(first);
+      expect(remoteSha('v0')).toBe(first);
+      expect(remoteSha('agent-daemon-action-v0.8.0')).toBe(source);
+      resetSource();
+      mkdirSync(join(root, projectRoot, 'dist'), { recursive: true });
+      writeFileSync(
+        join(root, projectRoot, 'dist/main.js'),
+        'different rebuild bytes',
+      );
+      expect(publish()).toBe(first);
+    });
+
+    it('recovers a rejected atomic push without leaving a remote bundle or alias', () => {
+      const hook = join(remote, 'hooks/pre-receive');
+      writeFileSync(hook, '#!/bin/sh\nexit 1\n');
+      chmodSync(hook, 0o755);
+      expect(() => publish()).toThrow();
+      expect(remoteSha('bundles/agent-daemon-action-v0.8.0')).toBe('');
+      expect(remoteSha('v0')).toBe('');
+      rmSync(hook);
+      resetSource();
+      // checkout removes tracked dist; reconstruct the build output.
+      mkdirSync(join(root, projectRoot, 'dist'), { recursive: true });
+      writeFileSync(join(root, projectRoot, 'dist/main.js'), 'export {};\n');
+      expect(remoteSha('v0')).toBe('');
+      expect(publish()).toBe(remoteSha('v0'));
+    });
+
+    it('can retain an older exact version without moving a newer major backwards', () => {
+      const old = publish();
+      resetSource();
+      writeFileSync(
+        join(root, projectRoot, 'package.json'),
+        JSON.stringify({ version: '0.9.0' }),
+      );
+      git('add', projectRoot);
+      git('commit', '-qm', 'new version');
+      mkdirSync(join(root, projectRoot, 'dist'), { recursive: true });
+      writeFileSync(
+        join(root, projectRoot, 'dist/main.js'),
+        'export const newer = true;\n',
+      );
+      const newer = publish('0.9.0');
+      resetSource();
+      expect(publish()).toBe(old);
+      expect(remoteSha('v0')).toBe(newer);
+    });
+
+    it('adopts a legacy major bundle and anchors it before a later promotion', () => {
+      const old = publish();
+      git(
+        'push',
+        'origin',
+        ':refs/tags/bundles/agent-daemon-action-v0.8.0',
+        `:refs/tags/${bundleTagFor('0.8.0', 'v', old)}`,
+      );
+      resetSource();
+      expect(publish()).toBe(old);
+      expect(remoteSha('bundles/agent-daemon-action-v0.8.0')).toBe(old);
+      expect(remoteSha(bundleTagFor('0.8.0', 'v', old))).toBe(old);
+    });
+
+    it('a stale promotion lease rejects the whole push, including new immutable tags', () => {
+      const current = publish();
+      writeFileSync(join(root, 'new-file'), 'new');
+      git('add', 'new-file');
+      git('commit', '-qm', 'concurrent target');
+      git('tag', 'candidate');
+      git('tag', '-f', 'v0');
+      const command = tagPushCommand(
+        'v0',
+        undefined,
+        undefined,
+        ['candidate'],
+        '0'.repeat(40),
+      );
+      expect(() => git(...command.args)).toThrow();
+      expect(remoteSha('candidate')).toBe('');
+      expect(remoteSha('v0')).toBe(current);
+    });
+
+    it('rejects an immutable mapping whose source parent differs', () => {
+      publish();
+      resetSource();
+      writeFileSync(join(root, 'unrelated'), 'change');
+      git('add', 'unrelated');
+      git('commit', '-qm', 'different source');
+      expect(() => publish()).toThrow('does not descend directly');
+    });
+  },
+);

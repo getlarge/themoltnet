@@ -1,7 +1,9 @@
 # Nx Release Workflow Notes
 
-Contributor notes for migrating release orchestration from release-please to Nx
-release, and for how Nx release is expected to be used.
+This guide covers the experimental Nx release flow, including rehearsals and
+production trials. Release Please is the default release engine. For GitHub
+Action publication and recovery, use
+[Release and recover GitHub Actions](./action-releases.md).
 
 ## Intent
 
@@ -15,8 +17,11 @@ release workflow: npm trusted publishing binds each package to that filename.
 Its `workflow_dispatch` `engine` input defaults to `legacy`. Use `engine: nx`
 only for a deliberately scheduled Nx rehearsal or production release; it is
 mutually exclusive with the legacy jobs and serialized with all other release
-runs. The normal push-to-`main` Release Please flow remains unchanged during
-this period.
+runs. Eligible pushes to `main` run Release Please. The legacy path also
+reconciles incomplete action publications on eligible pushes and explicit legacy
+dispatches, then synchronizes consumer pins after their publishers finish. There
+is no scheduled publication sweep. Selecting `engine: nx` does not run those
+legacy repair jobs.
 
 Remove the legacy jobs, Release Please configuration, and recovery workflow only
 after Nx has completed several production releases, including npm OIDC, GHCR, Go
@@ -358,40 +363,17 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-Release Please releases the GitHub Actions components `agent-daemon-action` and
-`adaptive-review-action` (stable major tag `adaptive-review-action-v0`). The
-release workflow's `republish` input accepts both. Bundles are ignored on main.
-CI builds all actions when an action project is affected or the release manifest
-changes, checks for inlined self-run guards, and verifies runtime locks.
+The legacy Release workflow owns action publication and reconciliation. See
+[Release and recover GitHub Actions](./action-releases.md) for the executable
+bundle contract, exact-version recovery commands, consumer updates, and the
+publication state diagram. Source tags remain Release Please history boundaries;
+immutable bundle tags identify the executable artifacts. The GitHub release is
+finalized only after bundle publication and release-note recording succeed.
 
-A runtime lock (`packages/<action>/runtime.lock`, defined in
-`tools/src/release/action-runtime-lock.ts`) hashes the files an action runs from
-outside its package. For `adaptive-review-action` these are the reusable
-workflows, their `tools/` scripts, and the review libraries' sources. When you
-change one, run `node tools/src/release/action-runtime-lock.ts --write` and
-commit the refreshed lock in a `fix` or `feat` commit: the lock lives in the
-package, so release-please releases the action.
-
-`publish-actions` checks out each version tag, builds the required bundles,
-checks entry points and runtime locks, and publishes the draft release. It then
-creates a detached release-only commit containing `dist/`. Only the stable major
-tag (`v0` or `adaptive-review-action-v0`) moves to this built commit. No branch
-is pushed. Release notes record the built SHA for exact pins; version tags
-contain sources and cannot be used to run the actions.
-
-Release-please's version tags must stay on main: its manifest uses their SHAs as
-previous-release boundaries while walking main's history. Moving those tags
-outside main would cause old commits to be released again. Every caller,
-including this repository, uses the released major tags and therefore runs the
-last released action. Source changes take effect after release.
-
-Release PR preparation also advances Gondolin's guest CLI pin to npm's latest
-stable version, after checking that the wrapper and both Linux architecture
-packages expose that exact version. During partial publication it retains the
-current pin. The proposed CLI release itself cannot be pinned before
-publication: it becomes eligible during preparation of a later release PR. This
-preparation updates only the guest CLI pin; it does not build action bundles or
-write runtime locks.
+Consumer adoption happens in a separate job that checks published artifacts and
+updates an existing Release Please PR. An Nx publication does not automatically
+run that legacy consumer-sync job. Any replacement publication flow must
+preserve these responsibilities and completion checks.
 
 ## Docker Images
 

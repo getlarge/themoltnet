@@ -3,6 +3,12 @@ import { join } from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
+import {
+  github,
+  listReleases,
+  resolveBundle,
+} from './action-release-state.mjs';
+
 import { compareVersions } from './sync-cli-consumer-pins.mjs';
 
 export const pinFiles = ['.github/workflows/adaptive-review-reusable.yml'];
@@ -49,21 +55,9 @@ export async function fetchReleases(
   get = globalThis.fetch,
   token = process.env.GH_TOKEN,
 ) {
-  const response = await get(
-    'https://api.github.com/repos/getlarge/themoltnet/releases?per_page=100',
-    {
-      headers: {
-        accept: 'application/vnd.github+json',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    },
-  );
-  if (!response.ok)
-    throw new Error(`Cannot list GitHub releases (${response.status})`);
-  return response.json();
+  return listReleases(github(get, token));
 }
 
-const apiRoot = 'https://api.github.com/repos/getlarge/themoltnet';
 const actionRoot = 'packages/agent-daemon-action';
 const daemonPattern =
   /(\n {6}daemon-version:\r?\n(?: {8}.*\r?\n)*? {8}default: )'([^']+)'/g;
@@ -93,17 +87,7 @@ export async function main({
   const version = latestRelease(await fetchReleases(get, token));
   if (!version) return;
 
-  async function api(path) {
-    const response = await get(`${apiRoot}/${path}`, {
-      headers: {
-        accept: 'application/vnd.github+json',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    if (!response.ok)
-      throw new Error(`Cannot read ${path} (${response.status})`);
-    return response.json();
-  }
+  const api = github(get, token);
   async function versionAt(ref) {
     const file = await api(`contents/${actionRoot}/package.json?ref=${ref}`);
     const metadata = JSON.parse(Buffer.from(file.content, 'base64').toString());
@@ -114,40 +98,16 @@ export async function main({
     return metadata.version;
   }
 
-  // A source release tag has no dist/. Resolve the built major tag, then
-  // require the exact action version from the daemon's source release.
+  // Resolve the exact published pair independently of the moving major alias.
   const actionVersion = await versionAt(`${TAG_PREFIX}${version}`);
-  const majorTag = `v${actionVersion.split('.')[0]}`;
-  const ref = await api(`git/ref/tags/${majorTag}`);
-  const sha = ref.object?.sha;
-  if (ref.object?.type !== 'commit' || !/^[a-f0-9]{40}$/.test(sha ?? '')) {
-    throw new Error(`${majorTag} must point directly to a bundle commit`);
-  }
-  if ((await versionAt(sha)) !== actionVersion) {
-    throw new Error(
-      `Daemon ${version} requires action ${actionVersion}; ${majorTag} has a different version`,
+  const bundle = await resolveBundle(api, 'agent-daemon-action', actionVersion);
+  if (!bundle) {
+    process.stderr.write(
+      `::warning::Daemon ${version} awaits action ${actionVersion}; retaining current pair. Release reconciliation will retry publication.\n`,
     );
+    return;
   }
-  const tag = `agent-daemon-action-v${actionVersion}`;
-  const release = await api(`releases/tags/${tag}`);
-  if (release.draft || release.prerelease || release.tag_name !== tag) {
-    throw new Error(`${tag} is not a published stable release`);
-  }
-  const tree = await api(`git/trees/${sha}?recursive=1`);
-  if (
-    tree.truncated ||
-    ['action.yml', 'dist/main.js'].some(
-      (file) =>
-        !tree.tree?.some(
-          (entry) =>
-            entry.path === `${actionRoot}/${file}` &&
-            entry.type === 'blob' &&
-            entry.size > 0,
-        ),
-    )
-  ) {
-    throw new Error(`${sha} is missing required daemon action release files`);
-  }
+  const { sha } = bundle;
   for (const consumer of consumers) {
     if (compareVersions(version, consumer.daemon) < 0) {
       throw new Error(`Refusing to downgrade daemon to ${version}`);

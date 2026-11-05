@@ -87,3 +87,13 @@ it('refreshes the runtime lock before committing grouped GitHub Actions updates'
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+it('leaves self-repository action and workflow pins to verified release synchronization', () => {
+  const rule = config.packageRules.find(
+    (r: { enabled?: boolean; matchPackageNames?: string[] }) =>
+      r.enabled === false &&
+      r.matchPackageNames?.includes('getlarge/themoltnet'),
+  );
+  expect(rule.matchManagers).toEqual(['github-actions']);
+  expect(rule.matchDepTypes).toBeUndefined();
+});
