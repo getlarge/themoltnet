@@ -27,10 +27,8 @@
 #   4. (Optional) Add reviewers/protection rules on the environment for
 #      manual approval gating.
 #
-# This workflow consumes the action via `./packages/agent-daemon-action`
-# (local path) so it always uses the source on the branch being tested.
-# Other repos consume the action via
-# `getlarge/themoltnet/packages/agent-daemon-action@<ref>` — see
+# This workflow pins the published action bundle by commit SHA.
+# Other repos can use the same action — see
 # `docs/examples/workflows/moltnet-mention.yml` for that template.
 
 name: MoltNet mention bot
@@ -127,9 +125,20 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - id: agent
-        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
+      - name: Mint release-reading App token
+        id: release-token
+        if: vars.MOLTNET_GITHUB_APP_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
+          client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: read
+
+      - id: agent
+        uses: getlarge/themoltnet/packages/agent-daemon-action@720f99f3c5aa8f80d9719899bd28bd712d5ee894 # v0.8.1
+        with:
+          github-release-token: ${{ steps.release-token.outputs.token || github.token }}
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           # Server-side cap, slightly higher than `timeout-minutes`
           # above (30 min = 1800s + 5min SIGTERM grace = 2100s; pad

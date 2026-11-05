@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { test } from 'vitest';
@@ -36,130 +35,62 @@ test('receipt upload follows successful publication and is bounded', () => {
   assert.ok(steps[upload].with.name.includes('github.run_attempt'));
 });
 
-test('release lookup has a separate read-only App token and pins both tasks', () => {
-  const steps = workflow.jobs.triage.steps;
-  const token = steps.find((step) => step.id === 'release-token');
-  const lookup = steps.find((step) => step.id === 'daemon-release');
-  assert.equal(token.if, "steps.prepare.outputs.eligible == 'true'");
-  assert.equal(lookup.if, token.if);
-  assert.equal(token.with.repositories, '${{ github.event.repository.name }}');
-  assert.deepEqual(
-    Object.fromEntries(
-      Object.entries(token.with).filter(([key]) =>
-        key.startsWith('permission-'),
-      ),
+test('daemon callers scope read-only App tokens to the shared release lookup', () => {
+  const mention = parse(
+    readFileSync(
+      resolve(root, '.github/workflows/moltnet-mention.yml'),
+      'utf8',
     ),
-    { 'permission-contents': 'read' },
   );
-  assert.deepEqual(lookup.env, {
-    GH_TOKEN: '${{ steps.release-token.outputs.token }}',
-  });
-  for (const id of ['extract', 'classify']) {
-    const task = steps.find((step) => step.id === id);
-    assert.equal(
-      task.with['daemon-version'],
-      '${{ steps.daemon-release.outputs.version }}',
-    );
-    assert.ok(steps.indexOf(token) < steps.indexOf(lookup));
-    assert.ok(steps.indexOf(lookup) < steps.indexOf(task));
-    assert.equal(task.env.GH_TOKEN, undefined);
-  }
-});
-
-function resolveRelease(pages, status = 0) {
-  const dir = mkdtempSync(resolve(tmpdir(), 'triage-release-'));
-  const output = resolve(dir, 'output');
-  const calls = resolve(dir, 'calls');
-  try {
-    writeFileSync(output, '');
-    writeFileSync(calls, '');
-    pages.forEach((page, i) =>
-      writeFileSync(resolve(dir, `page-${i + 1}.json`), JSON.stringify(page)),
-    );
-    writeFileSync(
-      resolve(dir, 'gh'),
-      `#!/bin/sh
-set -eu
-[ "$1 $2 $3" = 'api --hostname github.com' ]
-printf '%s\\n' "$4" >> "$FIXTURE_DIR/calls"
-if [ "$FIXTURE_STATUS" != 0 ]; then exit "$FIXTURE_STATUS"; fi
-page=\${4##*page=}
-cat "$FIXTURE_DIR/page-$page.json"
-`,
-      { mode: 0o755 },
-    );
-    const result = spawnSync(
-      'bash',
-      [
-        '-c',
-        workflow.jobs.triage.steps.find((step) => step.id === 'daemon-release')
-          .run,
-      ],
-      {
-        encoding: 'utf8',
-        env: {
-          PATH: `${dir}:${process.env.PATH}`,
-          GITHUB_OUTPUT: output,
-          FIXTURE_DIR: dir,
-          FIXTURE_STATUS: String(status),
-        },
-      },
-    );
-    return {
-      ...result,
-      output: readFileSync(output, 'utf8'),
-      calls: readFileSync(calls, 'utf8').trim().split('\n'),
-    };
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-const release = (tag_name, overrides = {}) => ({
-  tag_name,
-  draft: false,
-  prerelease: false,
-  ...overrides,
-});
-
-test('release lookup skips drafts, prereleases and unrelated or unsafe tags', () => {
-  const result = resolveRelease([
+  for (const [steps, ids, expectedToken] of [
     [
-      release('agent-daemon-v9.0.0', { draft: true }),
-      release('agent-daemon-v8.0.0', { prerelease: true }),
-      release('cli-v3.23.0'),
-      release('agent-daemon-v7.0.0-rc.1'),
-      release('agent-daemon-v6.0.0\ninjected=value'),
-      release('agent-daemon-v0.74.3'),
-      release('agent-daemon-v0.74.2'),
+      workflow.jobs.triage.steps,
+      ['extract', 'classify'],
+      '${{ steps.release-token.outputs.token }}',
     ],
-  ]);
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.output, 'version=0.74.3\n');
-  assert.deepEqual(result.calls, [
-    'repos/getlarge/themoltnet/releases?per_page=100&page=1',
-  ]);
-});
-
-test('release lookup follows pages until it finds a published daemon', () => {
-  const result = resolveRelease([
-    Array.from({ length: 100 }, () => release('cli-v3.23.0')),
-    [release('agent-daemon-v0.74.3')],
-  ]);
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.output, 'version=0.74.3\n');
-  assert.deepEqual(result.calls, [
-    'repos/getlarge/themoltnet/releases?per_page=100&page=1',
-    'repos/getlarge/themoltnet/releases?per_page=100&page=2',
-  ]);
-});
-
-test('release lookup fails without emitting a version on API error or no match', () => {
-  for (const result of [resolveRelease([[]]), resolveRelease([[]], 1)]) {
-    assert.notEqual(result.status, 0);
-    assert.equal(result.output, '');
-    assert.equal(result.calls.length, 1);
+    [
+      mention.jobs.dispatch.steps,
+      ['agent'],
+      '${{ steps.release-token.outputs.token || github.token }}',
+    ],
+  ]) {
+    const token = steps.find((step) => step.id === 'release-token');
+    assert.equal(
+      token.with.repositories,
+      '${{ github.event.repository.name }}',
+    );
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.entries(token.with).filter(([key]) =>
+          key.startsWith('permission-'),
+        ),
+      ),
+      { 'permission-contents': 'read' },
+    );
+    assert.equal(
+      steps.some((step) => step.id === 'daemon-release'),
+      false,
+    );
+    for (const id of ids) {
+      const task = steps.find((step) => step.id === id);
+      assert.equal(task.with['github-release-token'], expectedToken);
+      assert.equal(task.with['daemon-version'], undefined);
+      assert.ok(steps.indexOf(token) < steps.indexOf(task));
+    }
+    for (const step of steps) {
+      assert.ok(
+        !JSON.stringify(step.env ?? {}).includes('release-token.outputs.token'),
+      );
+    }
   }
+  assert.equal(
+    workflow.jobs.triage.steps.find((step) => step.id === 'release-token').if,
+    "steps.prepare.outputs.eligible == 'true'",
+  );
+  assert.equal(
+    mention.jobs.dispatch.steps.find((step) => step.id === 'release-token').if,
+    "vars.MOLTNET_GITHUB_APP_ID != ''",
+  );
 });
 
 test('actionlint compatibility exception still rejects other concurrency keys', () => {
