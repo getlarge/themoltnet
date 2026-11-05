@@ -948,6 +948,26 @@ Every registered task type has an output schema. A completed attempt stores:
 - `outputCid`: the canonical CID of that JSON
 - optional usage, artifact references, and task-type-specific fields
 
+### Time reserved for submission
+
+For tasks with an explicit `runningTimeoutSec`, the bundled Pi executor reserves
+the smaller of 90 seconds or 25% of that budget for structured submission. For
+example, a 180-second task gets 135 seconds for exploration and 45 seconds to
+submit. The deadline starts at the server-recorded running-phase start, includes
+environment preparation, and is persisted so restarting does not extend it.
+
+At the cutoff, the executor emits a `submission_deadline` info event and drains
+active generation, tools, subagents, and background work. It then continues the
+same conversation with only the submission tool available. The agent must report
+what it established and what remains unverified. Correction attempts remain
+bounded by the original deadline and turn limit; reserving time does not
+guarantee a successful submission.
+
+When cutoff cancellation retires the sandbox successfully, submission can finish
+in the host process. Task cancellation, lost writer ownership, and failed
+sandbox retirement still stop execution. Tasks that omit `runningTimeoutSec` use
+server-enforced timeouts without a submission reserve.
+
 ### Which schema reaches the model?
 
 The bundled Pi executor registers `submit_<taskType>_output` with that task

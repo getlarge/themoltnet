@@ -16,13 +16,20 @@
  * survives across the two `runOnce` calls as long as the producer slot has not
  * expired (long `--warm-retention-sec`).
  */
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import {
   buildJudgeInput,
   checkGates,
+  createDurableToolEventReader,
   readScenario,
   readSubmitStructure,
   runMatrix,
@@ -59,6 +66,58 @@ const NO_SUBMIT_STRUCTURE: SubmitStructure = {
   outputSource: null,
 };
 
+/** Optional local audit artifacts; never staged into a producer workspace. */
+async function writeEvidence(
+  agent: Agent,
+  teamId: string,
+  taskId: string,
+): Promise<void> {
+  const dir = process.env.EVAL_MATRIX_EVIDENCE_DIR;
+  if (!dir) return;
+  const attempts = await agent.tasks.listAttempts(taskId);
+  const evidence = [];
+  for (const attempt of attempts) {
+    const messages = [];
+    let afterSeq: number | undefined;
+    for (;;) {
+      const page = await agent.tasks.listMessages(taskId, attempt.attemptN, {
+        afterSeq,
+      });
+      if (page.length === 0) break;
+      messages.push(...page);
+      const last = page[page.length - 1].seq;
+      if (afterSeq !== undefined && last <= afterSeq)
+        throw new Error('message pagination did not advance');
+      afterSeq = last;
+    }
+    const conversations = [];
+    for (const { conversationId } of (
+      await agent.tasks.conversations.list(taskId, attempt.attemptN, { teamId })
+    ).items) {
+      const entries = [];
+      let beforeEntryId: string | undefined;
+      do {
+        const page = await agent.tasks.conversations.get(
+          taskId,
+          attempt.attemptN,
+          conversationId,
+          { teamId },
+          { beforeEntryId },
+        );
+        entries.push(...page.messages);
+        beforeEntryId = page.nextBeforeEntryId ?? undefined;
+      } while (beforeEntryId);
+      conversations.push({ conversationId, entries });
+    }
+    evidence.push({ attempt, messages, conversations });
+  }
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, `${taskId}.json`),
+    JSON.stringify(evidence, null, 2) + '\n',
+  );
+}
+
 const describeMatrix = describe.skipIf(process.env[MATRIX_FLAG] !== '1');
 
 function parseModels(): string[] {
@@ -69,9 +128,19 @@ function parseModels(): string[] {
 }
 
 function loadScenarios(): Scenario[] {
-  return readdirSync(CORPUS_ROOT, { withFileTypes: true })
+  const requested = process.env.EVAL_MATRIX_SCENARIOS?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const scenarios = readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)));
+  for (const slug of requested ?? []) {
+    if (!scenarios.some((scenario) => scenario.slug === slug))
+      throw new Error(`Unknown matrix scenario: ${slug}`);
+  }
+  return requested?.length
+    ? scenarios.filter((scenario) => requested.includes(scenario.slug))
+    : scenarios;
 }
 
 function createProfile(
@@ -96,7 +165,18 @@ async function runTaskOnce(input: {
   teamId: string;
   profileId: string;
   taskId: string;
+  allowTaskFailure?: boolean;
+  workspace: Scenario['execution']['workspace'];
 }): Promise<void> {
+  const ambientKeys = [
+    'MOLTNET_CREDENTIALS_PATH',
+    'MOLTNET_AGENT_KEY',
+    'MOLTNET_AGENT_KEY_REF',
+    'MOLTNET_CLIENT_ID',
+    'MOLTNET_CLIENT_SECRET',
+  ];
+  const ambient = new Map(ambientKeys.map((key) => [key, process.env[key]]));
+  for (const key of ambientKeys) delete process.env[key];
   const oldPiDir = process.env.PI_CODING_AGENT_DIR;
   const oldCwd = process.cwd();
   process.env.PI_CODING_AGENT_DIR = input.piDir;
@@ -113,13 +193,20 @@ async function runTaskOnce(input: {
       input.teamId,
       '--agent-root',
       input.agentRoot,
+      ...(input.workspace === 'shared_mount'
+        ? ['--source', input.sandboxRoot]
+        : []),
       '--warm-retention-sec',
       WARM_TTL_SEC,
     ]);
-    if (exitCode !== 0) {
+    if (exitCode !== 0 && !input.allowTaskFailure) {
       throw new Error(`runOnce exited ${exitCode} for task ${input.taskId}`);
     }
   } finally {
+    for (const [key, value] of ambient) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     process.chdir(oldCwd);
     if (oldPiDir === undefined) {
       delete process.env.PI_CODING_AGENT_DIR;
@@ -212,18 +299,24 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   });
 
   it('sweeps the model matrix and scores gate-passing attempts', async () => {
+    const readToolEvents = createDurableToolEventReader();
     const matrix: ScoreMatrix = await runMatrix(models, scenarios, judgeModel, {
       log: (m) => console.log(`[eval-matrix] ${m}`),
-      runProducer: async (model, scenario) => {
+      runProducer: async (model, scenario, trial) => {
         const cfg = perModel.get(model)!;
         const sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
         tempRoots.push(sandboxRoot);
+        // No previous trial's notes or judge rubric in the producer diary.
+        const trialDiary = await agent.diaries.create(
+          { name: `matrix-trial-${Date.now()}` },
+          { teamId },
+        );
         const task = await createScenarioProducerTask({
           agent,
           scenario,
           sandboxRoot,
           teamId,
-          diaryId,
+          diaryId: trialDiary.id,
           title: `matrix ${model} ${scenario.slug}`,
         });
         spendReport.track({
@@ -232,18 +325,29 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           provider: PROVIDER,
           model,
           role: 'producer',
+          ...(scenario.matrixRepeats ? { trial } : {}),
           evaluation: { gatesPassed: false },
         });
         producerSandboxRoots.set(task.id, sandboxRoot);
-        await runTaskOnce({
-          agentName,
-          agentRoot,
-          piDir: cfg.piDir,
-          sandboxRoot,
-          teamId,
-          profileId: cfg.profileId,
-          taskId: task.id,
-        });
+        let executionError: string | undefined;
+        try {
+          await runTaskOnce({
+            agentName,
+            agentRoot,
+            piDir: cfg.piDir,
+            sandboxRoot,
+            teamId,
+            profileId: cfg.profileId,
+            taskId: task.id,
+            allowTaskFailure: true,
+            workspace: scenario.execution.workspace,
+          });
+        } catch (error) {
+          // Preserve the task identity and partial evidence even on lease/VM loss.
+          executionError =
+            error instanceof Error ? error.message : String(error);
+        }
+        await writeEvidence(agent, teamId, task.id);
         const final = await agent.tasks.get(task.id);
         const spend = summarizeProducerSpend(
           await agent.tasks.listAttempts(task.id),
@@ -259,13 +363,20 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           return {
             taskId: task.id,
             attemptN: null,
-            failureCode: latest?.error?.code ?? `task_${final.status}`,
+            failureCode:
+              latest?.error?.code ??
+              (executionError
+                ? 'execution_interrupted'
+                : `task_${final.status}`),
+            ...(executionError ? { error: executionError } : {}),
             structure: latest
               ? await readSubmitStructure(
                   agent,
                   task.id,
                   latest.attemptN,
                   scenario.taskType,
+                  teamId,
+                  readToolEvents,
                 )
               : NO_SUBMIT_STRUCTURE,
             spend,
@@ -279,18 +390,28 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             task.id,
             final.acceptedAttemptN,
             scenario.taskType,
+            teamId,
+            readToolEvents,
           ),
           spend,
         };
       },
       runGates: (model, scenario, producer) =>
-        checkGates(agent, producer.taskId, producer.attemptN, scenario.gates, {
-          model,
-          workspace: scenario.execution.workspace,
-          teamId,
-          taskType: scenario.taskType,
-          outputContract: scenario.outputContract,
-        }),
+        checkGates(
+          agent,
+          producer.taskId,
+          producer.attemptN,
+          scenario.gates,
+          {
+            model,
+            workspace: scenario.execution.workspace,
+            teamId,
+            taskType: scenario.taskType,
+            outputContract: scenario.outputContract,
+            runningTimeoutSec: scenario.runningTimeoutSec,
+          },
+          readToolEvents,
+        ),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(
           agent.tasks
@@ -331,7 +452,10 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           teamId,
           profileId: judgeProfileId,
           taskId: judgeTask.id,
+          workspace: scenario.execution.workspace,
+          allowTaskFailure: true,
         });
+        await writeEvidence(agent, teamId, judgeTask.id);
         const judged = await agent.tasks.get(judgeTask.id);
         const attempts = await agent.tasks.listAttempts(judgeTask.id);
         const accepted = attempts.find(
@@ -340,7 +464,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
         const composite = (accepted?.output as { composite?: number } | null)
           ?.composite;
         if (typeof composite !== 'number') {
-          throw new Error(`judge ${judgeTask.id} produced no composite`);
+          const latest = attempts.reduce<(typeof attempts)[number] | undefined>(
+            (last, attempt) =>
+              !last || attempt.attemptN > last.attemptN ? attempt : last,
+            undefined,
+          );
+          throw new Error(
+            `judge ${judgeTask.id} produced no composite (${latest?.error?.code ?? judged.status})`,
+          );
         }
         return { composite };
       },
@@ -360,6 +491,12 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     console.log('\n' + summarizeMatrix(matrix) + `\n(wrote ${outPath})`);
 
     // Measurement, not a pass/fail gate: assert only that every cell exists.
-    expect(matrix.cells).toHaveLength(models.length * scenarios.length);
+    expect(matrix.cells).toHaveLength(
+      models.length *
+        scenarios.reduce(
+          (total, scenario) => total + (scenario.matrixRepeats ?? 1),
+          0,
+        ),
+    );
   }, 3_600_000);
 });

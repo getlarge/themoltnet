@@ -1,0 +1,11 @@
+{
+  "fixtures": {
+    "workspaceSeed": "workspace"
+  },
+  "matrixOnly": true,
+  "matrixRepeats": 4,
+  "mode": "vitro",
+  "runningTimeoutSec": 180,
+  "taskType": "freeform",
+  "workspace": "shared_mount"
+}

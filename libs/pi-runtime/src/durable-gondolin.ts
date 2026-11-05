@@ -219,20 +219,34 @@ export function createGondolinDurableTaskExecutor(
             { cause },
           );
         });
+        let submissionOnly = false;
         const retirement = new AbortController();
         const executionSignal = AbortSignal.any([
           lease.signal,
           retirement.signal,
         ]);
         const lifecycle = createGondolinToolLifecycle({
-          onRetired: () =>
+          onRetired: (event) => {
+            // A cutoff abort deliberately retires a running shell's VM.
+            // Host-side submission needs no guest, but failed retirement,
+            // ordinary tool timeouts and writer loss still interrupt the run.
+            if (
+              submissionOnly &&
+              event.backendRetired &&
+              event.trigger === 'cancellation'
+            )
+              return;
             retirement.abort(
               new TaskExecutionInterrupted('Durable VM retired'),
-            ),
+            );
+          },
         });
         return {
           storage,
           signal: executionSignal,
+          beginSubmissionFinalization() {
+            submissionOnly = true;
+          },
           check() {
             lease.check();
             executionSignal.throwIfAborted();

@@ -1,4 +1,6 @@
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
+import { type TSchema } from 'typebox';
+import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
 import { runFocusedLane } from '../src/focused-lane.js';
@@ -378,6 +380,103 @@ describe('prior focused review context', () => {
 });
 
 describe('explicit prior-finding assessments', () => {
+  it.each([false, true])(
+    'limits the submission contract to open keys (all resolved: %s)',
+    async (allResolved) => {
+      const tasks = new FakeTasks([
+        {
+          result: {
+            summary: 'Assessed current code.',
+            findings: [],
+            unclear: [],
+            priorFindingOutcomes: allResolved
+              ? []
+              : [
+                  {
+                    key,
+                    status: 'fixed',
+                    explanation: 'Caller now guards it.',
+                  },
+                ],
+          },
+        },
+      ]);
+      const ctx = context(tasks);
+      const closedKey = 'tests:new:10:closed.ts';
+      ctx.previousFindings = [
+        { ...ctx.previousFindings![0], isResolved: allResolved },
+        { ...ctx.previousFindings![0], key: closedKey, isResolved: true },
+      ];
+      await runFocusedLane('tests', ctx);
+      const { brief } = tasks.created[0].input;
+      const { schema } = tasks.created[0].input.outputContract as {
+        schema: TSchema;
+      };
+      expect(brief).toContain(
+        `Required priorFindingOutcomes keys: ${JSON.stringify(allResolved ? [] : [key])}`,
+      );
+      const result = {
+        summary: 'Assessed',
+        findings: [],
+        unclear: [],
+        priorFindingOutcomes: allResolved
+          ? []
+          : [{ key, status: 'fixed', explanation: 'Caller now guards it.' }],
+      };
+      expect(Value.Check(schema, result)).toBe(true);
+      for (const invalidKey of [closedKey, 'unknown']) {
+        expect(
+          Value.Check(schema, {
+            ...result,
+            priorFindingOutcomes: [
+              { key: invalidKey, status: 'fixed', explanation: 'Fixed.' },
+            ],
+          }),
+        ).toBe(false);
+      }
+      if (!allResolved)
+        expect(
+          Value.Check(schema, {
+            ...result,
+            priorFindingOutcomes: [],
+          }),
+        ).toBe(false);
+    },
+  );
+
+  it('explains that resolved outcomes must be removed in the single repair', async () => {
+    const invalid = {
+      result: {
+        summary: 'The prior concern is fixed.',
+        findings: [],
+        unclear: [],
+        priorFindingOutcomes: [
+          { key, status: 'fixed', explanation: 'Caller now guards it.' },
+        ],
+      },
+    };
+    const tasks = new FakeTasks([
+      invalid,
+      { result: { ...invalid.result, priorFindingOutcomes: [] } },
+    ]);
+    const ctx = context(tasks);
+    ctx.previousFindings = ctx.previousFindings!.map((finding) => ({
+      ...finding,
+      isResolved: true,
+    }));
+    expect(await runFocusedLane('tests', ctx)).toMatchObject({
+      status: 'clear',
+      findings: [],
+    });
+    expect(tasks.created).toHaveLength(2);
+    expect(tasks.created[1].input.brief).toContain(
+      'expected exactly these open finding keys, once each: []',
+    );
+    expect(tasks.created[1].input.brief).toContain(
+      'Exclude resolved and unknown keys',
+    );
+  });
+
   it.each([
     [
       'still_present',

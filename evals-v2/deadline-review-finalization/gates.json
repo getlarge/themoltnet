@@ -1,0 +1,5 @@
+{
+  "requireCleanSubmit": true,
+  "requireDeadlineFinalization": true,
+  "requireToolCalls": ["bash", "submit_freeform_output"]
+}

@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   checkGates,
+  createDurableToolEventReader,
   type GateAgent,
   type GateTaskAttempt,
   type GateTaskMessage,
 } from '../src/check-gates.js';
 import type { GateExpectations } from '../src/scenario.js';
+import { readSubmitStructure } from '../src/submit-structure.js';
 
 const EXPECTED = { model: 'qwen3-coder:480b-cloud', workspace: 'none' };
 
@@ -144,6 +146,81 @@ const completedAttempt: GateTaskAttempt = {
 };
 
 describe('checkGates', () => {
+  it('shares paginated evidence with submit scoring and isolates attempt identities', async () => {
+    const operational = messages().map((message, index) => ({
+      ...message,
+      seq: index + 1,
+    }));
+    const baseAgent = fakeAgent([], completedAttempt);
+    const list = vi.fn().mockResolvedValue({
+      items: [{ conversationId: 'main' }],
+    });
+    const get = vi
+      .fn()
+      .mockImplementation(
+        async (_taskId, _attemptN, _conversationId, _options, query) => ({
+          messages: [
+            {
+              inherited: false,
+              entryId: query.beforeEntryId ? '1' : '2',
+              message: {
+                role: 'toolResult',
+                toolName: 'submit_run_eval_output',
+                isError: Boolean(query.beforeEntryId),
+              },
+            },
+          ],
+          nextBeforeEntryId: query.beforeEntryId ? null : '2',
+        }),
+      );
+    const agent = {
+      tasks: {
+        ...baseAgent.tasks,
+        conversations: { list, get },
+        listMessages: async (
+          _taskId: string,
+          _attemptN: number,
+          query?: { afterSeq?: number },
+        ) => operational.filter(({ seq }) => seq > (query?.afterSeq ?? 0)),
+      },
+    };
+    const readToolEvents = createDurableToolEventReader();
+
+    const structure = await readSubmitStructure(
+      agent,
+      't1',
+      1,
+      'run_eval',
+      'team-1',
+      readToolEvents,
+    );
+    const gates = await checkGates(
+      agent,
+      't1',
+      1,
+      {},
+      EXPECTED_WITH_TEAM,
+      readToolEvents,
+    );
+
+    expect(structure.invalidSubmitCalls).toBe(1);
+    expect(gates.failures).toContainEqual(
+      expect.objectContaining({ gate: 'submit_clean' }),
+    );
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledTimes(2);
+
+    await readToolEvents(agent, 't2', 1, 'team-1');
+    await readToolEvents(agent, 't2', 2, 'team-1');
+    await readToolEvents(agent, 't2', 2, 'team-2');
+    await readToolEvents({ tasks: agent.tasks }, 't2', 2, 'team-2');
+    expect(list).toHaveBeenCalledTimes(5);
+    expect(get).toHaveBeenCalledTimes(10);
+    // Returning to an earlier attempt rereads it: there is no unbounded cache.
+    await readToolEvents(agent, 't1', 1, 'team-1');
+    expect(list).toHaveBeenCalledTimes(6);
+  });
+
   it.each([
     [false, 1],
     [true, 1],
@@ -709,5 +786,95 @@ describe('checkGates', () => {
     );
 
     expect(result.failures.map((f) => f.gate)).toContain('artifact_count');
+  });
+});
+
+describe('deadline finalization gate', () => {
+  const startedAt = '2026-01-01T00:00:00.000Z';
+  const cutoff = {
+    kind: 'info',
+    timestamp: '2026-01-01T00:02:15.000Z',
+    payload: { event: 'submission_deadline', remainingMs: 45_000 },
+  };
+  const attempt = {
+    attemptN: 1,
+    status: 'completed',
+    output: VALID_OUTPUT,
+    startedAt,
+    completedAt: '2026-01-01T00:02:40.000Z',
+  };
+  const expected = { ...EXPECTED, runningTimeoutSec: 180 };
+
+  it('measures a real interrupted attempt using server timestamps', async () => {
+    const result = await checkGates(
+      fakeAgent([...messages(), cutoff], attempt),
+      'task',
+      1,
+      { requireDeadlineFinalization: true },
+      expected,
+    );
+    expect(result).toEqual({
+      passed: true,
+      failures: [],
+      deadline: {
+        elapsedMs: 160_000,
+        finalizationMs: 25_000,
+        remainingMsAtCutoff: 45_000,
+      },
+    });
+  });
+
+  it.each([
+    { name: 'early submit without interruption', events: [], override: {} },
+    { name: 'duplicate interruption', events: [cutoff, cutoff], override: {} },
+    {
+      name: 'missing server start',
+      events: [cutoff],
+      override: { startedAt: null },
+    },
+    {
+      name: 'invalid server completion',
+      events: [cutoff],
+      override: { completedAt: 'bad' },
+    },
+    {
+      name: 'completed before interruption',
+      events: [cutoff],
+      override: { completedAt: '2026-01-01T00:02:00.000Z' },
+    },
+    {
+      name: 'completed after budget',
+      events: [cutoff],
+      override: { completedAt: '2026-01-01T00:03:00.001Z' },
+    },
+    {
+      name: 'failed attempt',
+      events: [cutoff],
+      override: { status: 'failed' },
+    },
+    {
+      name: 'invalid reserve',
+      events: [
+        { ...cutoff, payload: { ...cutoff.payload, remainingMs: 46_000 } },
+      ],
+      override: {},
+    },
+    {
+      name: 'missing cutoff timestamp',
+      events: [{ ...cutoff, timestamp: undefined }],
+      override: {},
+    },
+  ])('rejects $name', async ({ events, override }) => {
+    const result = await checkGates(
+      fakeAgent([...messages(), ...events], { ...attempt, ...override }),
+      'task',
+      1,
+      { requireDeadlineFinalization: true },
+      expected,
+    );
+    expect(result.passed).toBe(false);
+    expect(result.failures).toContainEqual(
+      expect.objectContaining({ gate: 'submission_deadline' }),
+    );
   });
 });

@@ -27,6 +27,52 @@ function pagedAgent(
 }
 
 describe('readSubmitStructure', () => {
+  it.each([false, true])(
+    'uses committed failures without double-counting progress (mirrored: %s)',
+    async (mirrored) => {
+      const { agent } = pagedAgent(
+        mirrored
+          ? [
+              {
+                seq: 1,
+                kind: 'tool_call_end',
+                payload: {
+                  tool_name: 'submit_freeform_output',
+                  is_error: true,
+                },
+              },
+            ]
+          : [],
+        50,
+      );
+      const result = {
+        role: 'toolResult',
+        toolName: 'submit_freeform_output',
+        isError: true,
+      };
+      agent.tasks.conversations = {
+        list: async () => ({ items: [{ conversationId: 'conversation' }] }),
+        get: async () => ({
+          messages: [
+            { inherited: true, entryId: 'parent', message: result },
+            { inherited: false, entryId: null, message: result },
+            { inherited: false, entryId: 'invalid', message: result },
+            {
+              inherited: false,
+              entryId: 'valid',
+              message: { ...result, isError: false },
+            },
+          ],
+          nextBeforeEntryId: null,
+        }),
+      };
+      expect(
+        (await readSubmitStructure(agent, 'task', 1, 'freeform', 'team'))
+          .invalidSubmitCalls,
+      ).toBe(1);
+    },
+  );
+
   it('pages past the first page to find the output completion', async () => {
     // Arrange
     const messages: SubmitStructureMessage[] = [

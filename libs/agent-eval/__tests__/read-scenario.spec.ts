@@ -80,6 +80,54 @@ describe('readScenario', () => {
     return dir;
   }
 
+  it.each([
+    { matrixOnly: 'yes' },
+    { matrixRepeats: 0 },
+    { matrixRepeats: 1.5 },
+    { matrixRepeats: 21 },
+    { runningTimeoutSec: 0 },
+    { runningTimeoutSec: '180' },
+    { runningTimeoutSec: 86_401 },
+  ])('rejects invalid matrix execution metadata %j', (metadata) => {
+    const dir = writeScenario({
+      prompt: 'Review.',
+      evalJson: { ...VALID_EVAL, ...metadata },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    expect(() => readScenario(dir)).toThrow(ScenarioError);
+  });
+
+  it('keeps matrix metadata out of producer execution input', () => {
+    const dir = writeScenario({
+      prompt: 'Review.',
+      evalJson: {
+        ...VALID_EVAL,
+        matrixOnly: true,
+        matrixRepeats: 4,
+        runningTimeoutSec: 180,
+      },
+      rubric: VALID_RUBRIC,
+      gates: { ...VALID_GATES, requireDeadlineFinalization: true },
+    });
+    expect(readScenario(dir)).toMatchObject({
+      matrixOnly: true,
+      matrixRepeats: 4,
+      runningTimeoutSec: 180,
+      execution: VALID_EVAL,
+    });
+  });
+
+  it('rejects a cutoff gate without an explicit task budget', () => {
+    const dir = writeScenario({
+      prompt: 'Review.',
+      evalJson: VALID_EVAL,
+      rubric: VALID_RUBRIC,
+      gates: { requireDeadlineFinalization: true },
+    });
+    expect(() => readScenario(dir)).toThrow('requires runningTimeoutSec');
+  });
+
   it('parses a well-formed scenario triplet', () => {
     // Arrange
     const dir = writeScenario({

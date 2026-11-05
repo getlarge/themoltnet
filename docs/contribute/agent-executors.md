@@ -156,6 +156,24 @@ The pure evaluator (`evaluateAssertions`, `resolveDottedPath` in
 helper LLM-driven executors can wire up if they want, but neither the daemon nor
 the REST API calls it during the completion flow.
 
+## Supplying the running-phase start
+
+Custom reporters used with `createDurableTaskExecutor` can implement the
+optional `TaskReporter.getAttemptStartedAt(): Promise<number>` hook to return
+the server-recorded running-phase start as Unix milliseconds. `ApiTaskReporter`
+reads the matching attempt and rejects missing or invalid timestamps. Without
+the hook, the executor uses its persisted attempt start; it never resets that
+start on recovery. The executor reads the hook only when first pinning an
+explicit running deadline, before environment preparation.
+
+The optional `beginSubmissionFinalization()` transport hook lets an executor
+host prepare for the cutoff. Gondolin uses it to allow host-side submission
+after a confirmed sandbox retirement caused by cutoff cancellation. Custom hosts
+must continue to enforce cancellation and writer ownership throughout
+finalization. See
+[Time reserved for submission](../use/tasks-and-runtime.md#time-reserved-for-submission)
+for budget calculation and user-visible behavior.
+
 ## Task context propagation
 
 The user-facing task-context model lives in

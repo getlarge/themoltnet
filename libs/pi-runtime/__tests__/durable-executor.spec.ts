@@ -4,6 +4,7 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
+  getCurrentTools,
   Type,
 } from '@earendil-works/pi-ai';
 import { createProvider } from '@earendil-works/pi-ai/models';
@@ -89,6 +90,7 @@ function setup(
     maxBashTimeouts?: number;
     tools?: readonly ToolRegistration[];
     extensions?: readonly Extension[];
+    connectionSignal?: () => AbortSignal;
   } = {},
 ) {
   const allowed = new Set([
@@ -130,8 +132,8 @@ function setup(
         remote.transport,
         BACKGROUND_CONTEXT,
       ),
-      signal,
-      check: () => signal.throwIfAborted(),
+      signal: overrides.connectionSignal?.() ?? signal,
+      check: () => (overrides.connectionSignal?.() ?? signal).throwIfAborted(),
       prepare,
     }),
   });
@@ -1748,4 +1750,397 @@ it('connects native Durable and model spans to the task trace without recording 
     host.end();
     await provider.shutdown();
   }
+});
+
+describe('submission deadline integration with the real Durable harness', () => {
+  function timedTask() {
+    const claimed = task();
+    claimed.task.runningTimeoutSec = 1;
+    return claimed;
+  }
+
+  function blockedRequest(onAbort: () => void = () => {}) {
+    return (_context: unknown, options: { signal?: AbortSignal } | undefined) =>
+      new Promise<ReturnType<typeof submitted>>((resolve) => {
+        const stop = () => {
+          onAbort();
+          resolve(fauxAssistantMessage('', { stopReason: 'aborted' }));
+        };
+        if (options?.signal?.aborted) stop();
+        else options?.signal?.addEventListener('abort', stop, { once: true });
+      });
+  }
+
+  it('interrupts a slow model request, retains evidence, and permits a corrected submission only', async () => {
+    const inspect = vi.fn(async () => ({
+      output: [
+        { type: 'text' as const, text: 'Verified evidence: marker-1729' },
+      ],
+    }));
+    const s = setup(false, 40, undefined, {
+      tools: [
+        defineTool({
+          name: 'inspect',
+          description: 'Inspect',
+          parameters: Type.Object({}),
+          execute: inspect,
+        }),
+      ],
+    });
+    const aborted = vi.fn();
+    let finalContext = '';
+    const offered: string[][] = [];
+    s.faux.setResponses([
+      fauxAssistantMessage(fauxToolCall('inspect', {}), {
+        stopReason: 'toolUse',
+      }),
+      blockedRequest(aborted),
+      (context) => {
+        finalContext = JSON.stringify(context.messages);
+        offered.push(
+          getCurrentTools(context.messages).map((tool) => tool.name),
+        );
+        return fauxAssistantMessage(
+          fauxToolCall('submit_freeform_output', {}),
+          { stopReason: 'toolUse' },
+        );
+      },
+      (context) => {
+        offered.push(
+          getCurrentTools(context.messages).map((tool) => tool.name),
+        );
+        return submitted();
+      },
+    ]);
+    const events = reporter();
+    const result = await s.execute(timedTask(), events);
+    expect(result.status).toBe('completed');
+    expect(result.attemptN).toBe(1);
+    expect(aborted).toHaveBeenCalledOnce();
+    expect(inspect).toHaveBeenCalledOnce();
+    expect(finalContext).toContain('Verified evidence: marker-1729');
+    expect(finalContext).toContain('investigation time is exhausted');
+    expect(offered).toEqual([
+      ['submit_freeform_output'],
+      ['submit_freeform_output'],
+    ]);
+    expect(
+      recorded(events).filter((e) => e.payload.event === 'submission_deadline'),
+    ).toHaveLength(1);
+    // Replay returns the saved result without another model invocation.
+    expect(await s.execute(timedTask(), reporter())).toEqual(result);
+    expect(s.faux.state.callCount).toBe(4);
+    // A later continuation starts ordinary work with its full tool surface.
+    s.faux.setResponses([
+      (context) => {
+        expect(
+          getCurrentTools(context.messages).map((tool) => tool.name),
+        ).toContain('inspect');
+        return fauxAssistantMessage(fauxToolCall('inspect', {}), {
+          stopReason: 'toolUse',
+        });
+      },
+      submitted(),
+    ]);
+    expect((await s.execute(continuation(), reporter())).status).toBe(
+      'completed',
+    );
+    expect(inspect).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels an active tool before starting finalization', async () => {
+    const stopped = vi.fn();
+    const s = setup(false, undefined, undefined, {
+      tools: [
+        defineTool({
+          name: 'slow_read',
+          description: 'Slow read',
+          parameters: Type.Object({}),
+          execute: async (_args, _api, context) => {
+            await new Promise<void>((resolve) => {
+              context.abortSignal!.addEventListener(
+                'abort',
+                () => {
+                  stopped();
+                  resolve();
+                },
+                { once: true },
+              );
+            });
+            context.abortSignal!.throwIfAborted();
+            return { output: [] };
+          },
+        }),
+      ],
+    });
+    s.faux.setResponses([
+      fauxAssistantMessage(fauxToolCall('slow_read', {}), {
+        stopReason: 'toolUse',
+      }),
+      () => {
+        expect(stopped).toHaveBeenCalledOnce();
+        return submitted();
+      },
+    ]);
+    expect((await s.execute(timedTask(), reporter())).status).toBe('completed');
+  });
+
+  it('leaves an early valid result alone and clears the deadline timer', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = setup();
+      s.faux.setResponses([submitted()]);
+      const events = reporter();
+      expect((await s.execute(timedTask(), events)).status).toBe('completed');
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(s.faux.state.callCount).toBe(1);
+      expect(
+        recorded(events).some((e) => e.payload.event === 'submission_deadline'),
+      ).toBe(false);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels delegated work before the parent submits its partial assessment', async () => {
+    const s = setup(true);
+    const childStopped = vi.fn();
+    s.faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall('subagent', { task: 'Inspect', output_schema: 'verdict' }),
+        { stopReason: 'toolUse' },
+      ),
+      blockedRequest(childStopped),
+      () => {
+        expect(childStopped).toHaveBeenCalledOnce();
+        return submitted();
+      },
+    ]);
+    expect((await s.execute(timedTask(), reporter())).status).toBe('completed');
+    expect(s.faux.state.callCount).toBe(3);
+  });
+
+  it('bounds a stalled final generation by the original hard deadline', async () => {
+    const s = setup();
+    const aborted = vi.fn();
+    s.faux.setResponses([blockedRequest(aborted), blockedRequest(aborted)]);
+    const result = await s.execute(timedTask(), reporter());
+    expect(result.status).toBe('failed');
+    expect(result.error?.code).toBe('running_total_exceeded');
+    expect(result.output).toBeNull();
+    expect(aborted).toHaveBeenCalledTimes(2);
+  });
+
+  it('honors proposer cancellation during finalization without submitting or starting another request', async () => {
+    const s = setup();
+    const cancellation = new AbortController();
+    s.faux.setResponses([
+      blockedRequest(),
+      (context, options) => {
+        cancellation.abort(new Error('Proposer cancelled'));
+        return blockedRequest()(context, options);
+      },
+      submitted(),
+    ]);
+    await expect(
+      s.execute(timedTask(), {
+        ...reporter(),
+        cancelSignal: cancellation.signal,
+      }),
+    ).rejects.toThrow();
+    expect(s.faux.state.callCount).toBe(2);
+  });
+
+  it.each(['interrupting', 'submitting'] as const)(
+    'resumes after losing the writer while %s without resetting the deadline or duplicating finalization',
+    async (phase) => {
+      let controller = new AbortController();
+      const s = setup(false, undefined, undefined, {
+        connectionSignal: () => controller.signal,
+      });
+      const startedAt = Date.now();
+      const events = reporter();
+      const getAttemptStartedAt = vi.fn(async () => startedAt);
+      let interrupted = false;
+      if (phase === 'interrupting')
+        events.record.mockImplementation(async (event) => {
+          if (event.payload.event === 'submission_deadline' && !interrupted) {
+            interrupted = true;
+            controller.abort(new Error('Writer lost during transition'));
+          }
+        });
+      s.faux.setResponses([
+        blockedRequest(),
+        ...(phase === 'submitting'
+          ? [
+              (
+                _context: unknown,
+                options: { signal?: AbortSignal } | undefined,
+              ) => {
+                controller.abort(new Error('Writer lost during finalization'));
+                return blockedRequest()(_context, options);
+              },
+            ]
+          : []),
+        submitted(),
+      ]);
+      await expect(
+        s.execute(timedTask(), { ...events, getAttemptStartedAt }),
+      ).rejects.toBeInstanceOf(TaskExecutionInterrupted);
+      controller = new AbortController();
+      const result = await s.execute(timedTask(), {
+        ...reporter(),
+        getAttemptStartedAt,
+      });
+      expect(result.status).toBe('completed');
+      expect(getAttemptStartedAt).toHaveBeenCalledOnce();
+      const storage = await ApiDurableStorage.open(
+        s.transport,
+        BACKGROUND_CONTEXT,
+      );
+      const history = await storage.scanEntries(
+        { conversationId: 1 as ConversationId },
+        100,
+        undefined,
+        BACKGROUND_CONTEXT,
+      );
+      const notices = history.items.filter((entry) =>
+        JSON.stringify(entry).includes(
+          'Runtime notice: investigation time is exhausted',
+        ),
+      );
+      expect(notices).toHaveLength(1);
+      await storage.close(BACKGROUND_CONTEXT);
+    },
+  );
+
+  it('does not grant a fresh budget to an already expired server attempt', async () => {
+    const s = setup();
+    s.faux.setResponses([blockedRequest()]);
+    const result = await s.execute(timedTask(), {
+      ...reporter(),
+      getAttemptStartedAt: async () => Date.now() - 10_000,
+    });
+    expect(result.status).toBe('failed');
+    expect(result.error?.code).toBe('running_total_exceeded');
+    expect(s.faux.state.callCount).toBeLessThanOrEqual(1);
+  });
+
+  it('settles a resumed final generation after the deadline without contacting the model again', async () => {
+    let controller = new AbortController();
+    const s = setup(false, undefined, undefined, {
+      connectionSignal: () => controller.signal,
+    });
+    const startedAt = Date.now();
+    s.faux.setResponses([
+      blockedRequest(),
+      (context, options) => {
+        controller.abort(new Error('Writer lost'));
+        return blockedRequest()(context, options);
+      },
+      submitted(),
+    ]);
+    await expect(
+      s.execute(timedTask(), {
+        ...reporter(),
+        getAttemptStartedAt: async () => startedAt,
+      }),
+    ).rejects.toBeInstanceOf(TaskExecutionInterrupted);
+    controller = new AbortController();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(startedAt + 2_000);
+    try {
+      const result = await s.execute(timedTask(), reporter());
+      expect(result.error?.code).toBe('running_total_exceeded');
+      expect(s.faux.state.callCount).toBe(2);
+      const storage = await ApiDurableStorage.open(
+        s.transport,
+        BACKGROUND_CONTEXT,
+      );
+      const harness = await Harness.open(
+        storage,
+        { models: s.models, registry: createRegistry() },
+        BACKGROUND_CONTEXT,
+      );
+      expect(await harness.inspect(BACKGROUND_CONTEXT)).toMatchObject({
+        tasks: [],
+        submissions: [],
+      });
+      await harness.close(BACKGROUND_CONTEXT);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('bounds repeated invalid submissions during the reserve', async () => {
+    const s = setup();
+    s.faux.setResponses([
+      blockedRequest(),
+      ...Array.from({ length: 5 }, () =>
+        fauxAssistantMessage(fauxToolCall('submit_freeform_output', {}), {
+          stopReason: 'toolUse',
+        }),
+      ),
+    ]);
+    const result = await s.execute(timedTask(), reporter());
+    expect(result.status).toBe('failed');
+    expect(result.output).toBeNull();
+    expect(s.faux.state.callCount).toBe(4);
+  });
+
+  it('does not expand the profile turn limit during finalization', async () => {
+    const s = setup(false, 1);
+    s.faux.setResponses([
+      blockedRequest(),
+      fauxAssistantMessage(fauxToolCall('submit_freeform_output', {}), {
+        stopReason: 'toolUse',
+      }),
+      submitted(),
+    ]);
+    const result = await s.execute(timedTask(), reporter());
+    expect(result.error?.code).toBe('max_turns_exceeded');
+    expect(s.faux.state.callCount).toBe(2);
+  });
+
+  it('preserves an accepted submission at the cutoff and leaves no live work for continuation', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = setup();
+      s.faux.setResponses([
+        async () => {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 700);
+          });
+          return submitted();
+        },
+      ]);
+      const events = reporter();
+      events.record.mockImplementation(async (event) => {
+        if (event.kind === 'tool_call_end')
+          await new Promise((resolve) => {
+            setTimeout(resolve, 100);
+          });
+      });
+      const pending = s.execute(timedTask(), events);
+      await vi.advanceTimersByTimeAsync(850);
+      expect((await pending).status).toBe('completed');
+      expect(s.faux.state.callCount).toBe(1);
+      const storage = await ApiDurableStorage.open(
+        s.transport,
+        BACKGROUND_CONTEXT,
+      );
+      const harness = await Harness.open(
+        storage,
+        { models: s.models, registry: createRegistry() },
+        BACKGROUND_CONTEXT,
+      );
+      expect(await harness.inspect(BACKGROUND_CONTEXT)).toMatchObject({
+        tasks: [],
+        submissions: [],
+      });
+      await harness.close(BACKGROUND_CONTEXT);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

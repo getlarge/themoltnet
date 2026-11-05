@@ -7,8 +7,9 @@ semantic), different files. This is the map until the formats converge.
 
 Three files for gate-only scenarios; judged scenarios also require
 `rubric.json`. `readScenario` fails loudly on malformed JSON, missing required
-files, or invalid rubric weights. Producer sees `prompt.md` + `eval.json`; the
-judge sees `rubric.json` when used; the harness owns `gates.json`.
+files, or invalid rubric weights. The producer sees the prompt, execution input,
+and declared fixtures; the judge sees `rubric.json` when used. Harness metadata
+and `gates.json` are not producer input.
 
 - **`prompt.md`** — the task, free-form Markdown, non-empty. Becomes
   `RunEvalInput.scenario.prompt`.
@@ -18,6 +19,12 @@ judge sees `rubric.json` when used; the harness owns `gates.json`.
   - `scoring?: "judge" | "gates_only"` defaults to `judge`. Gate-only scoring
     requires a freeform `outputContract` and `requireCleanSubmit: true`; a clean
     contracted submission scores 1, otherwise 0, with no judge task.
+  - `matrixOnly?: boolean` excludes expensive scenarios from per-PR smoke;
+    weekly/manual matrices still discover them.
+  - `matrixRepeats?: integer` (1–20, default 1) runs independent matrix trials,
+    retaining failures rather than retrying until success.
+  - `runningTimeoutSec?: integer` (1–86400) sets the explicit producer task
+    budget. This harness metadata is kept out of the task's execution input.
   - `fixtures.workspaceSeed?: string` names a scenario-relative directory whose
     contents are copied into a fresh `shared_mount` sandbox for every producer
     run. Seeds are rejected for other workspace modes. Absolute paths, path
@@ -43,6 +50,9 @@ contentType? }>` names scenario-relative regular files. Every producer run
   corpus guard requires it):
   - `requireCleanSubmit?` (default `true`) — accepted attempt completed, output
     non-null, passes `RunEvalOutput` schema + cross-field validation.
+  - `requireDeadlineFinalization?: boolean` requires one observed cutoff and
+    completed output within `runningTimeoutSec`, with valid server timestamps.
+    Records elapsed and finalization durations. Pair with `requireCleanSubmit`.
   - `expectWorkspaceMode?`
   - `requirePromptSections?: string[]` — section _ids_ in the assembled prompt
     (e.g. `run_eval.header`). Note: ids are emitted regardless of content, so

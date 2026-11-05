@@ -28,6 +28,9 @@ import type { Scenario } from './scenario.js';
 export interface ScoreCell {
   model: string;
   scenario: string;
+  /** One-based independent trial number when the scenario requests repeats. */
+  trial?: number;
+  deadline?: GateResult['deadline'];
   scoring: Scenario['scoring'];
   /** Producer task id (for traceability into the diary/telemetry). */
   producerTaskId: string | null;
@@ -129,10 +132,12 @@ export interface MatrixDeps {
   runProducer(
     model: string,
     scenario: Scenario,
+    trial: number,
   ): Promise<{
     taskId: string;
     attemptN: number | null;
     failureCode?: string;
+    error?: string;
     structure?: SubmitStructure;
     spend?: ProducerSpend;
   }>;
@@ -176,84 +181,89 @@ export async function runMatrix(
 
   for (const model of models) {
     for (const scenario of scenarios) {
-      const base: ScoreCell = {
-        model,
-        scenario: scenario.slug,
-        scoring: scenario.scoring,
-        producerTaskId: null,
-        producerAttemptN: null,
-        gatesPassed: false,
-        gateFailures: [],
-        composite: 0,
-        judged: false,
-        invalidSubmitCalls: 0,
-        repairKinds: [],
-        outputSource: null,
-      };
-
-      try {
-        const producer = await deps.runProducer(model, scenario);
-        base.producerTaskId = producer.taskId;
-        base.producerAttemptN = producer.attemptN;
-        if (producer.spend) base.spend = producer.spend;
-        if (producer.structure) {
-          base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
-          base.repairKinds = producer.structure.repairKinds;
-          base.unknownRepairKinds = producer.structure.unknownRepairKinds;
-          base.outputSource = producer.structure.outputSource;
-        }
-
-        if (producer.attemptN === null) {
-          base.failureCode = producer.failureCode ?? 'unknown';
-          log(
-            `[${model}] ${scenario.slug}: PRODUCER FAILED (${base.failureCode})`,
-          );
-          cells.push(base);
-          continue;
-        }
-
-        const acceptedProducer = {
-          taskId: producer.taskId,
-          attemptN: producer.attemptN,
+      for (let trial = 1; trial <= (scenario.matrixRepeats ?? 1); trial++) {
+        const base: ScoreCell = {
+          model,
+          scenario: scenario.slug,
+          ...(scenario.matrixRepeats ? { trial } : {}),
+          scoring: scenario.scoring,
+          producerTaskId: null,
+          producerAttemptN: null,
+          gatesPassed: false,
+          gateFailures: [],
+          composite: 0,
+          judged: false,
+          invalidSubmitCalls: 0,
+          repairKinds: [],
+          outputSource: null,
         };
 
-        const gates = await deps.runGates(model, scenario, acceptedProducer);
-        base.gatesPassed = gates.passed;
-        base.gateFailures = gates.failures;
+        try {
+          const producer = await deps.runProducer(model, scenario, trial);
+          base.producerTaskId = producer.taskId;
+          base.producerAttemptN = producer.attemptN;
+          if (producer.spend) base.spend = producer.spend;
+          if (producer.error) base.error = producer.error;
+          if (producer.structure) {
+            base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
+            base.repairKinds = producer.structure.repairKinds;
+            base.unknownRepairKinds = producer.structure.unknownRepairKinds;
+            base.outputSource = producer.structure.outputSource;
+          }
 
-        if (!gates.passed) {
-          // Anti-inception: a gate failure means composite 0, judge skipped.
+          if (producer.attemptN === null) {
+            base.failureCode = producer.failureCode ?? 'unknown';
+            log(
+              `[${model}] ${scenario.slug}: PRODUCER FAILED (${base.failureCode})`,
+            );
+            cells.push(base);
+            continue;
+          }
+
+          const acceptedProducer = {
+            taskId: producer.taskId,
+            attemptN: producer.attemptN,
+          };
+
+          const gates = await deps.runGates(model, scenario, acceptedProducer);
+          base.gatesPassed = gates.passed;
+          base.gateFailures = gates.failures;
+          if (gates.deadline) base.deadline = gates.deadline;
+
+          if (!gates.passed) {
+            // Anti-inception: a gate failure means composite 0, judge skipped.
+            log(
+              `[${model}] ${scenario.slug}: GATES FAILED (${gates.failures
+                .map((f) => f.gate)
+                .join(',')}) → composite 0, judge skipped`,
+            );
+            cells.push(base);
+            continue;
+          }
+
+          if (scenario.scoring === 'gates_only') {
+            base.composite = submitShapeScore(producer.structure);
+            log(
+              `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : base.composite > 0 ? 'partial' : 'fail'}, composite ${base.composite}`,
+            );
+            cells.push(base);
+            continue;
+          }
+
+          const judgment = await deps.runJudge(scenario, acceptedProducer);
+          base.composite =
+            judgment.composite * submitProtocolCredit(producer.structure);
+          base.judged = true;
           log(
-            `[${model}] ${scenario.slug}: GATES FAILED (${gates.failures
-              .map((f) => f.gate)
-              .join(',')}) → composite 0, judge skipped`,
+            `[${model}] ${scenario.slug}: gates passed, composite ${judgment.composite.toFixed(3)}`,
           );
-          cells.push(base);
-          continue;
+        } catch (err) {
+          base.error = err instanceof Error ? err.message : String(err);
+          log(`[${model}] ${scenario.slug}: ERROR ${base.error}`);
         }
 
-        if (scenario.scoring === 'gates_only') {
-          base.composite = submitShapeScore(producer.structure);
-          log(
-            `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : base.composite > 0 ? 'partial' : 'fail'}, composite ${base.composite}`,
-          );
-          cells.push(base);
-          continue;
-        }
-
-        const judgment = await deps.runJudge(scenario, acceptedProducer);
-        base.composite =
-          judgment.composite * submitProtocolCredit(producer.structure);
-        base.judged = true;
-        log(
-          `[${model}] ${scenario.slug}: gates passed, composite ${judgment.composite.toFixed(3)}`,
-        );
-      } catch (err) {
-        base.error = err instanceof Error ? err.message : String(err);
-        log(`[${model}] ${scenario.slug}: ERROR ${base.error}`);
+        cells.push(base);
       }
-
-      cells.push(base);
     }
   }
 
@@ -309,7 +319,7 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
             ? '0/1'
             : '1/1';
       lines.push(
-        `  ${cell.scenario.padEnd(32)} ${status} ` +
+        `  ${cell.scenario.padEnd(32)}${cell.trial ? ` trial=${cell.trial}` : ''} ${status} ` +
           `submit-clean=${submitClean} invalid=${cell.invalidSubmitCalls} ` +
           `source=${cell.outputSource ?? 'unknown'} ` +
           `repairs=${
@@ -317,6 +327,9 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
               ',',
             ) || 'none'
           }` +
+          (cell.deadline
+            ? ` elapsed=${cell.deadline.elapsedMs}ms finalization=${cell.deadline.finalizationMs}ms`
+            : '') +
           (cell.spend ? ` ${formatProducerSpend(cell.spend)}` : ''),
       );
     }

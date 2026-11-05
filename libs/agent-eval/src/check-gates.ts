@@ -49,12 +49,15 @@ export interface GateTaskMessage {
   /** Server sequence number; enables paging past the first page. */
   seq?: number;
   kind: string;
+  timestamp?: string;
   payload: { [key: string]: unknown };
 }
 
 /** Minimal shape of a task attempt (a structural subset of `TaskAttempt`). */
 export interface GateTaskAttempt {
   attemptN: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
   status: string;
   output: { [key: string]: unknown } | null;
 }
@@ -131,6 +134,12 @@ export interface GateFailure {
 export interface GateResult {
   passed: boolean;
   failures: GateFailure[];
+  /** Server-clock durations; emitted for deadline trials, including failures. */
+  deadline?: {
+    elapsedMs: number;
+    finalizationMs: number;
+    remainingMsAtCutoff: number;
+  };
 }
 
 interface ExecuteStartPayload {
@@ -251,8 +260,8 @@ function submitCallResults(
 }
 
 /** Conversation reads are bounded by the attempt; inherited context is not its evidence. */
-async function durableToolEvents(
-  agent: GateAgent,
+export async function readDurableToolEvents(
+  agent: { tasks: Pick<GateAgent['tasks'], 'conversations'> },
   taskId: string,
   attemptN: number,
   teamId: string | undefined,
@@ -310,6 +319,38 @@ async function durableToolEvents(
   return events;
 }
 
+/** Share a settled attempt's evidence between scorers within one eval run.
+ * Retain only the most recently read attempt, never a process-wide history. */
+export function createDurableToolEventReader(): typeof readDurableToolEvents {
+  let cached:
+    | {
+        agent: Parameters<typeof readDurableToolEvents>[0];
+        taskId: string;
+        attemptN: number;
+        teamId: string | undefined;
+        result: ReturnType<typeof readDurableToolEvents>;
+      }
+    | undefined;
+  return (agent, taskId, attemptN, teamId) => {
+    if (
+      !cached ||
+      cached.agent !== agent ||
+      cached.taskId !== taskId ||
+      cached.attemptN !== attemptN ||
+      cached.teamId !== teamId
+    ) {
+      cached = {
+        agent,
+        taskId,
+        attemptN,
+        teamId,
+        result: readDurableToolEvents(agent, taskId, attemptN, teamId),
+      };
+    }
+    return cached.result;
+  };
+}
+
 /** Decode an artifact byte stream to text, capped so a hostile large upload
  * cannot exhaust memory during a content scan. */
 async function readStreamText(
@@ -349,10 +390,13 @@ export async function checkGates(
     workspace: string;
     teamId?: string;
     taskType?: ScenarioTaskType;
+    runningTimeoutSec?: number;
     outputContract?: { version: 1; schema: Record<string, unknown> };
   },
+  readToolEvents: typeof readDurableToolEvents = readDurableToolEvents,
 ): Promise<GateResult> {
   const failures: GateFailure[] = [];
+  let deadline: GateResult['deadline'];
   const {
     schema: outputSchema,
     schemaName,
@@ -360,7 +404,7 @@ export async function checkGates(
   } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
   let messages = await listAllMessages(agent, taskId, attemptN);
   try {
-    const evidence = await durableToolEvents(
+    const evidence = await readToolEvents(
       agent,
       taskId,
       attemptN,
@@ -425,6 +469,51 @@ export async function checkGates(
         gate: 'workspace_mode',
         detail: `execute_start.workspaceMode=${start.workspaceMode}, expected ${wantWorkspace}`,
       });
+    }
+  }
+
+  if (gates.requireDeadlineFinalization) {
+    const cutoffs = messages.filter(
+      (m) => m.kind === 'info' && m.payload.event === 'submission_deadline',
+    );
+    const attempt = (await agent.tasks.listAttempts(taskId)).find(
+      (a) => a.attemptN === attemptN,
+    );
+    const started = Date.parse(attempt?.startedAt ?? '');
+    const completed = Date.parse(attempt?.completedAt ?? '');
+    const cutoff = Date.parse(cutoffs[0]?.timestamp ?? '');
+    const remaining = cutoffs[0]?.payload.remainingMs;
+    const budget = (expected.runningTimeoutSec ?? 0) * 1000;
+    if (
+      cutoffs.length !== 1 ||
+      !Number.isFinite(started) ||
+      !Number.isFinite(completed) ||
+      !Number.isFinite(cutoff) ||
+      typeof remaining !== 'number' ||
+      !Number.isFinite(remaining) ||
+      remaining <= 0 ||
+      remaining > Math.min(90_000, budget / 4) ||
+      budget <= 0 ||
+      cutoff < started ||
+      completed < cutoff
+    ) {
+      failures.push({
+        gate: 'submission_deadline',
+        detail:
+          'expected one cutoff with valid reserve and server timestamps within an explicit running budget',
+      });
+    } else {
+      deadline = {
+        elapsedMs: completed - started,
+        finalizationMs: completed - cutoff,
+        remainingMsAtCutoff: remaining,
+      };
+      if (attempt?.status !== 'completed' || deadline.elapsedMs > budget) {
+        failures.push({
+          gate: 'submission_deadline',
+          detail: `attempt status=${attempt?.status}, elapsed=${deadline.elapsedMs}ms, budget=${budget}ms`,
+        });
+      }
     }
   }
 
@@ -659,5 +748,9 @@ export async function checkGates(
     }
   }
 
-  return { passed: failures.length === 0, failures };
+  return {
+    passed: failures.length === 0,
+    failures,
+    ...(deadline ? { deadline } : {}),
+  };
 }

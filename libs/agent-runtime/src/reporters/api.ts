@@ -318,6 +318,18 @@ export class ApiTaskReporter implements TaskReporter {
     }
   }
 
+  async getAttemptStartedAt(): Promise<number> {
+    const attempts = await this.opts.tasks.listAttempts(this.taskId, {
+      ...(this.opts.teamId ? { teamId: this.opts.teamId } : {}),
+      signal: AbortSignal.any([this.cancelSignal, AbortSignal.timeout(10_000)]),
+    });
+    const attempt = attempts.find((item) => item.attemptN === this.attemptN);
+    const startedAt = Date.parse(attempt?.startedAt ?? '');
+    if (!Number.isFinite(startedAt))
+      throw new Error('Attempt running-phase start is unavailable');
+    return startedAt;
+  }
+
   async reconcileAttempt(): Promise<TaskOutput | null> {
     if (!this.taskId) return null;
     const attempts = await this.opts.tasks.listAttempts(this.taskId, {

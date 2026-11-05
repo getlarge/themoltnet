@@ -269,10 +269,33 @@ export function readScenario(dir: string): Scenario {
     outputContract: rawOutputContract,
     scoring: rawScoring,
     blocking: rawBlocking,
+    matrixOnly,
+    matrixRepeats,
+    runningTimeoutSec,
     ...execution
   } = evalJson as Record<string, unknown>;
   if (rawBlocking !== undefined && typeof rawBlocking !== 'boolean') {
     throw new ScenarioError(slug, 'eval.json blocking must be a boolean');
+  }
+  if (matrixOnly !== undefined && typeof matrixOnly !== 'boolean') {
+    throw new ScenarioError(slug, 'eval.json matrixOnly must be a boolean');
+  }
+  for (const [name, value, maximum] of [
+    ['matrixRepeats', matrixRepeats, 20],
+    ['runningTimeoutSec', runningTimeoutSec, 86_400],
+  ] as const) {
+    if (
+      value !== undefined &&
+      (typeof value !== 'number' ||
+        !Number.isInteger(value) ||
+        value < 1 ||
+        value > maximum)
+    ) {
+      throw new ScenarioError(
+        slug,
+        `eval.json ${name} must be an integer between 1 and ${maximum}`,
+      );
+    }
   }
   const scoring = rawScoring ?? 'judge';
   if (scoring !== 'judge' && scoring !== 'gates_only') {
@@ -370,11 +393,24 @@ export function readScenario(dir: string): Scenario {
     );
   }
 
+  if (
+    (gates as Scenario['gates']).requireDeadlineFinalization &&
+    runningTimeoutSec === undefined
+  ) {
+    throw new ScenarioError(
+      slug,
+      'deadline finalization gate requires runningTimeoutSec',
+    );
+  }
+
   return {
     slug,
     taskType: taskType as Scenario['taskType'],
     scoring,
     blocking: rawBlocking ?? true,
+    matrixOnly: matrixOnly as boolean | undefined,
+    matrixRepeats: matrixRepeats as number | undefined,
+    runningTimeoutSec: runningTimeoutSec as number | undefined,
     outputContract: rawOutputContract as Scenario['outputContract'],
     contextRecipe: rawContextRecipe,
     prompt,

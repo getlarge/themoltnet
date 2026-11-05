@@ -36,6 +36,24 @@ const producer = (taskId: string, model = 'producer'): EvalSpendTask => ({
 });
 
 describe('eval spend reporting', () => {
+  it('retains every independent matrix trial in quality counts', async () => {
+    const tasks = [1, 2, 3, 4].map((trial) => ({
+      ...producer(`trial-${trial}`),
+      trial,
+      evaluation: { gatesPassed: trial > 1, judgedScore: trial > 1 ? 1 : 0 },
+    }));
+    const report = await collectEvalSpend(
+      { suite: 'matrix' },
+      tasks,
+      async () => [attempt(0.1)],
+    );
+    expect(report.models[0]).toMatchObject({
+      scenarios: 4,
+      gatesPassed: 3,
+      meanJudgedScore: 0.75,
+    });
+    expect(report.totals.combined.usage.estimatedCostUsd).toBeCloseTo(0.4);
+  });
   it('counts all attempts and fresh scenario retries, charging judge overhead to its producer', async () => {
     // A failed producer retry, a new successful task, and a judge attempt all
     // contribute, even when the judge failed to produce a usable score.

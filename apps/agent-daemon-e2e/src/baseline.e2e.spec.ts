@@ -32,6 +32,7 @@ import { join, resolve } from 'node:path';
 import {
   type BaselineReport,
   checkGates,
+  createDurableToolEventReader,
   readScenario,
   readSubmitStructure,
   runBaseline,
@@ -73,6 +74,7 @@ function loadScenarios(): Scenario[] {
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)))
+    .filter((scenario) => !scenario.matrixOnly)
     .filter((scenario) => !selected || selected.includes(scenario.slug));
 }
 
@@ -179,6 +181,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
   });
 
   it('measures the producer baseline across the corpus', async () => {
+    const readToolEvents = createDurableToolEventReader();
     const report: BaselineReport = await runBaseline(
       scenarios,
       LIVE_MODEL,
@@ -241,6 +244,8 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               task.id,
               lastAttempt.attemptN,
               scenario.taskType,
+              teamId,
+              readToolEvents,
             );
             structures.push({
               scenario: scenario.slug,
@@ -283,6 +288,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               taskType: scenario.taskType,
               outputContract: scenario.outputContract,
             },
+            readToolEvents,
           ),
       },
     );

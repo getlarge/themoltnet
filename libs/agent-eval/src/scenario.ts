@@ -43,6 +43,8 @@ export const GateExpectations = Type.Object(
      * runtime-prompt-compliance scenario expects a clean submit.
      */
     requireCleanSubmit: Type.Optional(Type.Boolean()),
+    /** Require a real cutoff and completion within the explicit running budget. */
+    requireDeadlineFinalization: Type.Optional(Type.Boolean()),
     /**
      * The `execute_start` event must report this `workspaceMode`. When omitted,
      * defaults to the `eval.json` `workspace` value (the two should agree; this
@@ -198,6 +200,12 @@ export interface Scenario {
    * stays visible without gating merges on known model variance.
    */
   blocking: boolean;
+  /** Expensive stress scenarios run in the weekly matrix, outside the PR smoke. */
+  matrixOnly?: boolean;
+  /** Independent producer trials per matrix cell (default 1). */
+  matrixRepeats?: number;
+  /** Explicit task budget, including runtime preparation and final submission. */
+  runningTimeoutSec?: number;
   /** Optional freeform result contract advertised to the producer. */
   outputContract?: { version: 1; schema: Record<string, unknown> };
   /**

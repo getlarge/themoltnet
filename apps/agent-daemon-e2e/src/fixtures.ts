@@ -196,6 +196,9 @@ export async function createScenarioProducerTask(args: {
           .correlationId(randomUUID())
           .maxAttempts(1)
           .team(teamId);
+  if (scenario.runningTimeoutSec !== undefined) {
+    builder.runningTimeoutSec(scenario.runningTimeoutSec);
+  }
   for (const inputArtifact of inputArtifacts) {
     builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
   }
