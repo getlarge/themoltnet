@@ -49,9 +49,14 @@ function fixture({ complete = false, draft = false } = {}) {
   };
   const api = async (path, { optional = false } = {}) => {
     assert.ok(Object.hasOwn(data, path), `Unexpected ${path}`);
-    if (data[path] === undefined && !optional)
-      throw new Error(`Missing ${path}`);
-    return data[path];
+    // GitHub's tag endpoint only returns published releases, even with
+    // credentials that can see drafts in the release list.
+    const value =
+      path.startsWith('releases/tags/') && data[path]?.draft
+        ? undefined
+        : data[path];
+    if (value === undefined && !optional) throw new Error(`Missing ${path}`);
+    return value;
   };
   return { data, api };
 }
@@ -72,6 +77,51 @@ test('completion makes reconciliation a no-op; a draft or missing notes still fi
   data[`releases/tags/${tag}`].draft = false;
   data[`releases/tags/${tag}`].body = '';
   assert.equal((await planRepairs(api)).length, 1);
+});
+
+for (const complete of [false, true]) {
+  for (const explicitTag of ['', tag]) {
+    test(`reconciles draft with complete=${complete}, explicit=${!!explicitTag} when tag lookup returns 404`, async () => {
+      const { api } = fixture({ complete, draft: true });
+      const calls = [];
+      const tracked = (...args) => {
+        calls.push(args[0]);
+        return api(...args);
+      };
+      assert.deepEqual(
+        (await planRepairs(tracked, { explicitTag })).map((r) => r.tag),
+        [tag],
+      );
+      assert.ok(!calls.some((path) => path.startsWith('releases/tags/')));
+      assert.equal(
+        calls.filter((path) => path.startsWith('releases?')).length,
+        1,
+      );
+    });
+  }
+}
+
+test('bundle repair can inspect a draft while consumer resolution excludes it', async () => {
+  const { api } = fixture({ complete: true, draft: true });
+  assert.equal(await resolveBundle(api, component, '0.8.0'), undefined);
+  const bundle = await resolveBundle(api, component, '0.8.0', {
+    published: false,
+  });
+  assert.equal(bundle.sha, sha);
+  assert.equal(bundle.release.draft, true);
+});
+
+test('explicit reconciliation rejects missing releases and prereleases', async () => {
+  const { api, data } = fixture();
+  await assert.rejects(
+    planRepairs(api, { explicitTag: `${component}-v0.9.0` }),
+    /Cannot find release/,
+  );
+  data[`releases/tags/${tag}`].prerelease = true;
+  await assert.rejects(
+    planRepairs(api, { explicitTag: tag }),
+    /Cannot promote prerelease/,
+  );
 });
 
 test('repairs a lagging major without rolling a newer alias back', async () => {
@@ -122,6 +172,9 @@ test('also repairs the exact action version recorded by the latest published dae
     metadata('0.7.1');
   const historical = `${component}-v0.7.1`;
   data[`releases/tags/${historical}`] = { tag_name: historical };
+  data['releases?per_page=100&page=1'].push(
+    data[`releases/tags/${historical}`],
+  );
   data[`git/ref/tags/bundles/${historical}`] = undefined;
   assert.deepEqual(
     (await planRepairs(api)).map((r) => r.tag),
