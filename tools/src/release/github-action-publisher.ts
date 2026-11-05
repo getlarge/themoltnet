@@ -11,12 +11,9 @@ import {
 
 import { locksForProject } from './action-runtime-lock.js';
 import {
-  authHeaderValue,
-  bundleTagFor,
-  createReleaseCommit,
+  publishBundleTags,
   releaseProblems,
   stableMajorTagFor,
-  tagPushCommand,
 } from './github-action-release.js';
 
 type PackageJson = {
@@ -227,39 +224,20 @@ async function main() {
     return;
   }
 
-  const target = createReleaseCommit(
-    git(['rev-parse', '--show-toplevel']),
+  const target = publishBundleTags({
+    root: git(['rev-parse', '--show-toplevel']),
+    project: options.project,
+    projectRoot,
+    version: packageJson.version,
+    prefix: options.stableMajorTagPrefix,
+    bundleDir,
     bundleDirs,
-    message,
-  );
-  const bundleTag = bundleTagFor(
-    packageJson.version,
-    options.stableMajorTagPrefix,
-    target,
-  );
-  process.stdout.write(
-    `built commit: ${target}\nbundle tag: ${bundleTag} -> ${target}\n` +
-      `stable major tag: ${stableMajorTag} -> ${target}\n`,
-  );
-  if (process.env.GITHUB_OUTPUT) {
+    entries: options.entries,
+    token: process.env.GITHUB_ACTION_RELEASE_TOKEN,
+    serverUrl: process.env.GITHUB_SERVER_URL,
+  });
+  if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `built-commit=${target}\n`);
-  }
-
-  git(['tag', bundleTag, target], { stdio: 'inherit' });
-  git(['tag', '-f', stableMajorTag, target], { stdio: 'inherit' });
-  // The release job checks out without persisted credentials and hands the
-  // token to this one push.
-  const token = process.env.GITHUB_ACTION_RELEASE_TOKEN;
-  if (token && process.env.GITHUB_ACTIONS === 'true') {
-    process.stdout.write(`::add-mask::${authHeaderValue(token)}\n`);
-  }
-  const push = tagPushCommand(
-    stableMajorTag,
-    token,
-    process.env.GITHUB_SERVER_URL,
-    [bundleTag],
-  );
-  git(push.args, { stdio: 'inherit', env: push.env });
 }
 
 if (
