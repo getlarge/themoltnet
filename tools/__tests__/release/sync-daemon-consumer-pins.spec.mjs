@@ -97,7 +97,7 @@ test('authenticates the release listing and fails closed on errors', async () =>
   assert.equal(headers.authorization, 'Bearer token');
   await assert.rejects(
     fetchReleases(async () => ({ ok: false, status: 403 }), undefined),
-    /Cannot list GitHub releases \(403\)/,
+    /Cannot read .* \(403\)/,
   );
 });
 
@@ -138,16 +138,20 @@ async function fixture(t, newline = '\n') {
   const file = join(root, pinFiles[0]);
   await writeFile(file, source);
   const responses = {
-    'releases?per_page=100': [release('agent-daemon-v0.74.1')],
+    'releases?per_page=100&page=1': [release('agent-daemon-v0.74.1')],
     [`contents/${actionRoot}/package.json?ref=agent-daemon-v0.74.1`]:
       packageFile('0.7.1'),
-    'git/ref/tags/v0': { object: { type: 'commit', sha: bundleSha } },
+    'git/ref/tags/bundles/agent-daemon-action-v0.7.1': {
+      object: { type: 'commit', sha: bundleSha },
+    },
     [`contents/${actionRoot}/package.json?ref=${bundleSha}`]:
       packageFile('0.7.1'),
     [`contents/${actionRoot}/package.json?ref=${oldSha}`]: packageFile('0.7.0'),
     'releases/tags/agent-daemon-action-v0.7.1': release(
       'agent-daemon-action-v0.7.1',
     ),
+    'commits/agent-daemon-action-v0.7.1': { sha: 'c'.repeat(40) },
+    [`git/commits/${bundleSha}`]: { parents: [{ sha: 'c'.repeat(40) }] },
     [`git/trees/${bundleSha}?recursive=1`]: {
       truncated: false,
       tree: ['action.yml', 'dist/main.js'].map((path) => ({
@@ -164,7 +168,11 @@ async function fixture(t, newline = '\n') {
       '',
     );
     assert.ok(Object.hasOwn(responses, path), `Unexpected request: ${path}`);
-    return { ok: true, json: async () => responses[path] };
+    return {
+      ok: responses[path] !== undefined,
+      status: responses[path] === undefined ? 404 : 200,
+      json: async () => responses[path],
+    };
   };
   return { root, source, file, responses, get, token: 'test-token' };
 }
@@ -185,26 +193,12 @@ for (const newline of ['\n', '\r\n']) {
 
 for (const [name, mutate, error] of [
   [
-    'draft action',
-    (r) => {
-      r['releases/tags/agent-daemon-action-v0.7.1'].draft = true;
-    },
-    /published stable/,
-  ],
-  [
-    'prerelease action',
-    (r) => {
-      r['releases/tags/agent-daemon-action-v0.7.1'].prerelease = true;
-    },
-    /published stable/,
-  ],
-  [
     'incompatible action',
     (r) => {
       r[`contents/${actionRoot}/package.json?ref=${bundleSha}`] =
         packageFile('0.8.0');
     },
-    /different version/,
+    /version disagrees/,
   ],
   [
     'source-only tag',
@@ -223,9 +217,9 @@ for (const [name, mutate, error] of [
   [
     'invalid tag',
     (r) => {
-      r['git/ref/tags/v0'].object.sha = 'main';
+      r['git/ref/tags/bundles/agent-daemon-action-v0.7.1'].object.sha = 'main';
     },
-    /bundle commit/,
+    /Invalid bundle ref/,
   ],
   [
     'incorrect comment',
@@ -246,7 +240,7 @@ for (const [name, mutate, error] of [
 
 test('leaves the pair unchanged while the daemon bundle is incomplete', async (t) => {
   const f = await fixture(t);
-  f.responses['releases?per_page=100'][0].assets = [];
+  f.responses['releases?per_page=100&page=1'][0].assets = [];
   await main(f);
   assert.equal(await readFile(f.file, 'utf8'), f.source);
 });
@@ -281,4 +275,24 @@ test('rejects malformed consumers and API failures before any write', async (t) 
     /Expected one daemon/,
   );
   assert.equal(await readFile(f.file, 'utf8'), source);
+});
+
+for (const kind of ['draft', 'missing bundle']) {
+  test(`retains the pair without blocking other syncs when action is ${kind}`, async (t) => {
+    const f = await fixture(t);
+    if (kind === 'draft')
+      f.responses['releases/tags/agent-daemon-action-v0.7.1'].draft = true;
+    else
+      f.responses['git/ref/tags/bundles/agent-daemon-action-v0.7.1'] =
+        undefined;
+    await main(f);
+    assert.equal(await readFile(f.file, 'utf8'), f.source);
+  });
+}
+
+test('does not consult a moving major alias to resolve an exact pair', async (t) => {
+  const f = await fixture(t);
+  // The fixture has no v0 endpoint: any request to the alias is an error.
+  await main(f);
+  assert.match(await readFile(f.file, 'utf8'), /# v0.7.1/);
 });

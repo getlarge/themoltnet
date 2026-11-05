@@ -32,7 +32,16 @@ async function fixture(t) {
     await writeFile(join(root, file), originals[i]);
   }
   const responses = {
-    'git/ref/tags/adaptive-review-action-v0': {
+    'releases?per_page=100&page=1': [
+      {
+        tag_name: 'adaptive-review-action-v0.1.2',
+        draft: false,
+        prerelease: false,
+      },
+    ],
+    'commits/adaptive-review-action-v0.1.2': { sha: 'c'.repeat(40) },
+    [`git/commits/${bundleSha}`]: { parents: [{ sha: 'c'.repeat(40) }] },
+    'git/ref/tags/bundles/adaptive-review-action-v0.1.2': {
       object: { type: 'commit', sha: bundleSha },
     },
     [`contents/${packageRoot}/package.json?ref=${bundleSha}`]:
@@ -47,8 +56,9 @@ async function fixture(t) {
     [`git/trees/${bundleSha}?recursive=1`]: {
       truncated: false,
       tree: [
+        `${packageRoot}/action.yml`,
         ...pinFiles.map((file) => file.replace('.yml', '-reusable.yml')),
-        ...['review.js', 'publish.js', 'outcomes.js'].map(
+        ...['review.js', 'publish.js', 'outcomes.js', 'diary-runtime.js'].map(
           (entry) => `${packageRoot}/dist/${entry}`,
         ),
       ].map((path) => ({ path, type: 'blob', size: 100 })),
@@ -62,7 +72,11 @@ async function fixture(t) {
       '',
     );
     assert.ok(Object.hasOwn(responses, path), `Unexpected request: ${path}`);
-    return { ok: true, json: async () => responses[path] };
+    return {
+      ok: responses[path] !== undefined,
+      status: responses[path] === undefined ? 404 : 200,
+      json: async () => responses[path],
+    };
   };
   const contents = () =>
     Promise.all(pinFiles.map((file) => readFile(join(root, file), 'utf8')));
@@ -86,20 +100,6 @@ test('updates both callers to the built SHA, preserves formatting, and is idempo
 });
 
 for (const [name, mutate, error] of [
-  [
-    'draft release',
-    (r) => {
-      r['releases/tags/adaptive-review-action-v0.1.2'].draft = true;
-    },
-    /published stable/,
-  ],
-  [
-    'prerelease',
-    (r) => {
-      r['releases/tags/adaptive-review-action-v0.1.2'].prerelease = true;
-    },
-    /published stable/,
-  ],
   [
     'source-only tag',
     (r) => {
@@ -132,9 +132,10 @@ for (const [name, mutate, error] of [
   [
     'invalid tag target',
     (r) => {
-      r['git/ref/tags/adaptive-review-action-v0'].object.sha = 'main';
+      r['git/ref/tags/bundles/adaptive-review-action-v0.1.2'].object.sha =
+        'main';
     },
-    /bundle commit/,
+    /Invalid bundle ref/,
   ],
 ]) {
   test(`leaves both callers unchanged on ${name}`, async (t) => {
@@ -159,5 +160,12 @@ test('fails closed on API errors without changing callers', async (t) => {
     main({ ...f, get: async () => ({ ok: false, status: 403 }) }),
     /Cannot read .* \(403\)/,
   );
+  assert.deepEqual(await f.contents(), f.originals);
+});
+
+test('retains both callers while the exact release bundle is unavailable', async (t) => {
+  const f = await fixture(t);
+  f.responses['git/ref/tags/bundles/adaptive-review-action-v0.1.2'] = undefined;
+  await main(f);
   assert.deepEqual(await f.contents(), f.originals);
 });

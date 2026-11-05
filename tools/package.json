@@ -18,7 +18,7 @@
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
-    "test:agent-bundle": "node --test __tests__/release/agent-bundle/agent-bundle.spec.mjs __tests__/release/cli/install.spec.mjs __tests__/release/cli/p12-chain.spec.mjs __tests__/release/sync-cli-consumer-pins.spec.mjs __tests__/release/sync-daemon-consumer-pins.spec.mjs __tests__/release/sync-adaptive-review-consumer-pins.spec.mjs",
+    "test:agent-bundle": "node --test __tests__/release/agent-bundle/agent-bundle.spec.mjs __tests__/release/cli/install.spec.mjs __tests__/release/cli/p12-chain.spec.mjs __tests__/release/sync-cli-consumer-pins.spec.mjs __tests__/release/sync-daemon-consumer-pins.spec.mjs __tests__/release/sync-adaptive-review-consumer-pins.spec.mjs __tests__/release/action-release-state.spec.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -104,7 +104,8 @@
           "{workspaceRoot}/.github/workflows/adaptive-review.yml",
           "{workspaceRoot}/.github/workflows/adaptive-review-outcomes.yml",
           "{workspaceRoot}/libs/sandbox-gondolin/src/snapshot.ts",
-          "{workspaceRoot}/.tool-versions"
+          "{workspaceRoot}/.tool-versions",
+          "{workspaceRoot}/tools/release/action-release-state.mjs"
         ]
       },
       "codex-environment-gondolin": {

@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -54,6 +54,36 @@ describe('action runtime locks', () => {
     expect(staleLocks(root, [spec])).toEqual([]);
     execFileSync('git', ['add', 'dep/src/extra.ts'], { cwd: root });
     expect(staleLocks(root, [spec])).toEqual([spec.lock]);
+  });
+
+  it('checks only the selected component while the repository-wide check remains strict', () => {
+    const script = new URL(
+      '../../src/release/action-runtime-lock.ts',
+      import.meta.url,
+    ).pathname;
+    // This old source has no adaptive-review lock; daemon publication owns none.
+    expect(
+      spawnSync(
+        'node',
+        [script, '--check', '--project-root', 'packages/agent-daemon-action'],
+        { cwd: root },
+      ).status,
+    ).toBe(0);
+    expect(
+      spawnSync(
+        'node',
+        [
+          script,
+          '--check',
+          '--project-root',
+          'packages/adaptive-review-action',
+        ],
+        { cwd: root },
+      ).status,
+    ).toBe(1);
+    expect(spawnSync('node', [script, '--check'], { cwd: root }).status).toBe(
+      1,
+    );
   });
 
   it('lists hashes by path', () => {
