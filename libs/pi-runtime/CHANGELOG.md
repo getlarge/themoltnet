@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.29.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.1...pi-runtime-v0.29.2) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* **pi-runtime:** finish submission after cutoff retires the guest ([cb36d56](https://github.com/getlarge/themoltnet/commit/cb36d560d71323c10d404adca09b0de870d0eb26))
+* **pi-runtime:** reserve running time for structured submission ([a972024](https://github.com/getlarge/themoltnet/commit/a97202485d0acf629d4d553f075e8203fa965bc8))
+* **pi-runtime:** reserve task time for structured submission ([1096c20](https://github.com/getlarge/themoltnet/commit/1096c20f0419fd3e1e2b918a16b2c7c7d2b8ad28))
+* **pi-runtime:** tolerate transient durable writer renewal failures ([0381ee7](https://github.com/getlarge/themoltnet/commit/0381ee74f3fcb75bf223c18201121b39077b9cfe))
+* **pi-runtime:** tolerate transient durable writer renewal failures ([a9de879](https://github.com/getlarge/themoltnet/commit/a9de8793235108a854f8c6e38e48d1702086963b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.20.0
+    * @themoltnet/sandbox-gondolin bumped to 0.8.2
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [0.29.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.0...pi-runtime-v0.29.1) (2026-11-01)
 
 

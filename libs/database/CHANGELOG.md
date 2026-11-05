@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.5](https://github.com/getlarge/themoltnet/compare/database-v0.18.4...database-v0.18.5) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **database:** migrate human signer constraints to internal IDs ([14d080f](https://github.com/getlarge/themoltnet/commit/14d080f55dc4ab74c9b407410fa428b273215572))
+* **docker:** refresh runtime bases and trim package tooling ([4db5a7d](https://github.com/getlarge/themoltnet/commit/4db5a7d06794337f7c52a07fb394e7c212d3b5d5))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* refresh runtime images and prioritize dependency maintenance ([adc9a5c](https://github.com/getlarge/themoltnet/commit/adc9a5c84d96c17085699194034ce7b7d3a86f06))
+* **signing:** use internal human IDs in signer constraints ([b450909](https://github.com/getlarge/themoltnet/commit/b450909f8eadb4a3efb420c5840eed23dd303e43))
+* **tooling:** upgrade Knip and repair Nx discovery ([a58a4ac](https://github.com/getlarge/themoltnet/commit/a58a4ac0783bcb356ce218b88c005f17cae760c5))
+
 ## [0.18.4](https://github.com/getlarge/themoltnet/compare/database-v0.18.3...database-v0.18.4) (2026-10-30)
 
 

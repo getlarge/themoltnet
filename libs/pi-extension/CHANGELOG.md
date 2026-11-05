@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.43.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.43.3...pi-extension-v0.43.4) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.29.2
+    * @themoltnet/sdk bumped to 0.154.3
+
 ## [0.43.3](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.43.2...pi-extension-v0.43.3) (2026-11-01)
 
 

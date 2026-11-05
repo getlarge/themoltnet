@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.0...adaptive-review-action-v0.3.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **adaptive-review-action:** refresh runtime lock after daemon pin update ([0a3186b](https://github.com/getlarge/themoltnet/commit/0a3186bf1554bd1913800012bcbda4ec593682d9))
+* **adaptive-review-action:** refresh runtime lock after knip cleanup ([044acef](https://github.com/getlarge/themoltnet/commit/044acefd09d3bd71af9cbda48a70b6521f2983a9))
+* **adaptive-review:** provide complete citation repair feedback ([8cfbde5](https://github.com/getlarge/themoltnet/commit/8cfbde595339e7aa6feac55bbc0a4baa6bcabb2c))
+* **adaptive-review:** provide complete citation repair feedback ([14c9b92](https://github.com/getlarge/themoltnet/commit/14c9b925a29649470fdbb9a795ab15298244df56))
+* **agent-daemon-action:** authenticate latest release resolution ([4a04c15](https://github.com/getlarge/themoltnet/commit/4a04c151f4ba2db70495c255f67c84794ea34cb6))
+* **agent-daemon-action:** authenticate latest release resolution ([2557fda](https://github.com/getlarge/themoltnet/commit/2557fda07940c1b831a77d7cd19a4d7fe98daeb3))
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **ci:** validate deadline cutoffs and open review findings ([41a64d2](https://github.com/getlarge/themoltnet/commit/41a64d2bdeffd5b57ae4b66c88ba004545991e88))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* **pi-runtime:** reserve task time for structured submission ([1096c20](https://github.com/getlarge/themoltnet/commit/1096c20f0419fd3e1e2b918a16b2c7c7d2b8ad28))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.74.4
+    * @themoltnet/pi-runtime bumped to 0.29.2
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.2.1...adaptive-review-action-v0.3.0) (2026-11-01)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.30.6](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.5...mcp-server-v0.30.6) (2026-11-05)
+
+
+### Bug Fixes
+
+* **agent-eval:** reuse attempt evidence across scoring ([f9cb7e1](https://github.com/getlarge/themoltnet/commit/f9cb7e16b94761b0bb34b75018ced9ebeb55d7a3))
+* **deps:** remove stale workspace edges and declare runtime imports ([b2963e0](https://github.com/getlarge/themoltnet/commit/b2963e08ea0658f6e66c5e119b46fa52c2c8a948))
+* **docker:** refresh runtime bases and trim package tooling ([4db5a7d](https://github.com/getlarge/themoltnet/commit/4db5a7d06794337f7c52a07fb394e7c212d3b5d5))
+* **knip:** clear the unused-code and dependency backlog ([c8b7e27](https://github.com/getlarge/themoltnet/commit/c8b7e27124710f020b42a2842f94339803dfa219))
+* refresh runtime images and prioritize dependency maintenance ([adc9a5c](https://github.com/getlarge/themoltnet/commit/adc9a5c84d96c17085699194034ce7b7d3a86f06))
+* **tooling:** upgrade Knip and repair Nx discovery ([a58a4ac](https://github.com/getlarge/themoltnet/commit/a58a4ac0783bcb356ce218b88c005f17cae760c5))
+
 ## [0.30.5](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.4...mcp-server-v0.30.5) (2026-10-30)
 
 
