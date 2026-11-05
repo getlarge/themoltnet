@@ -105,6 +105,21 @@ describe('action publishing authorization and source validation', () => {
     }
   });
 
+  it('limits consumer maintenance to repository contents, workflow writes and PR reads', () => {
+    const token = workflow('release').jobs['sync-consumer-pins'].steps.find(
+      (step) => step.id === 'app-token',
+    );
+    expect(token?.with).toEqual({
+      'client-id': '${{ secrets.MOLTNET_RELEASE_APP_ID }}',
+      'private-key': '${{ secrets.MOLTNET_RELEASE_APP_KEY }}',
+      owner: 'getlarge',
+      repositories: 'themoltnet',
+      'permission-contents': 'write',
+      'permission-workflows': 'write',
+      'permission-pull-requests': 'read',
+    });
+  });
+
   it('rejects stale release source before dependency installation and building', () => {
     const check = named('Check component release source runtime locks');
     expect(check.run).toBe(
@@ -235,6 +250,16 @@ describe('action publication transaction', () => {
     expect(jobs['publish-actions'].needs).toBe('reconcile-actions');
     expect(jobs['resolve-publish'].needs).toBe('release-please');
     expect(jobs['reconcile-actions'].needs).toBe('release-please');
+  });
+
+  it('passes manual republish and exact-version inputs to the action reconciler', () => {
+    const reconcile = workflow('release').jobs['reconcile-actions'].steps.find(
+      (step) => step.id === 'actions',
+    );
+    expect(reconcile?.env).toMatchObject({
+      ACTION_TAG: "${{ inputs.action-tag || '' }}",
+      REPUBLISH: "${{ inputs.republish || '' }}",
+    });
   });
 
   it('keeps pin maintenance out of Release Please and reports isolated failures', () => {

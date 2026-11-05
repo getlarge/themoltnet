@@ -878,6 +878,10 @@ jobs:
           private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
           owner: getlarge
           repositories: themoltnet
+          permission-contents: write
+          # Consumer pins include .github/workflows files.
+          permission-workflows: write
+          permission-pull-requests: read
       - name: Find the open release PR
         id: pr
         env:

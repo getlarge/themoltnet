@@ -100,6 +100,19 @@ test('exact recovery requests are validated and target only the requested versio
   );
 });
 
+test('republish selects a complete action only when that component is forced', async () => {
+  const { api } = fixture({ complete: true });
+  assert.deepEqual(await planRepairs(api, { force: [] }), []);
+  assert.deepEqual(
+    await planRepairs(api, { force: ['adaptive-review-action'] }),
+    [],
+  );
+  assert.deepEqual(
+    (await planRepairs(api, { force: [component] })).map((r) => r.tag),
+    [tag],
+  );
+});
+
 test('also repairs the exact action version recorded by the latest published daemon', async () => {
   const { api, data } = fixture({ complete: true });
   data['releases?per_page=100&page=1'].push({

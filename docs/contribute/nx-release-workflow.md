@@ -1,9 +1,9 @@
 # Nx Release Workflow Notes
 
-Nx release is available for deliberate rehearsals and production trials while
-Release Please remains the default release engine. This guide is for maintainers
-validating that migration. To inspect or recover a GitHub Action release today,
-use [Release and recover GitHub Actions](./action-releases.md).
+This guide covers the experimental Nx release flow, including rehearsals and
+production trials. Release Please is the default release engine. For GitHub
+Action publication and recovery, use
+[Release and recover GitHub Actions](./action-releases.md).
 
 ## Intent
 
@@ -361,18 +361,17 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-The legacy Release workflow currently owns action publication and
-reconciliation. See [Release and recover GitHub Actions](./action-releases.md)
-for the executable bundle contract, exact-version recovery commands, consumer
-updates, and the publication state diagram. Source tags remain Release Please
-history boundaries; immutable bundle tags identify the executable artifacts. The
-GitHub release is finalized only after bundle publication and release-note
-recording succeed.
+The legacy Release workflow owns action publication and reconciliation. See
+[Release and recover GitHub Actions](./action-releases.md) for the executable
+bundle contract, exact-version recovery commands, consumer updates, and the
+publication state diagram. Source tags remain Release Please history boundaries;
+immutable bundle tags identify the executable artifacts. The GitHub release is
+finalized only after bundle publication and release-note recording succeed.
 
 Consumer adoption happens in a separate job that checks published artifacts and
 updates an existing Release Please PR. An Nx publication does not automatically
-run that legacy consumer-sync job. Keep these responsibilities and their
-completion checks when migrating the remaining publication jobs to Nx.
+run that legacy consumer-sync job. Any replacement publication flow must
+preserve these responsibilities and completion checks.
 
 ## Docker Images
 

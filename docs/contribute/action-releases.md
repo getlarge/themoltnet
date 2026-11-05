@@ -177,6 +177,16 @@ bump. CI checks every lock on the merged tree; publication checks only the
 component being released. Never repair a historical source tag's unrelated lock
 by rewriting the tag.
 
+To refresh and check one component's lock before committing:
+
+```bash
+node tools/src/release/action-runtime-lock.ts --write --project-root packages/adaptive-review-action
+node tools/src/release/action-runtime-lock.ts --check --project-root packages/adaptive-review-action
+```
+
+Omit `--project-root` to refresh or check all component locks. Publication uses
+`--check --project-root` for its selected component; CI checks all locks.
+
 Renovate owns third-party action updates. MoltNet's consumer synchronizers own
 this repository's action and reusable-workflow pins; release reconciliation owns
 publication. Updating dependency references cannot repair a missing bundle
