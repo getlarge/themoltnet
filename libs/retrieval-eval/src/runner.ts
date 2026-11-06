@@ -3,12 +3,17 @@ import { randomUUID } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import {
+  containsSecretInText,
+  redactSecretsInText,
+} from '@moltnet/secret-scanner';
+
 import { weights } from './config.js';
 import { executeTrials } from './database.js';
 import { type Dataset, validateDataset } from './dataset.js';
 import { prepareEmbeddings } from './embeddings.js';
 import { hash } from './hash.js';
-import { type Ranking, score } from './metrics.js';
+import { type Ranking, score, summarizeBinary } from './metrics.js';
 import { saveJson } from './storage.js';
 export interface Run {
   schemaVersion: 1;
@@ -54,6 +59,8 @@ async function run(
   },
 ) {
   validateDataset(dataset);
+  if (await containsSecretInText(JSON.stringify(dataset)))
+    throw new Error('Secret scan blocked run input');
   const topKs = options.topKs ?? [1, 3, 5],
     repeats = options.repeats ?? 2;
   if (
@@ -118,6 +125,10 @@ async function run(
         run.rankings.push(ranking);
         await checkpoint();
       },
+      async (metadata) => {
+        run.database = metadata;
+        await checkpoint();
+      },
     );
     const differences = run.rankings.filter(
       (r) =>
@@ -137,6 +148,7 @@ async function run(
       datasetHash: run.datasetHash,
       labelRevision: dataset.labelRevision,
       differences,
+      summary: summarizeBinary(dataset, run.rankings),
       results: run.rankings.map((r) => ({ ...r, metrics: score(dataset, r) })),
     });
     if (differences.length)
@@ -146,7 +158,9 @@ async function run(
     return run;
   } catch (error) {
     run.status = 'failed';
-    run.failure = error instanceof Error ? error.message : String(error);
+    run.failure = await redactSecretsInText(
+      error instanceof Error ? error.message : String(error),
+    );
     await checkpoint();
     throw error;
   }

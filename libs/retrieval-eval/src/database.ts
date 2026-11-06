@@ -23,6 +23,7 @@ export async function executeTrials(
   topKs: number[],
   repeats: number,
   onTrial: (r: Ranking) => Promise<void>,
+  onReady?: (metadata: unknown) => Promise<void>,
 ) {
   const container = await new PostgreSqlContainer(image).start();
   let connection: ReturnType<typeof createDatabase> | undefined;
@@ -43,6 +44,12 @@ export async function executeTrials(
       referenceTime = new Date(
         String(clock.rows[0].reference_time),
       ).toISOString();
+      await onReady?.({
+        databaseVersion: String(version.rows[0].version),
+        searchFunctionHash: hash(definition.rows[0].definition),
+        referenceTime,
+        image,
+      });
       const [agent] = await tx
         .insert(agents)
         .values({
