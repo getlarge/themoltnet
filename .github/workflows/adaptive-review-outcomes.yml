@@ -9,7 +9,7 @@ permissions: {}
 jobs:
   record:
     if: vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true'
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@b09b1b7f086384837cecc8b895b12e712deece80 # adaptive-review-action-v0
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@0808a76a4edb99577f0cbd59c4336d415e051401 # adaptive-review-action-v0
     permissions:
       contents: read
     secrets: inherit
