@@ -140,6 +140,7 @@ describe('review semantic correction', () => {
     const repair = tasks.created[1];
     expect(repair).toMatchObject({
       ...body,
+      runningTimeoutSec: 120,
       input: {
         constraints: body.input.constraints,
         outputContract: body.input.outputContract,
@@ -202,13 +203,22 @@ describe('review semantic correction', () => {
     expect(tasks.created).toHaveLength(2);
   });
 
-  it('uses the same correction key when the original review is rerun', async () => {
-    const tasks = new FakeTasks([output(99), output(1), output(1)]);
+  it('uses the same correction keys when the original review is rerun', async () => {
+    const tasks = new FakeTasks([
+      output(99),
+      output(98),
+      output(1),
+      output(98),
+      output(1),
+    ]);
     const initial = await tasks.createTask(body);
     await acceptedReview(tasks, initial, body, [], parse);
     await acceptedReview(tasks, initial, body, [], parse);
     expect(tasks.creationOptions[1]?.idempotencyKey).toBe(
-      tasks.creationOptions[2]?.idempotencyKey,
+      tasks.creationOptions[3]?.idempotencyKey,
+    );
+    expect(tasks.creationOptions[2]?.idempotencyKey).toBe(
+      tasks.creationOptions[4]?.idempotencyKey,
     );
   });
 
@@ -219,34 +229,86 @@ describe('review semantic correction', () => {
     expect(tasks.created).toHaveLength(1);
   });
 
-  it('fails closed after the one correction is still invalid', async () => {
-    const tasks = new FakeTasks([output(99), output(98)]);
+  it('continues the latest correction once more with bounded budgets and fresh feedback', async () => {
+    const tasks = new FakeTasks([output(99), output(98), output(1)]);
+    const initial = await tasks.createTask(body);
+    const taskIds: string[] = [];
+
+    expect(await acceptedReview(tasks, initial, body, taskIds, parse)).toEqual([
+      candidate,
+    ]);
+    expect(taskIds).toHaveLength(3);
+    expect(tasks.created[2].input.continueFrom).toEqual({
+      taskId: taskIds[1],
+      attemptN: 1,
+    });
+    for (const repair of tasks.created.slice(1)) {
+      expect(repair).toMatchObject({
+        runningTimeoutSec: 120,
+        dispatchTimeoutSec: 30,
+        expiresInSec: 150,
+        maxAttempts: 1,
+        allowedProfiles: body.allowedProfiles,
+        projectId: body.projectId,
+        input: { outputContract: body.input.outputContract },
+      });
+    }
+    expect(tasks.created[2].input.brief).toContain('\\"line\\":98');
+    expect(tasks.creationOptions[2]?.idempotencyKey).toBeTruthy();
+    expect(tasks.creationOptions[2]?.idempotencyKey).not.toBe(
+      tasks.creationOptions[1]?.idempotencyKey,
+    );
+  });
+
+  it('preserves tighter caller limits for corrections', async () => {
+    const tasks = new FakeTasks([output(99), output(1)]);
+    const limited = {
+      ...body,
+      runningTimeoutSec: 60,
+      dispatchTimeoutSec: 10,
+      expiresInSec: 70,
+    };
+    const initial = await tasks.createTask(limited);
+    await acceptedReview(tasks, initial, limited, [], parse);
+    expect(tasks.created[1]).toMatchObject({
+      runningTimeoutSec: 60,
+      dispatchTimeoutSec: 10,
+      expiresInSec: 70,
+    });
+  });
+
+  it('fails closed after both corrections are still invalid', async () => {
+    const tasks = new FakeTasks([output(99), output(98), output(97)]);
     const initial = await tasks.createTask(body);
     await expect(
       acceptedReview(tasks, initial, body, [], parse),
     ).rejects.toMatchObject({
       kind: 'invalid_output',
     });
-    expect(tasks.created).toHaveLength(2);
+    expect(tasks.created).toHaveLength(3);
   });
 
-  it('does not retry an execution budget failure', async () => {
-    const tasks = new FakeTasks([
-      {
-        __taskStatus: 'failed',
-        error: {
-          code: 'max_turns_exceeded',
-          message: 'turn budget reached',
+  it.each([false, true])(
+    'does not retry an execution budget failure (during correction: %s)',
+    async (duringCorrection) => {
+      const tasks = new FakeTasks([
+        ...(duringCorrection ? [output(99)] : []),
+        {
+          __taskStatus: 'failed',
+          error: {
+            code: 'max_turns_exceeded',
+            message: 'turn budget reached',
+          },
         },
-      },
-    ]);
-    const initial = await tasks.createTask(body);
-    await expect(
-      acceptedReview(tasks, initial, body, [], parse),
-    ).rejects.toMatchObject({
-      kind: 'failed',
-      attemptErrorCode: 'max_turns_exceeded',
-    });
-    expect(tasks.created).toHaveLength(1);
-  });
+      ]);
+      const initial = await tasks.createTask(body);
+      await expect(
+        acceptedReview(tasks, initial, body, [], parse),
+      ).rejects.toMatchObject({
+        kind: 'failed',
+        attemptErrorCode: 'max_turns_exceeded',
+      });
+      expect(tasks.created).toHaveLength(duringCorrection ? 2 : 1);
+    },
+  );
 });

@@ -553,9 +553,9 @@ describe('explicit prior-finding assessments', () => {
                   ],
         },
       };
-      const tasks = new FakeTasks([invalid, invalid]);
+      const tasks = new FakeTasks([invalid, invalid, invalid]);
       await expect(runFocusedLane('tests', context(tasks))).rejects.toThrow();
-      expect(tasks.created).toHaveLength(2); // Existing one-correction limit, never an endless review loop.
+      expect(tasks.created).toHaveLength(3); // Two bounded corrections, never an endless review loop.
     },
   );
 });

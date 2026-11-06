@@ -12,7 +12,12 @@ import type { ClassifyOutput, WorkflowSpendReport } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import { runComplexityLane } from './complexity-lane.js';
-import { type ReviewTaskBudgets, validateReviewTaskBudgets } from './config.js';
+import {
+  CLASSIFIER_STAGE_BUDGET_SEC,
+  MAX_CLASSIFIER_TASKS,
+  type ReviewTaskBudgets,
+  validateReviewTaskBudgets,
+} from './config.js';
 import {
   buildClassifyTask,
   decideRoutes,
@@ -55,7 +60,6 @@ import {
 export type { LaneResult } from './lane.js';
 
 const FullOid = /^[0-9a-f]{40}$/;
-const MAX_CLASSIFIER_PACKETS = 4;
 
 export interface AdaptiveReport {
   priorFindingOutcomes?: PriorFindingReview[];
@@ -195,13 +199,29 @@ export async function prepareAdaptiveReview(
   const classifierTasks = guardWorkers(tasks, 'classifier', options.workers);
   const classifierTaskIds: string[] = [];
   const answers: PacketAnswer[] = [];
-  const packetBudgetReached = packets.length > MAX_CLASSIFIER_PACKETS;
-  if (packetBudgetReached) {
-    gaps.push(
-      `Classifier packet budget exceeded: ${packets.length} > ${MAX_CLASSIFIER_PACKETS}; all lanes routed for review.`,
-    );
-  }
-  for (const packet of packetBudgetReached ? [] : packets) {
+  const classifierDeadline = Date.now() + CLASSIFIER_STAGE_BUDGET_SEC * 1000;
+  const classifierTaskMs =
+    (options.taskBudgets.classifier.dispatchTimeoutSec +
+      options.taskBudgets.classifier.runningTimeoutSec) *
+    1000;
+  let classifierSkipped = false;
+  let classifierFailed = false;
+  for (const [index, packet] of packets.entries()) {
+    // Keep the same per-packet request and idempotency key on replay. Only
+    // dispatch another task when its full budget fits the remaining stage.
+    const budgetReached =
+      index >= MAX_CLASSIFIER_TASKS
+        ? 'task'
+        : index > 0 && Date.now() + classifierTaskMs > classifierDeadline
+          ? 'time'
+          : undefined;
+    if (budgetReached) {
+      classifierSkipped = true;
+      gaps.push(
+        `Classifier ${budgetReached} budget reached after ${index} of ${packets.length} packets; unclassified packets: ${packets.length - index}; all lanes routed for review.`,
+      );
+      break;
+    }
     let taskId: string | undefined;
     try {
       const task = await classifierTasks.createTask(
@@ -223,6 +243,7 @@ export async function prepareAdaptiveReview(
       const output = await accepted(classifierTasks, task.id, classifyOutput);
       answers.push({ packetId: packet.id, answers: output.answers });
     } catch (reason) {
+      classifierFailed = true;
       const code = laneFailureCode(reason);
       logClassifierFailure(packet.id, taskId, code);
       gaps.push(
@@ -236,7 +257,7 @@ export async function prepareAdaptiveReview(
     packets,
     answers,
     mechanicalConcerns(changes, evidence.files, snapshot.policy.checks),
-    { classifierSkipped: packetBudgetReached },
+    { classifierSkipped: classifierSkipped && !classifierFailed },
   );
   let docsTaskPossible = false;
   if (routing.routes.some((route) => route.lane === 'docs' && route.run)) {
@@ -290,7 +311,7 @@ export function classifierTaskPossible(
   const git = createGit(cwd);
   if (!loadAdaptivePolicy(git, base)) return false;
   const packets = packetize(buildEvidence(git as ComplexityGit, base, head));
-  return packets.length > 0 && packets.length <= MAX_CLASSIFIER_PACKETS;
+  return packets.length > 0;
 }
 
 export async function runRoutedAdaptiveReview(

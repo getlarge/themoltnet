@@ -4,7 +4,11 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
-import { parseReviewTaskBudgets } from '../src/config.js';
+import {
+  CLASSIFIER_STAGE_BUDGET_SEC,
+  parseReviewTaskBudgets,
+} from '../src/config.js';
+import { REVIEW_REPAIR_LIMITS } from '../src/lane.js';
 
 const root = resolve(import.meta.dirname, '../../..');
 
@@ -45,6 +49,18 @@ function profile(name: string): CommittedProfile {
 }
 
 describe('adaptive review task budgets', () => {
+  it('leaves routing-job time outside the classifier stage budget', () => {
+    const workflow = parse(
+      readFileSync(
+        resolve(root, '.github/workflows/adaptive-review-reusable.yml'),
+        'utf8',
+      ),
+    ) as { jobs: { route: { 'timeout-minutes': number } } };
+    expect(
+      workflow.jobs.route['timeout-minutes'] * 60 - CLASSIFIER_STAGE_BUDGET_SEC,
+    ).toBeGreaterThanOrEqual(10 * 60);
+  });
+
   it('allows the repository-reading profiles to use their configured turns', () => {
     const budgets = callerBudgets();
     const focused = profile('legreffier-adaptive-focused-review-v1');
@@ -61,7 +77,7 @@ describe('adaptive review task budgets', () => {
     ).toBeGreaterThanOrEqual(22);
   });
 
-  it('leaves review-job time for both sequential security stages', () => {
+  it('leaves review-job time for both security stages and all bounded corrections', () => {
     const { security } = callerBudgets();
     const workflow = readFileSync(
       resolve(root, '.github/workflows/adaptive-review-reusable.yml'),
@@ -73,10 +89,15 @@ describe('adaptive review task budgets', () => {
       );
     expect(review).not.toBeNull();
     const jobSec = Number(review?.[1]) * 60;
+    const repairSec =
+      REVIEW_REPAIR_LIMITS.maxRepairs *
+      (REVIEW_REPAIR_LIMITS.runningTimeoutSec +
+        REVIEW_REPAIR_LIMITS.dispatchTimeoutSec);
     const twoStagesSec =
-      2 * (security.dispatchTimeoutSec + security.runningTimeoutSec);
+      2 *
+      (security.dispatchTimeoutSec + security.runningTimeoutSec + repairSec);
 
-    expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(10 * 60);
+    expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(5 * 60);
     expect(
       workflow.match(
         /ADAPTIVE_TASK_BUDGETS: \$\{\{ inputs\.task-budgets \}\}/g,
