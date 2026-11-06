@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
-import { baselineDataset, trialDate, validateDataset } from '../src/dataset.js';
+import {
+  baselineDataset,
+  type Dataset,
+  trialDate,
+  validateDataset,
+} from '../src/dataset.js';
 import {
   retrievalEntries,
   retrievalQueries,
@@ -8,6 +15,7 @@ import {
 } from '../src/fixtures/baseline.js';
 import { hash } from '../src/hash.js';
 import { annotationQueue, rescore, score } from '../src/metrics.js';
+import { prepareQueryExperiment } from '../src/query-drafts.js';
 const ranking = {
   repeat: 1,
   configuration: 'relevance',
@@ -101,5 +109,110 @@ describe('graded metrics', () => {
         'protocols',
       ),
     ).toEqual(['key-exchange', 'weather', 'ed25519', 'fishing']);
+  });
+});
+
+describe('public approved diary corpus', () => {
+  const dataset = JSON.parse(
+    readFileSync(
+      new URL('../datasets/approved-diary-v1/dataset.json', import.meta.url),
+      'utf8',
+    ),
+  ) as Dataset;
+
+  it('preserves the approved snapshot and selected query families', () => {
+    validateDataset(dataset);
+    expect(dataset.entries).toHaveLength(276);
+    expect(dataset.queries.map((query) => query.id)).toEqual([
+      'corpus-v1-q01',
+      'corpus-v1-q02',
+      'corpus-v1-q03',
+      'corpus-v1-q04',
+      'corpus-v1-q06',
+      'corpus-v1-q07',
+      'corpus-v1-q10',
+    ]);
+    expect(
+      dataset.queries.every((query) => query.split === 'development'),
+    ).toBe(true);
+    expect(dataset.timePolicy).toBe('relative-capture-v1');
+    expect(hash(dataset)).toBe(
+      '8ad499a86dc54e42b8a7f9d313609ede778c441a79d005ed1565751b232e7ac1',
+    );
+  });
+
+  it('keeps pending judgments unknown instead of creating negative labels', () => {
+    expect(dataset.judgments).toEqual([]);
+    const retrievedIds = dataset.entries.slice(0, 10).map((entry) => entry.id);
+    expect(
+      score(dataset, {
+        queryId: 'corpus-v1-q01',
+        configuration: 'relevance',
+        repeat: 1,
+        k: 10,
+        retrievedIds,
+      }),
+    ).toMatchObject({
+      answerPrecision: null,
+      usefulPrecision: null,
+      recall: null,
+      verifiedNoMatch: null,
+      unreviewed: retrievedIds,
+    });
+  });
+});
+
+describe('editable query experiments', () => {
+  const draft = {
+    id: 'my-query',
+    text: 'How do signatures work?',
+    family: 'signatures',
+    split: 'development',
+    informationNeed: 'Understand signature verification.',
+  };
+  it('hashes revised queries and starts unlabelled without mutating the source', () => {
+    const source = baselineDataset();
+    const before = hash(source);
+    const result = prepareQueryExperiment(source, [draft], 'custom-v1');
+    expect(result.dataset.entries).toEqual(source.entries);
+    expect(result.dataset.queries).toEqual([
+      {
+        id: draft.id,
+        text: draft.text,
+        textHash: hash(draft.text),
+        family: draft.family,
+        split: draft.split,
+      },
+    ]);
+    expect(result.dataset.judgments).toEqual([]);
+    expect(result.proposals.datasetHash).toBe(hash(result.dataset));
+    expect(result.proposals.queries[0].informationNeed).toBe(
+      draft.informationNeed,
+    );
+    expect(hash(source)).toBe(before);
+    const revised = prepareQueryExperiment(
+      result.dataset,
+      [{ ...draft, text: 'Revised query' }],
+      'custom-v2',
+    );
+    expect(revised.dataset.queries[0].textHash).not.toBe(
+      result.dataset.queries[0].textHash,
+    );
+  });
+  it('rejects empty needs, duplicate IDs and query-family leakage', () => {
+    const source = baselineDataset();
+    for (const input of [
+      [],
+      [draft, draft],
+      [{ ...draft, informationNeed: '' }],
+      [draft, { ...draft, id: 'other', split: 'test' }],
+    ]) {
+      expect(() =>
+        prepareQueryExperiment(source, input, 'custom-v1'),
+      ).toThrow();
+    }
+    expect(() =>
+      prepareQueryExperiment(source, [draft], source.version),
+    ).toThrow();
   });
 });

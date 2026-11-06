@@ -1,0 +1,51 @@
+[
+  {
+    "family": "public-entry-types",
+    "id": "corpus-v1-q01",
+    "informationNeed": "Find the missing response-field mapping and the changes needed to restore consistent public results.",
+    "split": "development",
+    "text": "Why did public diary results lose their entry type after the array-filter migration?"
+  },
+  {
+    "family": "public-entry-types",
+    "id": "corpus-v1-q02",
+    "informationNeed": "Locate the forwarding gap between the MCP tool and the API.",
+    "split": "development",
+    "text": "The MCP diary listing ignores my entry-type filter. Where should I look?"
+  },
+  {
+    "family": "go-nullable-unions",
+    "id": "corpus-v1-q03",
+    "informationNeed": "Explain the nullable-union code-generation failure and where to fix it without editing generated files.",
+    "split": "development",
+    "text": "Why does the Go client fail to decode a null task claim condition?"
+  },
+  {
+    "family": "rest-rate-limit-setup",
+    "id": "corpus-v1-q04",
+    "informationNeed": "Find the initialization assumption that direct app fixtures violate and its fallback behavior.",
+    "split": "development",
+    "text": "Why does a REST signing-request test crash with paths is not iterable during startup?"
+  },
+  {
+    "family": "judge-workspace-isolation",
+    "id": "corpus-v1-q06",
+    "informationNeed": "Find how to create an independent judge repository without copying the producer\u2019s .git pointer.",
+    "split": "development",
+    "text": "How should a judge workspace be isolated from a producer worktree\u2019s Git metadata?"
+  },
+  {
+    "family": "validated-task-repair",
+    "id": "corpus-v1-q07",
+    "informationNeed": "Find the bounded repair primitive and the distinction between transport success and domain validity.",
+    "split": "development",
+    "text": "How can an orchestrator retry a completed task whose output is still invalid?"
+  },
+  {
+    "family": "submit-decoding",
+    "id": "corpus-v1-q10",
+    "informationNeed": "Find bounds and algorithm changes for missing-comma repair, including scalar decoding behavior.",
+    "split": "development",
+    "text": "How do we stop malformed model JSON from blocking the event loop during repair?"
+  }
+]
