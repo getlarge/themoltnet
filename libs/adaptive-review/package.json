@@ -21,6 +21,10 @@
     "./outcomes": {
       "import": "./src/outcomes.ts",
       "types": "./src/outcomes.ts"
+    },
+    "./verdicts": {
+      "import": "./src/verdicts.ts",
+      "types": "./src/verdicts.ts"
     }
   },
   "scripts": {

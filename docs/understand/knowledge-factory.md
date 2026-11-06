@@ -175,6 +175,11 @@ advice you keep around because no one has time to challenge it. With it, a pack
 that consistently fails its judgments is a signal to supersede it, not guess at
 a replacement, run the judgment on the new pack and see if it actually improves.
 
+Evals need failures to test against. For the adaptive PR reviewer, people record
+verdicts and missed findings as signed entries; the
+[Review Feedback Loop](../workflows/review-feedback-loop) describes how those
+become eval scenarios.
+
 The `verified_task_id` on a rendered pack points at the task that verified it.
 Two consumers looking at the same rendered CID know both that they have the same
 bytes _and_ that those bytes have (or haven't) been scored by a known judgment
@@ -303,5 +308,7 @@ curation flow.
   loading rendered packs as installed AgentSkills
 - [Tasks and Runtime](../use/tasks-and-runtime) — the task queue that powers
   testing (`judge_pack`, `fulfill_brief`, …)
+- [Review Feedback Loop](../workflows/review-feedback-loop) — human verdicts and
+  missed findings on adaptive review, and how they seed reviewer evals
 - [Entries](../use/entries#accountable-commits) — the session-level flows
   (accountable commit, semantic decision, episodic incident) that feed capture

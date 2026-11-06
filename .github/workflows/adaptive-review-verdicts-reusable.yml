@@ -1,0 +1,123 @@
+name: Adaptive review verdicts (reusable)
+
+# Runs when someone posts a PR review comment. A repository owner, member, or
+# collaborator can judge an adaptive review finding with
+# `/review-verdict correct|incorrect <reason>` as a reply in its thread, or
+# report a finding the reviewer missed with `/review-missed <lane> <reason>`
+# on a diff line. Each accepted command becomes one signed diary entry.
+#
+# The comment event runs for open and closed pull requests. The job reads the
+# comment from the event file and the base revision as data; it never checks
+# out or runs pull request head code, and never interpolates the comment into
+# a script.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: ''
+      diary-id:
+        type: string
+        default: ''
+      agent-name:
+        type: string
+        default: ''
+      api-url:
+        type: string
+        default: ''
+      app-id:
+        type: string
+        default: ''
+      runtime-ref:
+        type: string
+        default: ''
+    secrets:
+      MOLTNET_AGENT_KEY:
+        required: false
+      MOLTNET_PRIVATE_KEY:
+        required: false
+      MOLTNET_GITHUB_APP_PRIVATE_KEY:
+        required: false
+
+permissions: {}
+
+jobs:
+  record:
+    # The same commenter checks as the `/review` rerun: a person, not a bot,
+    # with owner, member, or collaborator standing. The library checks again.
+    if: >-
+      github.event_name == 'pull_request_review_comment' &&
+      github.event.action == 'created' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.comment.user.type == 'User' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      (startsWith(github.event.comment.body, '/review-verdict ') ||
+        startsWith(github.event.comment.body, '/review-missed '))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One run per comment: a redelivered event waits and then finds the entry.
+    concurrency:
+      group: adaptive-review-verdicts-${{ github.repository }}-${{ github.event.comment.id }}
+      cancel-in-progress: false
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    steps:
+      - name: Resolve trusted review runtime
+        id: runtime
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          RUNTIME_REF: ${{ inputs.runtime-ref }}
+        run: |
+          set -euo pipefail
+          if [ -z "$WORKFLOW_REPOSITORY" ]; then
+            echo '::error::job.workflow_repository is required' >&2
+            exit 1
+          fi
+          runtime_ref="${RUNTIME_REF:-$WORKFLOW_SHA}"
+          if ! [[ "$runtime_ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::runtime-ref or job.workflow_sha must be a full commit SHA' >&2
+            exit 1
+          fi
+          echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "ref=$runtime_ref" >> "$GITHUB_OUTPUT"
+      # The base revision supplies the REVIEW.md digests the entry records.
+      # It is read as Git data and never executed.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .adaptive-review-base
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.runtime.outputs.repository }}
+          ref: ${{ steps.runtime.outputs.ref }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
+      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+      # The App token reads the finding thread, names the reviewer whose
+      # threads count, and acknowledges the command on the comment.
+      - name: Mint LeGreffier comment token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: write
+      - name: Record the review command
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+          ADAPTIVE_BASE_CHECKOUT: ${{ github.workspace }}/.adaptive-review-base
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+        with:
+          step: verdicts

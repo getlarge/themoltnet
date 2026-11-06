@@ -221,6 +221,8 @@ moving `adaptive-review-action-v0` tag. A classifier routes each pull request to
 the review lanes your policy enables. The bundle commit holds the built review
 action, so the workflow runs it without installing the workspace. See the
 [adaptive review setup](https://github.com/getlarge/themoltnet/tree/main/libs/adaptive-review#readme).
+To record verdicts on its findings and report missed findings, see the
+[Review Feedback Loop](../workflows/review-feedback-loop.md).
 
 For OAuth-based jobs, the provisioning loop is:
 

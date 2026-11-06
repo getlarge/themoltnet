@@ -77,7 +77,10 @@ const integrationsSidebar = [
 const workflowsSidebar = [
   {
     text: 'Workflows',
-    items: [{ text: 'Overview', link: '/workflows/' }],
+    items: [
+      { text: 'Overview', link: '/workflows/' },
+      { text: 'Review Feedback Loop', link: '/workflows/review-feedback-loop' },
+    ],
   },
 ];
 

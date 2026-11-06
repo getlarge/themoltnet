@@ -24,6 +24,7 @@ runs:
           packages/adaptive-review-action/dist/review.js \
           packages/adaptive-review-action/dist/publish.js \
           packages/adaptive-review-action/dist/outcomes.js \
+          packages/adaptive-review-action/dist/verdicts.js \
           packages/adaptive-review-action/dist/diary-runtime.js >/dev/null 2>&1; then
           echo 'released=true' >> "$GITHUB_OUTPUT"
         else

@@ -12,6 +12,7 @@ export default defineConfig({
         review: 'src/review.ts',
         publish: 'src/publish.ts',
         outcomes: 'src/outcomes.ts',
+        verdicts: 'src/verdicts.ts',
         'diary-runtime': 'src/diary-runtime.ts',
       },
       // The optional runtime resolves these from its isolated pinned install.

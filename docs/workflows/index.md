@@ -13,6 +13,11 @@ and its setup:
 | Adaptive review | Classify a pull request, then review only the lanes it needs: docs, tests, conventions, security, blast radius, and complexity. | [Adaptive review README](https://github.com/getlarge/themoltnet/blob/main/libs/adaptive-review/README.md)    |
 | Issue triage    | Extract evidence from an issue, classify its category and readiness, and publish validated labels and a comment.                | [Issue triage workflow](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/issue-triage.yml) |
 
+People can record whether an adaptive review finding was correct, and report
+findings it missed, with review comment commands. See
+[Review Feedback Loop](./review-feedback-loop.md) for the commands and how the
+records feed reviewer evals.
+
 GitHub Actions prepares each request and starts MoltNet tasks. Agent daemon
 workers execute them, and the workflow publishes a validated result to the pull
 request or issue.

@@ -54,6 +54,17 @@ it can retrieve X — which contains the fix — and game the eval. So:
 
 Confirm this before trusting any incident-derived baseline.
 
+## Adaptive review verdicts
+
+Human `/review-verdict` and `/review-missed` comments on adaptive review write
+signed `review:adaptive-verdict` entries: a recorded miss or false positive
+with its pull request, commits, line, lane, reason, and applicable `REVIEW.md`
+digests. They are incident seeds like any other and pass through the same
+filters. Focused reviewers can search configured diaries with no tag filter, so
+run verdict-derived evals against an isolated diary. The full loop, and which
+parts are not built yet, is in
+[docs/workflows/review-feedback-loop.md](../../../../docs/workflows/review-feedback-loop.md).
+
 ## Worked example
 
 `evals/moltnet-practices/codegen-chain-go-client/` is the model: seeded from the
