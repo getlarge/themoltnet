@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.1...adaptive-review-action-v0.3.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **adaptive-review:** cap classifier dispatches after screening starts ([2307873](https://github.com/getlarge/themoltnet/commit/2307873390ddf105bcc4ac128d022ce07c4742d9))
+* **adaptive-review:** run larger classifiers and bound output repairs ([a739450](https://github.com/getlarge/themoltnet/commit/a739450bf406d8fbc7a6f644198f821176e90d2f))
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.0...adaptive-review-action-v0.3.1) (2026-11-05)
 
 
