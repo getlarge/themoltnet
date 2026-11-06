@@ -607,7 +607,7 @@ catalogs:
       version: 4.5.4
     vite-plugin-singlefile:
       specifier: ^2.3.0
-      version: 2.3.3
+      version: 2.3.4
     vitepress:
       specifier: ^1.6.4
       version: 1.6.4
@@ -2633,7 +2633,7 @@ importers:
         version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-singlefile:
         specifier: 'catalog:'
-        version: 2.3.3(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3551,7 +3551,7 @@ importers:
         version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-singlefile:
         specifier: 'catalog:'
-        version: 2.3.3(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -14828,8 +14828,8 @@ packages:
       vite:
         optional: true
 
-  vite-plugin-singlefile@2.3.3:
-    resolution: {integrity: sha512-XVnGH0QzbOa8fxRSsHdCarVN1BSBXNi7uLMQYlrGRN5apdHkk62XQWRJhVever0lnfuyBkwn+kvVChdm/OoOUg==}
+  vite-plugin-singlefile@2.3.4:
+    resolution: {integrity: sha512-1FAhlTCL6KJDpSUudrVU+gspapvS+tmKCg70vwNaAU6tyXn3E/C6+NnwQIze06byhBRv7VggZ78K0h+J/Rsdrg==}
     engines: {node: '>18.0.0'}
     peerDependencies:
       rollup: ^4.59.0
@@ -28203,9 +28203,9 @@ snapshots:
       - rollup
       - supports-color
 
-  vite-plugin-singlefile@2.3.3(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-plugin-singlefile@2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
-      micromatch: 4.0.8
+      picomatch: 4.0.7
       vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     optionalDependencies:
       rollup: 4.60.1
