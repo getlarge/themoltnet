@@ -26,6 +26,7 @@ import type {
   HandlerContext,
   ReadResourceResult,
 } from './types.js';
+import { errorResult } from './utils.js';
 
 export interface ToolDefinition<TInput extends TObject = TObject> {
   name: string;
@@ -170,6 +171,9 @@ export class McpRegistry {
   ): void {
     const resourceUri = this.#resourceUri;
     const toolScopes = this.#toolScopes;
+    const requiredScopes = (securitySchemesOf(definition._meta) ?? []).flatMap(
+      (scheme) => scheme.scopes,
+    );
     server.registerTool(
       definition.name,
       {
@@ -183,10 +187,19 @@ export class McpRegistry {
         _meta: definition._meta,
       },
       async (args: Record<string, unknown>, ctx: ServerContext) => {
-        const result = await handler(args, contextOf(ctx));
-        return resourceUri
-          ? withScopeChallenge(result, resourceUri, toolScopes)
-          : result;
+        const context = contextOf(ctx);
+        if (!resourceUri) return handler(args, context);
+
+        // The declared scopes are the REST routes' requiredScopes, so a token
+        // lacking one would be refused there anyway. Answer here instead,
+        // with the challenge, and skip the round trip.
+        const granted = new Set(context.authInfo?.scopes ?? []);
+        const missing = requiredScopes.find((scope) => !granted.has(scope));
+        const result = missing
+          ? errorResult(`Missing required scope: ${missing}`)
+          : await handler(args, context);
+        // Also covers a scope the REST API demands beyond the declaration.
+        return withScopeChallenge(result, resourceUri, toolScopes);
       },
     );
   }

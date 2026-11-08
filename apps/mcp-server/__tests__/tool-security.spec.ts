@@ -1,7 +1,7 @@
 import { createMcpHandler } from '@modelcontextprotocol/server';
 import { MCP_CLIENT_SCOPES } from '@moltnet/models';
 import { Type } from 'typebox';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import { McpRegistry } from '../src/mcp-registry.js';
@@ -75,6 +75,7 @@ function tool(name: string, scopes: Parameters<typeof oauthScopes>) {
 async function callTool(
   registry: McpRegistry,
   name: string,
+  scopes?: string[],
 ): Promise<CallToolResult> {
   const handler = createMcpHandler(() =>
     registry.createServer({ name: 'test', version: '0.0.0' }),
@@ -90,6 +91,9 @@ async function callTool(
         params: { name, arguments: {} },
       }),
     }),
+    scopes
+      ? { authInfo: { token: 'test-token', clientId: 'test-client', scopes } }
+      : undefined,
   );
   const message = lastMessage(
     await response.text(),
@@ -277,5 +281,55 @@ describe('McpRegistry tool policies', () => {
 
     expect(result.isError).toBe(true);
     expect(result._meta?.['mcp/www_authenticate']).toBeUndefined();
+  });
+
+  it('refuses a token lacking a declared scope without calling the handler', async () => {
+    // Arrange
+    const registry = new McpRegistry({ resourceUri: RESOURCE_URI });
+    const handler = vi.fn(() => textResult({ items: [] }));
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), handler);
+
+    // Act
+    const result = await callTool(registry, 'diaries_list', ['openid']);
+
+    // Assert
+    expect(handler).not.toHaveBeenCalled();
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: JSON.stringify({ error: 'Missing required scope: diary:read' }),
+      },
+    ]);
+    expect(result._meta?.['mcp/www_authenticate']).toEqual([
+      insufficientScopeChallenge(RESOURCE_URI, 'diary:read', ['diary:read']),
+    ]);
+  });
+
+  it('calls the handler when the token carries the declared scopes', async () => {
+    const registry = new McpRegistry({ resourceUri: RESOURCE_URI });
+    const handler = vi.fn(() => textResult({ items: [] }));
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), handler);
+
+    const result = await callTool(registry, 'diaries_list', [
+      'openid',
+      'diary:read',
+    ]);
+
+    expect(handler).toHaveBeenCalledOnce();
+    expect(result.isError).toBeFalsy();
+  });
+
+  it('still challenges a REST denial beyond the declared scopes', async () => {
+    const registry = new McpRegistry({ resourceUri: RESOURCE_URI });
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), () =>
+      errorResult('Missing required scope: team:read'),
+    );
+
+    const result = await callTool(registry, 'diaries_list', ['diary:read']);
+
+    expect(result._meta?.['mcp/www_authenticate']).toEqual([
+      insufficientScopeChallenge(RESOURCE_URI, 'team:read', ['diary:read']),
+    ]);
   });
 });
