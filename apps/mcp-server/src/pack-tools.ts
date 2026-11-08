@@ -23,8 +23,8 @@ import {
   updateContextPack,
   updateRenderedPack,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   PackCreateInput,
   PackDiffInput,
@@ -552,11 +552,8 @@ async function handlePacksDiff(
 
 // --- Tool registration ---
 
-export function registerPackTools(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddTool(
+export function registerPackTools(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddTool(
     {
       name: 'packs_get',
       _meta: { securitySchemes: oauthScopes('pack:read') },
@@ -568,7 +565,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_list',
       _meta: { securitySchemes: oauthScopes('pack:read') },
@@ -580,7 +577,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_preview',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -592,7 +589,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksPreview(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_create',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -604,7 +601,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_update',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -618,7 +615,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksUpdate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'rendered_packs_update',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -632,7 +629,7 @@ export function registerPackTools(
     async (args, ctx) => handleRenderedPacksUpdate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_render_preview',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -644,7 +641,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksRenderPreview(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_render',
       _meta: { securitySchemes: oauthScopes('pack:write') },
@@ -656,7 +653,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksRender(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'rendered_packs_get',
       _meta: { securitySchemes: oauthScopes('pack:read') },
@@ -668,7 +665,7 @@ export function registerPackTools(
     async (args, ctx) => handleRenderedPacksGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'rendered_packs_list',
       _meta: { securitySchemes: oauthScopes('pack:read') },
@@ -680,7 +677,7 @@ export function registerPackTools(
     async (args, ctx) => handleRenderedPacksList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_provenance',
       _meta: { securitySchemes: oauthScopes('pack:read') },
@@ -693,7 +690,7 @@ export function registerPackTools(
     async (args, ctx) => handlePacksProvenance(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'packs_diff',
       _meta: { securitySchemes: oauthScopes('pack:read') },

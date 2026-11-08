@@ -11,8 +11,8 @@ import {
   listEntryRelations,
   updateEntryRelationStatus,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   RelationCreateInput,
   RelationDeleteInput,
@@ -36,7 +36,6 @@ import {
   extractApiErrorMessage,
   getTokenFromContext,
   structuredResult,
-  textResult,
 } from './utils.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -150,16 +149,16 @@ export async function handleRelationsDelete(
     );
   }
 
-  return textResult({ success: true, message: 'Relation deleted' });
+  return structuredResult({ success: true, message: 'Relation deleted' });
 }
 
 // --- Tool registration ---
 
 export function registerRelationTools(
-  fastify: FastifyInstance,
+  registry: McpRegistry,
   deps: McpDeps,
 ): void {
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'relations_create',
       _meta: { securitySchemes: oauthScopes('diary:write') },
@@ -173,7 +172,7 @@ export function registerRelationTools(
     async (args, ctx) => handleRelationsCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'relations_list',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -185,7 +184,7 @@ export function registerRelationTools(
     async (args, ctx) => handleRelationsList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'relations_update',
       _meta: { securitySchemes: oauthScopes('diary:write') },
@@ -197,7 +196,7 @@ export function registerRelationTools(
     async (args, ctx) => handleRelationsUpdate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'relations_delete',
       _meta: { securitySchemes: oauthScopes('diary:write') },

@@ -1,29 +1,22 @@
-import type {
-  AuthorizationConfig,
-  DCRRequest,
-  DCRResponse,
-  TracerLike,
-} from '@getlarge/fastify-mcp';
-import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
-import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
+import { MCP_M2M_SCOPES } from '@moltnet/models';
 import type { ObservabilityContext } from '@moltnet/observability';
 import { observabilityPlugin } from '@moltnet/observability';
-import { trace } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import {
-  type McpAppConfig,
   type McpServerConfig,
   resolveHydraUrls,
   resolveMcpAppConfig,
-  resolveRedisConfig,
 } from './config.js';
 import { registerCryptoTools } from './crypto-tools.js';
 import { registerDiaryTools } from './diary-tools.js';
 import { registerEntryExploreApp } from './entry-explore-app.js';
 import { registerGrantTools } from './grant-tools.js';
+import { createHydraTokenVerifier } from './hydra-token-verifier.js';
 import { registerIdentityTools } from './identity-tools.js';
+import { McpRegistry } from './mcp-registry.js';
+import { registerMcpRoute } from './mcp-route.js';
 import { registerPackTools } from './pack-tools.js';
 import { registerPrompts } from './prompts.js';
 import { registerRelationTools } from './relation-tools.js';
@@ -32,10 +25,8 @@ import { registerResources } from './resources.js';
 import { registerTaskApp } from './task-app.js';
 import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
-import { installToolAnnotationPolicy } from './tool-annotations.js';
-import { installToolSecurityPolicy } from './tool-security.js';
 import type { McpDeps } from './types.js';
-import { registerWellKnownMetadata } from './well-known-metadata.js';
+import { registerProtectedResourceMetadata } from './well-known-metadata.js';
 
 const OPENAI_APPS_CHALLENGE_PATH = '/.well-known/openai-apps-challenge';
 
@@ -47,31 +38,20 @@ export interface AppOptions {
   observability?: ObservabilityContext;
 }
 
-/**
- * Clean DCR response to remove empty/null fields that break Claude Code's Zod validation.
- * Claude Code expects optional URI fields to be valid URLs or absent, not empty strings.
- */
-function cleanDcrResponse(response: DCRResponse): DCRResponse {
-  const cleaned = { ...response };
-  const uriFields = [
-    'client_uri',
-    'logo_uri',
-    'tos_uri',
-    'policy_uri',
-    'jwks_uri',
-  ] as const;
-  for (const field of uriFields) {
-    if (cleaned[field] === '' || cleaned[field] === null) {
-      delete cleaned[field];
-    }
-  }
-  if (cleaned.contacts === null) {
-    delete cleaned.contacts;
-  }
-  return cleaned;
-}
+export type McpAuthConfig =
+  | { enabled: false }
+  | {
+      enabled: true;
+      /** Protected resource URI advertised in metadata and challenges. */
+      resourceUri: string;
+      /** Public issuer(s) clients are sent to for authorization. */
+      authorizationServers: string[];
+      jwksUri: string;
+      /** Hydra admin introspection, used when JWT verification fails. */
+      introspection?: { endpoint: string; bearerToken: string };
+    };
 
-export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
+export function buildAuthConfig(config: McpServerConfig): McpAuthConfig {
   const authEnabled = config.AUTH_ENABLED === true;
   const hydra = resolveHydraUrls(config);
 
@@ -79,43 +59,20 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     return { enabled: false };
   }
 
-  const resourceUri =
-    config.MCP_RESOURCE_URI ?? `http://localhost:${config.PORT}`;
-
   return {
     enabled: true,
+    resourceUri: config.MCP_RESOURCE_URI ?? `http://localhost:${config.PORT}`,
     authorizationServers: [hydra.publicUrl],
-    resourceUri,
-    excludedPaths: ['/healthz', '/healthz/ready', OPENAI_APPS_CHALLENGE_PATH],
-    tokenValidation: {
-      jwksUri:
-        config.ORY_HYDRA_JWKS_URL ?? `${hydra.publicUrl}/.well-known/jwks.json`,
-      introspectionEndpoint: hydra.apiKey
-        ? `${hydra.adminUrl}/admin/oauth2/introspect`
-        : undefined,
-      introspectionAuth: hydra.apiKey
-        ? { type: 'bearer' as const, token: hydra.apiKey }
-        : undefined,
-    },
-    oauth2Client: {
-      authorizationServer: hydra.publicUrl,
-      resourceUri,
-      scopes: ['openid', ...MCP_CLIENT_SCOPES],
-      dynamicRegistration: true,
-    },
-    dcrHooks: {
-      upstreamEndpoint:
-        config.ORY_HYDRA_REGISTRATION_URL ??
-        `${hydra.publicUrl}/oauth2/register`,
-      onRequest: (request: DCRRequest, log) => {
-        log.info({ dcrRequest: request }, 'DCR: forwarding request to Ory');
-        return request;
-      },
-      onResponse: (response: DCRResponse, _request: DCRRequest, log) => {
-        log.info({ dcrResponse: response }, 'DCR: received response from Ory');
-        return cleanDcrResponse(response);
-      },
-    },
+    jwksUri:
+      config.ORY_HYDRA_JWKS_URL ?? `${hydra.publicUrl}/.well-known/jwks.json`,
+    ...(hydra.apiKey
+      ? {
+          introspection: {
+            endpoint: `${hydra.adminUrl}/admin/oauth2/introspect`,
+            bearerToken: hydra.apiKey,
+          },
+        }
+      : {}),
   };
 }
 
@@ -180,9 +137,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   deps.consoleBaseUrl = config.CONSOLE_BASE_URL;
 
   registerMcpCors(app);
-
-  // Must precede the MCP plugin: it patches that plugin's well-known routes.
-  registerWellKnownMetadata(app);
 
   // Register @fastify/otel BEFORE routes for full lifecycle tracing
   if (observability?.fastifyOtelPlugin) {
@@ -276,7 +230,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return reply.status(allOk ? 200 : 503).send(body);
   });
 
-  // Register client_credentials proxy (before fastify-mcp so it can inject Bearer tokens)
+  // Register client_credentials proxy (before the MCP route so it can inject Bearer tokens)
   const proxyEnabled =
     config.CLIENT_CREDENTIALS_PROXY === true && !!config.ORY_PROJECT_URL;
   if (proxyEnabled) {
@@ -292,7 +246,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.log.info('Client credentials proxy enabled');
   }
 
-  // Register fastify-mcp plugin
   const authorization = buildAuthConfig(config);
   if (authorization.enabled) {
     app.log.info(
@@ -302,51 +255,13 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       },
       'OAuth2 authorization enabled',
     );
+    registerProtectedResourceMetadata(app, authorization);
   } else {
     app.log.info('OAuth2 authorization disabled');
   }
 
-  // Use the global OTel tracer when observability is enabled (tracer provider is
-  // registered globally by initObservability before buildApp is called)
-  const tracer: TracerLike | undefined = observability?.fastifyOtelPlugin
-    ? trace.getTracer('moltnet-mcp')
-    : undefined;
-
-  const redis = resolveRedisConfig(config);
-  app.log.info(
-    {
-      sessionStore: redis ? 'redis' : 'memory',
-      messageBroker: redis ? 'redis' : 'memory',
-      redisHost: redis?.host,
-      redisPort: redis?.port,
-      redisTls: redis ? Boolean(redis.tls) : undefined,
-    },
-    'Configuring MCP session transport',
-  );
-
-  await app.register(mcpPlugin, {
-    serverInfo: { name: 'moltnet', version },
-    capabilities: { tools: {}, resources: {}, prompts: {} },
-    enableSSE: true,
-    sessionStore: redis ? 'redis' : 'memory',
-    messageBroker: redis ? 'redis' : 'memory',
-    // The plugin creates its own client (and pub/sub duplicates). Bound a
-    // stalled Redis command so MCP sessions fail promptly rather than hang.
-    ...(redis ? { redis } : {}),
-    authorization,
-    ...(tracer ? { telemetry: { tracer } } : {}),
-  });
-
-  installToolAnnotationPolicy(app);
-  installToolSecurityPolicy(app, {
-    resourceUri: authorization.enabled ? authorization.resourceUri : undefined,
-  });
-
-  // Inject MCP app configuration for resource metadata
   const mcpAppConfig = resolveMcpAppConfig(config);
   if (mcpAppConfig) {
-    (app as FastifyInstance & { mcpAppConfig?: McpAppConfig }).mcpAppConfig =
-      mcpAppConfig;
     app.log.info(
       {
         domain: mcpAppConfig.domain,
@@ -360,22 +275,45 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     app.log.info('No MCP app configuration found');
   }
 
-  // Register request context plugin (AFTER mcp plugin so authContext is available)
   await app.register(requestContextPlugin);
 
-  // Register tools and resources
-  registerDiaryTools(app, deps);
-  registerCryptoTools(app, deps);
-  registerIdentityTools(app, deps);
-  registerRelationTools(app, deps);
-  registerPackTools(app, deps);
-  registerGrantTools(app, deps);
-  registerTeamTools(app, deps);
-  registerTaskTools(app, deps);
-  registerTaskApp(app, deps);
-  registerEntryExploreApp(app);
-  registerResources(app, deps);
-  registerPrompts(app, deps);
+  const registry = new McpRegistry({
+    resourceUri: authorization.enabled ? authorization.resourceUri : undefined,
+    mcpAppConfig: mcpAppConfig ?? undefined,
+  });
+  registerDiaryTools(registry, deps);
+  registerCryptoTools(registry, deps);
+  registerIdentityTools(registry, deps);
+  registerRelationTools(registry, deps);
+  registerPackTools(registry, deps);
+  registerGrantTools(registry, deps);
+  registerTeamTools(registry, deps);
+  registerTaskTools(registry, deps);
+  registerTaskApp(registry, deps);
+  registerEntryExploreApp(registry);
+  registerResources(registry, deps);
+  registerPrompts(registry, deps);
+
+  registerMcpRoute(app, {
+    registry,
+    serverInfo: { name: 'moltnet', version },
+    ...(authorization.enabled
+      ? {
+          auth: {
+            verifier: createHydraTokenVerifier({
+              jwksUri: authorization.jwksUri,
+              introspection: authorization.introspection,
+              onJwtFailure: (err) =>
+                app.log.warn(
+                  { err },
+                  'JWT validation failed, trying introspection',
+                ),
+            }),
+            resourceMetadataUrl: `${authorization.resourceUri.replace(/\/+$/, '')}/.well-known/oauth-protected-resource`,
+          },
+        }
+      : {}),
+  });
 
   // Register observability metrics plugin + shutdown hook
   if (observability) {

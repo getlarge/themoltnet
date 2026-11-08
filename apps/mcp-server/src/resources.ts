@@ -12,8 +12,8 @@ import {
   getWhoami,
   searchDiary,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type { HandlerContext, McpDeps, ReadResourceResult } from './types.js';
 import { getTokenFromContext, jsonResource } from './utils.js';
 
@@ -151,11 +151,8 @@ export async function handleAgentResource(
 
 // --- Resource registration ---
 
-export function registerResources(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddResource(
+export function registerResources(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddResource(
     {
       name: 'identity',
       uriPattern: 'moltnet://identity',
@@ -165,7 +162,7 @@ export function registerResources(
     async (_uri, ctx) => handleIdentityResource(deps, ctx),
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'diary',
       uriPattern: 'moltnet://diaries/{diaryId}',
@@ -180,7 +177,7 @@ export function registerResources(
     },
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'diary-entry',
       uriPattern: 'moltnet://entries/{entryId}',
@@ -193,7 +190,7 @@ export function registerResources(
     },
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'entries-recent',
       uriPattern: 'moltnet://entries/recent',
@@ -203,7 +200,7 @@ export function registerResources(
     async (_uri, ctx) => handleEntriesRecentResource(deps, ctx),
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'agent-profile',
       uriPattern: 'moltnet://agent/{fingerprint}',

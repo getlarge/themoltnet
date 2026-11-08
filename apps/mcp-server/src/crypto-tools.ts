@@ -16,8 +16,8 @@ import {
   submitSignature,
   verifyCryptoSignature,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   CryptoPrepareSignatureInput,
   CryptoSigningStatusInput,
@@ -196,10 +196,10 @@ export async function handleCryptoVerify(
 // --- Tool registration ---
 
 export function registerCryptoTools(
-  fastify: FastifyInstance,
+  registry: McpRegistry,
   deps: McpDeps,
 ): void {
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'crypto_prepare_signature',
       _meta: { securitySchemes: oauthScopes('crypto:sign') },
@@ -213,7 +213,7 @@ export function registerCryptoTools(
     async (args, ctx) => handleCryptoPrepareSignature(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'crypto_submit_signature',
       _meta: { securitySchemes: oauthScopes('crypto:sign') },
@@ -226,7 +226,7 @@ export function registerCryptoTools(
     async (args, ctx) => handleCryptoSubmitSignature(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'crypto_signing_status',
       _meta: { securitySchemes: oauthScopes('crypto:sign') },
@@ -238,7 +238,7 @@ export function registerCryptoTools(
     async (args, ctx) => handleCryptoSigningStatus(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'crypto_verify',
       _meta: { securitySchemes: oauthScopes() },

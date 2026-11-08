@@ -79,9 +79,8 @@ describe('Connector OAuth scopes', () => {
     });
     const client = await connect(authorization.accessToken);
 
-    // Act — `client.listTools()` parses with the SDK's ToolSchema, which
-    // strips unknown top-level keys (the reason OpenAI documents the `_meta`
-    // mirror). Read the wire payload with a passthrough variant instead.
+    // Act — read the raw wire payload: `client.listTools()` would strip any
+    // unknown top-level key before the assertions could see it.
     const { tools } = await client.request(
       { method: 'tools/list' },
       ListToolsResultSchema.extend({
@@ -89,16 +88,17 @@ describe('Connector OAuth scopes', () => {
       }),
     );
 
-    // Assert
+    // Assert — the official server publishes `securitySchemes` in `_meta`
+    // only, the placement OpenAI's TypeScript examples use.
     const diariesList = tools.find((tool) => tool.name === 'diaries_list');
-    const expected = [{ type: 'oauth2', scopes: ['diary:read'] }];
-    expect(diariesList?.securitySchemes).toEqual(expected);
-    expect(diariesList?._meta?.securitySchemes).toEqual(expected);
+    expect(diariesList?._meta?.securitySchemes).toEqual([
+      { type: 'oauth2', scopes: ['diary:read'] },
+    ]);
     for (const tool of tools) {
-      expect(tool.securitySchemes, tool.name).toBeDefined();
-      expect(tool._meta?.securitySchemes, tool.name).toEqual(
-        tool.securitySchemes,
-      );
+      expect(tool._meta?.securitySchemes, tool.name).toEqual([
+        { type: 'oauth2', scopes: expect.any(Array) },
+      ]);
+      expect(tool.securitySchemes, tool.name).toBeUndefined();
     }
   });
 

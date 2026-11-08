@@ -3,17 +3,36 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { previewRenderedPack, renderContextPack } from '@moltnet/api-client';
-import {
-  DCR_MAX_SCOPES,
-  MCP_CLIENT_SCOPES,
-  MCP_M2M_SCOPES,
-} from '@moltnet/models';
+import { DCR_MAX_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
 import { buildApp, buildAuthConfig } from '../src/app.js';
 import { annotationsForTool } from '../src/tool-annotations.js';
 import { createMockDeps } from './helpers.js';
+
+/** Streamable HTTP requires clients to accept both JSON and SSE replies. */
+const MCP_HEADERS = {
+  'content-type': 'application/json',
+  accept: 'application/json, text/event-stream',
+};
+
+/**
+ * Body of an MCP HTTP response. Stateless serving answers 2025-era clients
+ * over SSE (`event: message` / `data: …`); other routes answer plain JSON.
+ */
+function rpcBody(response: { body: string; headers: Record<string, unknown> }) {
+  const contentType = String(response.headers['content-type'] ?? '');
+  if (!contentType.includes('text/event-stream')) {
+    return JSON.parse(response.body);
+  }
+  const data = response.body
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trim())
+    .filter(Boolean);
+  return JSON.parse(data[data.length - 1] ?? '{}');
+}
 
 function canonicalJson(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -94,7 +113,7 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 describe('buildApp', () => {
-  it('registers interactive OAuth clients with the bounded MCP scope set', () => {
+  it('protects the MCP resource with the configured Hydra issuer', () => {
     const authorization = buildAuthConfig({
       PORT: 8001,
       NODE_ENV: 'test',
@@ -107,9 +126,9 @@ describe('buildApp', () => {
     if (!authorization.enabled) {
       throw new Error('Expected OAuth authorization to be enabled');
     }
-    expect(authorization.oauth2Client?.scopes).toEqual([
-      'openid',
-      ...MCP_CLIENT_SCOPES,
+    expect(authorization.resourceUri).toBe('http://localhost:8001');
+    expect(authorization.authorizationServers).toEqual([
+      'https://hydra.example.com',
     ]);
   });
 
@@ -132,11 +151,8 @@ describe('buildApp', () => {
     expect(authorization.authorizationServers).toEqual([
       'https://oauth.example.com/',
     ]);
-    expect(authorization.tokenValidation?.jwksUri).toBe(
+    expect(authorization.jwksUri).toBe(
       'http://hydra:4444/.well-known/jwks.json',
-    );
-    expect(authorization.dcrHooks?.upstreamEndpoint).toBe(
-      'http://hydra:4444/oauth2/register',
     );
   });
 
@@ -158,7 +174,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     expect(body).toHaveProperty('status', 'ok');
     expect(body).toHaveProperty('timestamp');
 
@@ -191,7 +207,7 @@ describe('buildApp', () => {
     const mcpResponse = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'initialize',
@@ -246,7 +262,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'initialize',
@@ -261,7 +277,7 @@ describe('buildApp', () => {
 
     // The plugin should handle this (200 with JSON-RPC response)
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     expect(body).toHaveProperty('jsonrpc', '2.0');
     expect(body).toHaveProperty('result');
     expect(body.result.serverInfo).toHaveProperty('name', 'moltnet');
@@ -286,7 +302,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'initialize',
@@ -454,7 +470,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'resources/list',
@@ -463,7 +479,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     const resources = body.result.resources;
 
     // Only concrete resources (no {param} in URI)
@@ -496,7 +512,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'resources/templates/list',
@@ -505,7 +521,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     const templates = body.result.resourceTemplates;
 
     // diary-entry and agent-profile are templates
@@ -541,7 +557,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'tools/list',
@@ -550,7 +566,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     const toolNames = body.result.tools.map((t: { name: string }) => t.name);
 
     // entries tools
@@ -606,7 +622,7 @@ describe('buildApp', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/mcp',
-        headers: { 'content-type': 'application/json' },
+        headers: MCP_HEADERS,
         payload: {
           jsonrpc: '2.0',
           method: 'tools/call',
@@ -622,9 +638,9 @@ describe('buildApp', () => {
         },
       });
 
-      const body = JSON.parse(response.body);
+      const body = rpcBody(response);
       expect(body.result.isError).toBe(true);
-      expect(body.result.content[0].text).toMatch(/Invalid tool arguments/);
+      expect(body.result.content[0].text).toMatch(/Invalid arguments for tool/);
       expect(renderContextPack).not.toHaveBeenCalled();
       expect(previewRenderedPack).not.toHaveBeenCalled();
 
@@ -634,7 +650,7 @@ describe('buildApp', () => {
       const control = await app.inject({
         method: 'POST',
         url: '/mcp',
-        headers: { 'content-type': 'application/json' },
+        headers: MCP_HEADERS,
         payload: {
           jsonrpc: '2.0',
           method: 'tools/call',
@@ -649,9 +665,9 @@ describe('buildApp', () => {
           id: 2,
         },
       });
-      const controlBody = JSON.parse(control.body);
+      const controlBody = rpcBody(control);
       expect(controlBody.result.content[0].text).not.toMatch(
-        /Invalid tool arguments/,
+        /Invalid arguments for tool/,
       );
       expect(controlBody.result.content[0].text).toMatch(/Not authenticated/);
 
@@ -673,7 +689,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'tools/list',
@@ -682,7 +698,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const tools = JSON.parse(response.body).result.tools as Array<{
+    const tools = rpcBody(response).result.tools as Array<{
       name: string;
       annotations?: Record<string, boolean>;
       outputSchema?: unknown;
@@ -773,7 +789,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'tools/list',
@@ -782,7 +798,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     const contract = (
       body.result.tools as Array<{ name: string; inputSchema?: unknown }>
     )
@@ -1075,7 +1091,7 @@ describe('buildApp', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'tools/list',
@@ -1084,7 +1100,7 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     const tools = body.result.tools as Array<{
       name: string;
       inputSchema?: unknown;
@@ -1130,7 +1146,7 @@ describe('buildApp', () => {
       });
 
       expect(response.statusCode).toBe(503);
-      const body = JSON.parse(response.body);
+      const body = rpcBody(response);
       expect(body.status).toBe('degraded');
       expect(body.components.restApi.status).toBe('ok');
       expect(body.components.ory.status).toBe('error');
@@ -1163,7 +1179,7 @@ describe('buildApp', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.body);
+      const body = rpcBody(response);
       expect(body.status).toBe('ok');
       expect(body.components.restApi.status).toBe('ok');
       expect(body.components.ory.status).toBe('ok');
@@ -1201,7 +1217,7 @@ describe('buildApp', () => {
       });
 
       expect(response.statusCode).toBe(503);
-      const body = JSON.parse(response.body);
+      const body = rpcBody(response);
       expect(body.status).toBe('degraded');
       expect(body.components.restApi.status).toBe('error');
       expect(body.components.restApi.error).toBe('http_503');
@@ -1212,70 +1228,47 @@ describe('buildApp', () => {
     });
   });
 
-  it('DELETE /mcp returns 400 without Mcp-Session-Id header', async () => {
-    const deps = createMockDeps();
+  it.each(['GET', 'DELETE'] as const)(
+    'answers %s /mcp with 405: the transport is stateless',
+    async (method) => {
+      const app = await buildApp({
+        config: {
+          PORT: 8001,
+          NODE_ENV: 'test',
+          REST_API_URL: 'http://localhost:3000',
+        },
+        deps: createMockDeps(),
+        logger: false,
+      });
+
+      const response = await app.inject({
+        method,
+        url: '/mcp',
+        headers: { accept: 'application/json, text/event-stream' },
+      });
+
+      expect(response.statusCode).toBe(405);
+      expect(response.headers['mcp-session-id']).toBeUndefined();
+
+      await app.close();
+    },
+  );
+
+  it('issues no session id on initialize', async () => {
     const app = await buildApp({
       config: {
         PORT: 8001,
         NODE_ENV: 'test',
         REST_API_URL: 'http://localhost:3000',
       },
-      deps,
+      deps: createMockDeps(),
       logger: false,
     });
 
     const response = await app.inject({
-      method: 'DELETE',
-      url: '/mcp',
-    });
-
-    expect(response.statusCode).toBe(400);
-    const body = JSON.parse(response.body);
-    expect(body.error).toMatch(/Mcp-Session-Id/i);
-
-    await app.close();
-  });
-
-  it('DELETE /mcp returns 404 for unknown session', async () => {
-    const deps = createMockDeps();
-    const app = await buildApp({
-      config: {
-        PORT: 8001,
-        NODE_ENV: 'test',
-        REST_API_URL: 'http://localhost:3000',
-      },
-      deps,
-      logger: false,
-    });
-
-    const response = await app.inject({
-      method: 'DELETE',
-      url: '/mcp',
-      headers: { 'mcp-session-id': 'nonexistent-session' },
-    });
-
-    expect(response.statusCode).toBe(404);
-
-    await app.close();
-  });
-
-  it('DELETE /mcp returns 204 for valid session', async () => {
-    const deps = createMockDeps();
-    const app = await buildApp({
-      config: {
-        PORT: 8001,
-        NODE_ENV: 'test',
-        REST_API_URL: 'http://localhost:3000',
-      },
-      deps,
-      logger: false,
-    });
-
-    // Create a session via initialize
-    const initResponse = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: {
         jsonrpc: '2.0',
         method: 'initialize',
@@ -1288,39 +1281,16 @@ describe('buildApp', () => {
       },
     });
 
-    expect(initResponse.statusCode).toBe(200);
-    const sessionId = initResponse.headers['mcp-session-id'] as string;
-    expect(sessionId).toBeTruthy();
-
-    // DELETE the session
-    const deleteResponse = await app.inject({
-      method: 'DELETE',
-      url: '/mcp',
-      headers: { 'mcp-session-id': sessionId },
-    });
-
-    expect(deleteResponse.statusCode).toBe(204);
-
-    // Second DELETE should be 404
-    const secondDelete = await app.inject({
-      method: 'DELETE',
-      url: '/mcp',
-      headers: { 'mcp-session-id': sessionId },
-    });
-
-    expect(secondDelete.statusCode).toBe(404);
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['mcp-session-id']).toBeUndefined();
+    expect(rpcBody(response).result.serverInfo.name).toBe('moltnet');
 
     await app.close();
   });
 });
 
 describe('OAuth protected resource metadata', () => {
-  /**
-   * Exercises the real `@getlarge/fastify-mcp` routes rather than a stub, so
-   * this fails if the plugin ever changes their path, encapsulation or
-   * serialization in a way the onSend patch no longer reaches. The unit test in
-   * well-known-metadata.test.ts cannot catch that: it owns its own stub.
-   */
+  /** The documents as the assembled app serves them, with auth enabled. */
   async function buildAuthenticatedApp() {
     return buildApp({
       config: {
@@ -1348,7 +1318,7 @@ describe('OAuth protected resource metadata', () => {
 
     // Assert
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
+    const body = rpcBody(response);
     expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
     expect(body.authorization_servers).toEqual(['https://hydra.example.com']);
 
@@ -1366,27 +1336,25 @@ describe('OAuth protected resource metadata', () => {
     });
 
     // Assert
-    expect(JSON.parse(response.body).scopes_supported).toContain('team:read');
+    expect(rpcBody(response).scopes_supported).toContain('team:read');
 
     await app.close();
   });
 
-  it("does not leave the plugin's fabricated scopes on the OIDC document", async () => {
-    // Arrange
+  it('challenges an unauthenticated MCP request toward the metadata', async () => {
     const app = await buildAuthenticatedApp();
 
-    // Act
     const response = await app.inject({
-      method: 'GET',
-      url: '/.well-known/openid-configuration/mcp',
+      method: 'POST',
+      url: '/mcp',
+      headers: MCP_HEADERS,
+      payload: { jsonrpc: '2.0', method: 'tools/list', id: 1 },
     });
 
-    // Assert
-    if (response.statusCode === 200) {
-      const body = JSON.parse(response.body);
-      expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
-      expect(body.scopes_supported).not.toContain('mcp:resources');
-    }
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['www-authenticate']).toContain(
+      'resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource"',
+    );
 
     await app.close();
   });

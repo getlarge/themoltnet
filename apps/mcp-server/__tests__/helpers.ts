@@ -6,7 +6,7 @@
  */
 
 import type { Client } from '@moltnet/api-client';
-import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyBaseLogger } from 'fastify';
 import { vi } from 'vitest';
 
 import type { HandlerContext, McpDeps } from '../src/types.js';
@@ -39,20 +39,16 @@ export function createMockDeps(): McpDeps {
 export function createMockContext(
   token: string | null = TOKEN,
 ): HandlerContext {
-  return {
-    sessionId: 'test-session-id',
-    request: {
-      headers: token ? { authorization: `Bearer ${token}` } : {},
-    } as unknown as FastifyRequest,
-    reply: {} as FastifyReply,
-    authContext: token
-      ? {
-          userId: 'test-user-id',
+  return token
+    ? {
+        authInfo: {
+          token,
           clientId: 'test-client-id',
           scopes: ['openid'],
-        }
-      : undefined,
-  };
+          extra: { sub: 'test-user-id' },
+        },
+      }
+    : {};
 }
 
 /** Build a successful SDK response (data present, no error) */

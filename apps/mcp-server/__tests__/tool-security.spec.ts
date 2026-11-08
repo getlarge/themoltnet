@@ -1,26 +1,40 @@
-import type { ToolHandler } from '@getlarge/fastify-mcp';
+import { createMcpHandler } from '@modelcontextprotocol/server';
 import { MCP_CLIENT_SCOPES } from '@moltnet/models';
-import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { buildApp } from '../src/app.js';
+import { McpRegistry } from '../src/mcp-registry.js';
 import {
-  installToolSecurityPolicy,
   insufficientScopeChallenge,
   missingScopeFromResult,
   oauthScopes,
+  withScopeChallenge,
 } from '../src/tool-security.js';
 import type { CallToolResult } from '../src/types.js';
 import { errorResult, textResult } from '../src/utils.js';
 import { createMockDeps } from './helpers.js';
 
 const RESOURCE_URI = 'https://mcp.example.test';
+const MCP_HEADERS = {
+  'content-type': 'application/json',
+  accept: 'application/json, text/event-stream',
+};
 
 interface ListedTool {
   name: string;
-  securitySchemes?: Array<{ type: string; scopes: string[] }>;
   _meta?: Record<string, unknown>;
+}
+
+/** Last JSON-RPC message of a JSON or SSE MCP response body. */
+function lastMessage(body: string, contentType: string) {
+  if (!contentType.includes('text/event-stream')) return JSON.parse(body);
+  const data = body
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => line.slice('data:'.length).trim())
+    .filter(Boolean);
+  return JSON.parse(data[data.length - 1] ?? '{}');
 }
 
 async function listTools(): Promise<ListedTool[]> {
@@ -37,27 +51,15 @@ async function listTools(): Promise<ListedTool[]> {
     const response = await app.inject({
       method: 'POST',
       url: '/mcp',
-      headers: { 'content-type': 'application/json' },
+      headers: MCP_HEADERS,
       payload: { jsonrpc: '2.0', method: 'tools/list', id: 1 },
     });
     expect(response.statusCode).toBe(200);
-    return JSON.parse(response.body).result.tools as ListedTool[];
+    return lastMessage(response.body, String(response.headers['content-type']))
+      .result.tools as ListedTool[];
   } finally {
     await app.close();
   }
-}
-
-/** Minimal stand-in for the plugin's `mcpAddTool` registry. */
-function fakeApp() {
-  const registered = new Map<
-    string,
-    { definition: Record<string, unknown>; handler?: ToolHandler }
-  >();
-  const app = {
-    mcpAddTool: (definition: Record<string, unknown>, handler?: ToolHandler) =>
-      registered.set(definition.name as string, { definition, handler }),
-  } as unknown as FastifyInstance;
-  return { app, registered };
 }
 
 function tool(name: string, scopes: Parameters<typeof oauthScopes>) {
@@ -69,19 +71,42 @@ function tool(name: string, scopes: Parameters<typeof oauthScopes>) {
   };
 }
 
-const handlerContext = {} as Parameters<ToolHandler>[1];
+/** Call one tool through the SDK's real HTTP handler, without Fastify. */
+async function callTool(
+  registry: McpRegistry,
+  name: string,
+): Promise<CallToolResult> {
+  const handler = createMcpHandler(() =>
+    registry.createServer({ name: 'test', version: '0.0.0' }),
+  );
+  const response = await handler.fetch(
+    new Request('http://localhost/mcp', {
+      method: 'POST',
+      headers: MCP_HEADERS,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name, arguments: {} },
+      }),
+    }),
+  );
+  const message = lastMessage(
+    await response.text(),
+    response.headers.get('content-type') ?? '',
+  );
+  await handler.close();
+  return message.result as CallToolResult;
+}
 
 describe('MCP tool securitySchemes', () => {
-  it('publishes every tool scheme top-level and in _meta', async () => {
+  it('publishes every tool scheme in _meta', async () => {
     const tools = await listTools();
 
     for (const listed of tools) {
-      expect(listed.securitySchemes, listed.name).toEqual([
+      expect(listed._meta?.securitySchemes, listed.name).toEqual([
         { type: 'oauth2', scopes: expect.any(Array) },
       ]);
-      expect(listed._meta?.securitySchemes, listed.name).toEqual(
-        listed.securitySchemes,
-      );
     }
   });
 
@@ -95,7 +120,7 @@ describe('MCP tool securitySchemes', () => {
       'entries_list',
       'entries_search',
     ]) {
-      expect(byName.get(name)?.securitySchemes, name).toEqual(
+      expect(byName.get(name)?._meta?.securitySchemes, name).toEqual(
         oauthScopes('diary:read'),
       );
     }
@@ -105,7 +130,9 @@ describe('MCP tool securitySchemes', () => {
     const tools = await listTools();
 
     const declared = tools.flatMap(
-      (listed) => listed.securitySchemes?.[0]?.scopes ?? [],
+      (listed) =>
+        (listed._meta?.securitySchemes as Array<{ scopes: string[] }>)[0]
+          ?.scopes ?? [],
     );
 
     for (const scope of declared) {
@@ -168,48 +195,67 @@ describe('insufficientScopeChallenge', () => {
   });
 });
 
-describe('installToolSecurityPolicy', () => {
+describe('withScopeChallenge', () => {
+  it('passes other results through untouched', () => {
+    const ok = textResult({ items: [] });
+    const notFound = errorResult('Diary not found');
+
+    expect(withScopeChallenge(ok, RESOURCE_URI, ['diary:read'])).toBe(ok);
+    expect(withScopeChallenge(notFound, RESOURCE_URI, ['diary:read'])).toBe(
+      notFound,
+    );
+  });
+});
+
+describe('McpRegistry tool policies', () => {
   it('rejects a tool that declares no securitySchemes', () => {
-    const { app } = fakeApp();
-    installToolSecurityPolicy(app, { resourceUri: RESOURCE_URI });
+    const registry = new McpRegistry();
 
     expect(() =>
-      app.mcpAddTool(
-        { name: 'undeclared', description: 'x', inputSchema: Type.Object({}) },
-        async () => textResult({}),
+      registry.mcpAddTool(
+        { name: 'diaries_list', inputSchema: Type.Object({}) },
+        () => textResult({}),
       ),
-    ).toThrow('MCP tool undeclared must declare _meta.securitySchemes');
+    ).toThrow('MCP tool diaries_list must declare _meta.securitySchemes');
   });
 
-  it('copies _meta.securitySchemes to the top-level field', () => {
-    const { app, registered } = fakeApp();
-    installToolSecurityPolicy(app, { resourceUri: RESOURCE_URI });
+  it('rejects a tool without an annotation policy', () => {
+    const registry = new McpRegistry();
 
-    app.mcpAddTool(tool('diaries_list', ['diary:read']), async () =>
+    expect(() =>
+      registry.mcpAddTool(tool('future_unclassified_tool', []), () =>
+        textResult({}),
+      ),
+    ).toThrow(
+      'Missing MCP tool annotation policy for future_unclassified_tool',
+    );
+  });
+
+  it('collects the scopes every registered tool declares', () => {
+    const registry = new McpRegistry();
+
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), () =>
+      textResult({}),
+    );
+    registry.mcpAddTool(tool('teams_list', ['team:read']), () =>
       textResult({}),
     );
 
-    expect(registered.get('diaries_list')?.definition.securitySchemes).toEqual(
-      oauthScopes('diary:read'),
-    );
+    expect([...registry.toolScopes]).toEqual(['diary:read', 'team:read']);
   });
 
   it('attaches a challenge asking for every registered tool scope', async () => {
     // Arrange
-    const { app, registered } = fakeApp();
-    installToolSecurityPolicy(app, { resourceUri: RESOURCE_URI });
-    app.mcpAddTool(tool('diaries_list', ['diary:read']), async () =>
+    const registry = new McpRegistry({ resourceUri: RESOURCE_URI });
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), () =>
       errorResult('Missing required scope: diary:read'),
     );
-    app.mcpAddTool(tool('teams_list', ['team:read']), async () =>
+    registry.mcpAddTool(tool('teams_list', ['team:read']), () =>
       textResult({}),
     );
 
     // Act
-    const result = (await registered.get('diaries_list')!.handler!(
-      {},
-      handlerContext,
-    )) as CallToolResult;
+    const result = await callTool(registry, 'diaries_list');
 
     // Assert
     expect(result.isError).toBe(true);
@@ -221,33 +267,15 @@ describe('installToolSecurityPolicy', () => {
     ]);
   });
 
-  it('passes other results through untouched', async () => {
-    const { app, registered } = fakeApp();
-    installToolSecurityPolicy(app, { resourceUri: RESOURCE_URI });
-    const ok = textResult({ items: [] });
-    const notFound = errorResult('Diary not found');
-    const handler = vi
-      .fn<ToolHandler>()
-      .mockResolvedValueOnce(ok)
-      .mockResolvedValueOnce(notFound);
-    app.mcpAddTool(tool('diaries_list', ['diary:read']), handler);
-    const registeredHandler = registered.get('diaries_list')!.handler!;
-
-    expect(await registeredHandler({}, handlerContext)).toBe(ok);
-    expect(await registeredHandler({}, handlerContext)).toBe(notFound);
-  });
-
   it('adds no challenge when authorization is disabled', async () => {
-    const { app, registered } = fakeApp();
-    installToolSecurityPolicy(app, {});
-    const denial = errorResult('Missing required scope: diary:read');
-    app.mcpAddTool(tool('diaries_list', ['diary:read']), async () => denial);
-
-    const result = await registered.get('diaries_list')!.handler!(
-      {},
-      handlerContext,
+    const registry = new McpRegistry();
+    registry.mcpAddTool(tool('diaries_list', ['diary:read']), () =>
+      errorResult('Missing required scope: diary:read'),
     );
 
-    expect(result).toBe(denial);
+    const result = await callTool(registry, 'diaries_list');
+
+    expect(result.isError).toBe(true);
+    expect(result._meta?.['mcp/www_authenticate']).toBeUndefined();
   });
 });

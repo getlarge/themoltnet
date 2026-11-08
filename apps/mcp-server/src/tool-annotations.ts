@@ -1,8 +1,4 @@
-import type { Tool, ToolHandler } from '@getlarge/fastify-mcp';
-import type { FastifyInstance } from 'fastify';
-import type { TObject } from 'typebox';
-
-type ToolAnnotations = NonNullable<Tool['annotations']>;
+import type { ToolAnnotations } from '@modelcontextprotocol/server';
 
 const READ_ONLY_TOOLS = new Set([
   'agent_lookup',
@@ -114,22 +110,4 @@ export function annotationsForTool(name: string): ToolAnnotations {
     idempotentHint: IDEMPOTENT_TOOLS.has(name),
     openWorldHint: OPEN_WORLD_TOOLS.has(name),
   };
-}
-
-/** Apply one reviewable annotation policy to every registered MCP tool. */
-export function installToolAnnotationPolicy(app: FastifyInstance): void {
-  const addTool = app.mcpAddTool.bind(app);
-
-  app.mcpAddTool = (<TSchema extends TObject>(
-    definition: Omit<Tool, 'inputSchema'> & { inputSchema: TSchema },
-    handler?: ToolHandler<TSchema>,
-  ) => {
-    addTool(
-      {
-        ...definition,
-        annotations: annotationsForTool(definition.name),
-      },
-      handler,
-    );
-  }) as typeof app.mcpAddTool;
 }

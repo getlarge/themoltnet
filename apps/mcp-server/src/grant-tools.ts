@@ -13,8 +13,8 @@ import {
   revokeDiaryGrant,
   revokeTaskGrant,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   GrantCreateInput,
   GrantListInput,
@@ -205,11 +205,8 @@ async function handleTaskGrantList(
 
 // --- Tool registration ---
 
-export function registerGrantTools(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddTool(
+export function registerGrantTools(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddTool(
     {
       name: 'diary_grants_create',
       _meta: { securitySchemes: oauthScopes('diary:manage') },
@@ -221,7 +218,7 @@ export function registerGrantTools(
     async (args, ctx) => handleGrantCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'diary_grants_revoke',
       _meta: { securitySchemes: oauthScopes('diary:manage') },
@@ -232,7 +229,7 @@ export function registerGrantTools(
     async (args, ctx) => handleGrantRevoke(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'diary_grants_list',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -244,7 +241,7 @@ export function registerGrantTools(
     async (args, ctx) => handleGrantList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'task_grants_create',
       _meta: { securitySchemes: oauthScopes('task:manage') },
@@ -256,7 +253,7 @@ export function registerGrantTools(
     async (args, ctx) => handleTaskGrantCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'task_grants_revoke',
       _meta: { securitySchemes: oauthScopes('task:manage') },
@@ -267,7 +264,7 @@ export function registerGrantTools(
     async (args, ctx) => handleTaskGrantRevoke(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'task_grants_list',
       _meta: { securitySchemes: oauthScopes('task:read') },

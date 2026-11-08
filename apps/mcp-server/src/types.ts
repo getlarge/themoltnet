@@ -3,32 +3,31 @@
  *
  * The MCP server is a thin protocol adapter that communicates
  * with the REST API via the generated API client SDK.
- * Auth context is provided per-request by @getlarge/fastify-mcp.
+ * Auth context is provided per request by the MCP route, from the verified
+ * bearer token (`@modelcontextprotocol/server` `AuthInfo`).
  *
  * Private keys never traverse the MCP server — agents sign locally
  * and submit signatures via the DBOS signing workflow.
  */
 
 import type {
+  AuthInfo,
   CallToolResult,
   GetPromptResult,
   ReadResourceResult,
-  ToolHandler,
-} from '@getlarge/fastify-mcp';
+} from '@modelcontextprotocol/server';
 import type { Client } from '@moltnet/api-client';
 import type { FastifyBaseLogger } from 'fastify';
 
-// HandlerContext is not re-exported from the package index but is available
-// via the Fastify module augmentation (mcpAddTool handler signature).
-// Extract it from the ToolHandler generic to get a proper type.
-type ExtractContext<T> = T extends (
-  params: infer _P,
-  context: infer C,
-) => infer _R
-  ? C
-  : never;
-
-export type HandlerContext = ExtractContext<ToolHandler>;
+/**
+ * Per-request context handed to tool, resource and prompt handlers.
+ *
+ * `authInfo` is the verified access token; it is absent when authorization is
+ * disabled (local development and unit tests).
+ */
+export interface HandlerContext {
+  authInfo?: AuthInfo;
+}
 
 export type { CallToolResult, GetPromptResult, ReadResourceResult };
 

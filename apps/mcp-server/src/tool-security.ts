@@ -1,7 +1,4 @@
-import type { Tool, ToolHandler } from '@getlarge/fastify-mcp';
 import { type CredentialScope, MCP_CLIENT_SCOPES } from '@moltnet/models';
-import type { FastifyInstance } from 'fastify';
-import type { TObject } from 'typebox';
 
 import type { CallToolResult } from './types.js';
 
@@ -68,66 +65,33 @@ export function insufficientScopeChallenge(
   ].join(', ');
 }
 
+/** The `securitySchemes` a tool declared in its `_meta`, or `null`. */
+export function securitySchemesOf(
+  meta: Record<string, unknown> | undefined,
+): OAuth2SecurityScheme[] | null {
+  const schemes = meta?.securitySchemes;
+  return Array.isArray(schemes) ? (schemes as OAuth2SecurityScheme[]) : null;
+}
+
 /**
- * Enforce and publish each tool's `_meta.securitySchemes`, and turn REST scope
- * denials into OAuth step-up challenges.
- *
- * Tools declare their schemes in `_meta` (the plugin's `Tool` type has no
- * top-level field for it); this copies them top-level as well, the placement
- * OpenAI documents as primary. A denial gains `_meta["mcp/www_authenticate"]`,
- * the signal OpenAI's connector needs before it offers re-linking.
- *
- * `resourceUri` is unset when authorization is disabled; no challenge is
- * added then.
+ * Add `_meta["mcp/www_authenticate"]` to a tool result that failed for lack
+ * of a scope: the signal OpenAI's connector needs before it offers
+ * re-linking. Other results pass through untouched.
  */
-export function installToolSecurityPolicy(
-  app: FastifyInstance,
-  { resourceUri }: { resourceUri?: string },
-): void {
-  const addTool = app.mcpAddTool.bind(app);
-  const toolScopes = new Set<CredentialScope>();
-
-  app.mcpAddTool = (<TSchema extends TObject>(
-    definition: Omit<Tool, 'inputSchema'> & { inputSchema: TSchema },
-    handler?: ToolHandler<TSchema>,
-  ) => {
-    const securitySchemes = definition._meta?.securitySchemes as
-      | OAuth2SecurityScheme[]
-      | undefined;
-    if (!securitySchemes) {
-      throw new Error(
-        `MCP tool ${definition.name} must declare _meta.securitySchemes`,
-      );
-    }
-    for (const scheme of securitySchemes) {
-      for (const scope of scheme.scopes) toolScopes.add(scope);
-    }
-
-    const withChallenge: ToolHandler<TSchema> | undefined =
-      handler && resourceUri
-        ? async (params, context) => {
-            const result = await handler(params, context);
-            const missingScope = missingScopeFromResult(result);
-            if (!missingScope) return result;
-            return {
-              ...result,
-              _meta: {
-                ...result._meta,
-                'mcp/www_authenticate': [
-                  insufficientScopeChallenge(
-                    resourceUri,
-                    missingScope,
-                    toolScopes,
-                  ),
-                ],
-              },
-            };
-          }
-        : handler;
-
-    addTool(
-      { ...definition, securitySchemes } as typeof definition,
-      withChallenge,
-    );
-  }) as typeof app.mcpAddTool;
+export function withScopeChallenge(
+  result: CallToolResult,
+  resourceUri: string,
+  toolScopes: Iterable<CredentialScope>,
+): CallToolResult {
+  const missingScope = missingScopeFromResult(result);
+  if (!missingScope) return result;
+  return {
+    ...result,
+    _meta: {
+      ...result._meta,
+      'mcp/www_authenticate': [
+        insufficientScopeChallenge(resourceUri, missingScope, toolScopes),
+      ],
+    },
+  };
 }
