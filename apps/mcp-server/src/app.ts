@@ -33,6 +33,7 @@ import { registerTaskApp } from './task-app.js';
 import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
 import { installToolAnnotationPolicy } from './tool-annotations.js';
+import { installToolSecurityPolicy } from './tool-security.js';
 import type { McpDeps } from './types.js';
 import { registerWellKnownMetadata } from './well-known-metadata.js';
 
@@ -337,6 +338,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   });
 
   installToolAnnotationPolicy(app);
+  installToolSecurityPolicy(app, {
+    resourceUri: authorization.enabled ? authorization.resourceUri : undefined,
+  });
 
   // Inject MCP app configuration for resource metadata
   const mcpAppConfig = resolveMcpAppConfig(config);
