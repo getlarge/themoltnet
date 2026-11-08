@@ -81,6 +81,14 @@
       "platform:cli"
     ],
     "targets": {
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/.github/workflows/**/*",
+          "{workspaceRoot}/docker-compose*.yaml"
+        ]
+      },
       "test:agent-bundle": {
         "executor": "nx:run-script",
         "options": {
