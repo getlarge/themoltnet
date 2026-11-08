@@ -1920,10 +1920,8 @@ jobs:
       contents: read
     needs: [affected]
     env:
-      # Absurd Postgres host port from docker-compose.base.yaml. globalSetup
-      # defaults to this same URL; pinned here to match the other e2e jobs'
-      # belt-and-suspenders connection-string pinning.
-      ORCHESTRATION_ABSURD_URL: postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle
+      # Publish the container port without reserving a fixed host port.
+      ISSUE_LIFECYCLE_POSTGRES_BIND: '5432'
     steps:
       - name: Skip if Orchestration E2E not affected
         if: needs.affected.outputs.e2e-orchestration != 'true'
@@ -1946,6 +1944,12 @@ jobs:
         run: |
           docker compose -f docker-compose.e2e.yaml up -d --wait issue-lifecycle-db
           docker compose -f docker-compose.e2e.yaml run --rm --build issue-lifecycle-db-migrate
+          db_port=$(docker compose -f docker-compose.e2e.yaml port issue-lifecycle-db 5432 | awk -F: 'NR == 1 { print $NF }')
+          if [[ ! "$db_port" =~ ^[0-9]+$ ]]; then
+            echo 'Could not resolve the Absurd Postgres host port' >&2
+            exit 1
+          fi
+          echo "ORCHESTRATION_ABSURD_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:${db_port}/issue_lifecycle" >> "$GITHUB_ENV"
       - name: Run Orchestration Durability E2E tests
         if: needs.affected.outputs.e2e-orchestration == 'true'
         run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e
