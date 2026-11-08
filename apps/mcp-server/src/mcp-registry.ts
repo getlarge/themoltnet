@@ -17,6 +17,7 @@ import type { CredentialScope } from '@moltnet/models';
 import { type Static, type TObject, Type } from 'typebox';
 
 import type { McpAppResourceMetaOptions } from './mcp-app-ui.js';
+import { MCP_ATTR, withMcpSpan } from './mcp-telemetry.js';
 import { annotationsForTool } from './tool-annotations.js';
 import { securitySchemesOf, withScopeChallenge } from './tool-security.js';
 import { typebox } from './typebox-schema.js';
@@ -186,21 +187,28 @@ export class McpRegistry {
         annotations: annotationsForTool(definition.name),
         _meta: definition._meta,
       },
-      async (args: Record<string, unknown>, ctx: ServerContext) => {
-        const context = contextOf(ctx);
-        if (!resourceUri) return handler(args, context);
+      (args: Record<string, unknown>, ctx: ServerContext) =>
+        withMcpSpan(
+          'tools/call',
+          definition.name,
+          { [MCP_ATTR.TOOL_NAME]: definition.name },
+          async () => {
+            const context = contextOf(ctx);
+            if (!resourceUri) return handler(args, context);
 
-        // The declared scopes are the REST routes' requiredScopes, so a token
-        // lacking one would be refused there anyway. Answer here instead,
-        // with the challenge, and skip the round trip.
-        const granted = new Set(context.authInfo?.scopes ?? []);
-        const missing = requiredScopes.find((scope) => !granted.has(scope));
-        const result = missing
-          ? errorResult(`Missing required scope: ${missing}`)
-          : await handler(args, context);
-        // Also covers a scope the REST API demands beyond the declaration.
-        return withScopeChallenge(result, resourceUri, toolScopes);
-      },
+            // The declared scopes are the REST routes' requiredScopes, so a
+            // token lacking one would be refused there anyway. Answer here
+            // instead, with the challenge, and skip the round trip.
+            const granted = new Set(context.authInfo?.scopes ?? []);
+            const missing = requiredScopes.find((scope) => !granted.has(scope));
+            const result = missing
+              ? errorResult(`Missing required scope: ${missing}`)
+              : await handler(args, context);
+            // Also covers a scope the REST API demands beyond the declaration.
+            return withScopeChallenge(result, resourceUri, toolScopes);
+          },
+          (result) => result.isError === true,
+        ),
     );
   }
 
@@ -222,7 +230,7 @@ export class McpRegistry {
         definition.name,
         new ResourceTemplate(definition.uriPattern, { list: undefined }),
         metadata,
-        (uri, _variables, ctx) => handler(uri.href, contextOf(ctx)),
+        (uri, _variables, ctx) => this.#readResource(handler, uri, ctx),
       );
       return;
     }
@@ -230,7 +238,20 @@ export class McpRegistry {
       definition.name,
       definition.uriPattern,
       metadata,
-      (uri, ctx) => handler(uri.href, contextOf(ctx)),
+      (uri, ctx) => this.#readResource(handler, uri, ctx),
+    );
+  }
+
+  #readResource(
+    handler: ResourceHandler,
+    uri: URL,
+    ctx: ServerContext,
+  ): Promise<ReadResourceResult> {
+    return withMcpSpan(
+      'resources/read',
+      uri.href,
+      { [MCP_ATTR.RESOURCE_URI]: uri.href },
+      async () => handler(uri.href, contextOf(ctx)),
     );
   }
 
@@ -250,10 +271,16 @@ export class McpRegistry {
       definition.name,
       { description: definition.description, argsSchema: typebox(argsSchema) },
       (promptArgs, ctx) =>
-        handler(
+        withMcpSpan(
+          'prompts/get',
           definition.name,
-          promptArgs as Record<string, string>,
-          contextOf(ctx),
+          { [MCP_ATTR.PROMPT_NAME]: definition.name },
+          async () =>
+            handler(
+              definition.name,
+              promptArgs as Record<string, string>,
+              contextOf(ctx),
+            ),
         ),
     );
   }
