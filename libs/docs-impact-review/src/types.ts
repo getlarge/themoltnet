@@ -157,6 +157,8 @@ export interface CoverageGap {
 }
 
 export interface DocsImpactReport {
+  /** Every initial and semantic repair task, retained across replay. */
+  taskIds?: string[];
   version: 1;
   repo: string;
   pr: number;

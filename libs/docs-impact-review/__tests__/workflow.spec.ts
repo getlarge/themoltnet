@@ -3,6 +3,7 @@ import type {
   SdkTaskAttempt,
   TaskClient,
 } from '@themoltnet/tasks-orchestrator';
+import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { parseReviewConfig } from '../src/review-config.js';
@@ -175,6 +176,28 @@ describe('runDocsImpactReview', () => {
       findings: [],
     });
     expect(created).toHaveLength(0);
+  });
+
+  it('restores completed stage receipts and task accounting without more submissions', async () => {
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': 'export const flags: string[] = [];\n',
+    });
+    const tasks = fakeTasks([json({ version: 1, changes: [] })]);
+    const ctx = replayContext('docs-execution');
+    const first = await runDocsImpactReview(
+      { git: repo.git, tasks: tasks.client, ctx },
+      input(head),
+    );
+    ctx.resetForReplay();
+    const resumed = await runDocsImpactReview(
+      { git: repo.git, tasks: tasks.client, ctx },
+      input(head),
+    );
+    expect(tasks.created).toHaveLength(1);
+    expect(resumed.taskIds).toEqual(['task-1']);
+    expect(resumed.timings.stages).toEqual(first.timings.stages);
+    expect(resumed.repairs).toEqual(first.repairs);
+    expect(resumed.outcome).toBe(first.outcome);
   });
 
   it('waits for coverage before submitting a docs check in serial mode', async () => {

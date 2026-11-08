@@ -1,10 +1,15 @@
 import {
+  beginWorkflowStep,
+  completeWorkflowStep,
   createFreeformRepairTask,
   createInlineContext,
+  createTaskStep,
+  isWorkflowInterruption,
   type Logger,
   type SdkTaskAttempt,
   type TaskClient,
   type TaskMessage,
+  type ValidatedTaskOutcome,
   waitForValidatedTask,
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
@@ -193,23 +198,51 @@ async function runStage<T>(
   stage: StageName,
   parse: (output: unknown) => T,
   timings: DocsImpactReport['timings']['stages'],
+  taskIds: string[],
 ): Promise<T> {
   const now = deps.now ?? Date.now;
   const pollIntervalSec = input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC;
-  const createdAt = now();
-  const task = await deps.tasks.createTask(body);
-  const outcome = await waitForValidatedTask(task, {
-    tasks: withReadRetries(deps.tasks, deps.ctx, pollIntervalSec, deps.logger),
-    ctx: deps.ctx,
-    pollIntervalSec,
-    parse,
-    logger: deps.logger,
-    description: `docs-impact ${stage}`,
-    logPrefix: 'docs_impact',
-    maxRepairs: 1,
-    createRepairTask: (args) =>
-      createFreeformRepairTask(deps.tasks, body, args),
-  });
+  const receipt = await beginWorkflowStep<{
+    outcome: ValidatedTaskOutcome<T>;
+    timing: NonNullable<DocsImpactReport['timings']['stages'][StageName]>;
+  }>(deps.ctx, `docs.${stage}.result`);
+  if (receipt.done) {
+    timings[stage] = receipt.state.timing;
+  }
+  const createdAt = await deps.ctx.step(`docs.${stage}.started`, () =>
+    Promise.resolve(now()),
+  );
+  const outcome = receipt.done
+    ? receipt.state.outcome
+    : await (async () => {
+        const task = await createTaskStep(
+          deps.ctx,
+          `docs.${stage}.create`,
+          ({ idempotencyKey }) =>
+            deps.tasks.createTask(body, { idempotencyKey }),
+        );
+        return waitForValidatedTask(task, {
+          tasks: withReadRetries(
+            deps.tasks,
+            deps.ctx,
+            pollIntervalSec,
+            deps.logger,
+          ),
+          ctx: deps.ctx,
+          pollIntervalSec,
+          parse,
+          logger: deps.logger,
+          description: `docs-impact ${stage}`,
+          logPrefix: 'docs_impact',
+          maxRepairs: 1,
+          createRepairTask: (args) =>
+            createFreeformRepairTask(deps.tasks, body, args),
+        });
+      })();
+  for (const { outcome: item } of outcome.chain) {
+    const id = item.kind === 'accepted' ? item.result.task.id : item.task.id;
+    if (!taskIds.includes(id)) taskIds.push(id);
+  }
   const observedMs = now() - createdAt;
   const finalTask =
     outcome.kind === 'accepted' ? outcome.result.task : outcome.task;
@@ -219,13 +252,25 @@ async function runStage<T>(
       : outcome.kind === 'exhausted'
         ? outcome.attempt
         : outcome.attempts.at(-1);
-  timings[stage] = stageTiming({
-    task: finalTask,
-    attempt,
-    messages: await transcriptHead(deps.tasks, finalTask.id, attempt),
-    observedMs,
-  });
-  if (outcome.kind === 'accepted') return outcome.result.state;
+  timings[stage] = receipt.done
+    ? receipt.state.timing
+    : stageTiming({
+        task: finalTask,
+        attempt,
+        messages: await transcriptHead(deps.tasks, finalTask.id, attempt),
+        observedMs,
+      });
+  if (!receipt.done)
+    await completeWorkflowStep(deps.ctx, receipt, {
+      outcome,
+      timing: timings[stage],
+    });
+  if (outcome.kind === 'accepted') {
+    // Parsers also reconstruct diagnostic repairs/dropped evidence in the report.
+    return receipt.done
+      ? parse(outcome.result.attempt.output)
+      : outcome.result.state;
+  }
   const budgetReason = attempt?.error?.code
     ? budgetErrorReason(
         attempt.error.code,
@@ -394,6 +439,8 @@ async function settle<T>(
   promise: Promise<T>,
 ): Promise<PromiseSettledResult<T>> {
   const [result] = await Promise.allSettled([promise]);
+  if (result.status === 'rejected' && isWorkflowInterruption(result.reason))
+    throw result.reason;
   return result;
 }
 
@@ -413,7 +460,9 @@ export async function runDocsImpactReview(
     ...(config.instructions ? { instructions: config.instructions } : {}),
   };
   const now = deps.now ?? Date.now;
-  const started = now();
+  const started = await deps.ctx.step('docs.started', () =>
+    Promise.resolve(now()),
+  );
   const timings: DocsImpactReport['timings'] = {
     ingestMs: 0,
     retrievalMs: 0,
@@ -433,6 +482,7 @@ export async function runDocsImpactReview(
     gaps: [],
     searchTermsDropped: [],
     repairs: [],
+    taskIds: [],
     manifest: {
       files: 0,
       byCategory: countByCategory([]),
@@ -526,6 +576,7 @@ export async function runDocsImpactReview(
           return parsed;
         }),
         timings.stages,
+        report.taskIds ?? [],
       );
       report.contractChanges = extraction.changes;
       // A change the model reported but could not support was not reviewed:
@@ -607,6 +658,7 @@ export async function runDocsImpactReview(
           ),
         ),
         timings.stages,
+        report.taskIds ?? [],
       );
     const runDocsCheck = () =>
       docsHunks.hunks.length > 0
@@ -619,13 +671,19 @@ export async function runDocsImpactReview(
               parseDocsCheck(output, docsHunks.hunks, repairs),
             ),
             timings.stages,
+            report.taskIds ?? [],
           )
         : Promise.resolve([]);
     // The adaptive review uses one worker for this profile, so it submits the
     // independent tasks one at a time. Other callers retain parallel dispatch.
-    const [coverageResult, docsCheckResult] = options.serialTaskDispatch
-      ? [await settle(runCoverage()), await settle(runDocsCheck())]
-      : await Promise.allSettled([runCoverage(), runDocsCheck()]);
+    const [coverageResult, docsCheckResult] =
+      options.serialTaskDispatch || deps.ctx.suspendsOnSleep
+        ? [await settle(runCoverage()), await settle(runDocsCheck())]
+        : await Promise.allSettled([runCoverage(), runDocsCheck()]);
+    for (const result of [coverageResult, docsCheckResult]) {
+      if (result.status === 'rejected' && isWorkflowInterruption(result.reason))
+        throw result.reason;
+    }
     if (coverageResult.status === 'rejected') throw coverageResult.reason;
     const coverage = coverageResult.value;
     let docsFindings: DocsFinding[] = [];
@@ -662,6 +720,7 @@ export async function runDocsImpactReview(
       docsFindings.length > 0 ? 'updates-needed' : coverageOutcome;
     return finish();
   } catch (error) {
+    if (isWorkflowInterruption(error)) throw error;
     if (error instanceof StageBudgetExceeded) {
       report.outcome = 'incomplete';
       report.gaps.push({

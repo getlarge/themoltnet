@@ -3,10 +3,14 @@ import { createHash } from 'node:crypto';
 import { toOutputContractSchema } from '@moltnet/task-schemas';
 import { type Rubric } from '@moltnet/tasks';
 import {
+  beginWorkflowStep,
+  completeWorkflowStep,
   createInlineContext,
+  createTaskStep,
   parallelTasks,
   type TaskClient,
   waitForAcceptedTask,
+  type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 import { type Static, type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -407,7 +411,11 @@ export async function runComplexityReview(
   tasks: TaskClient,
   input: ReviewInput,
   evidence: ReviewEvidence,
-  options: { serialDomainDispatch?: boolean } = {},
+  options: {
+    serialDomainDispatch?: boolean;
+    ctx?: WorkflowContext;
+    onTask?: (id: string) => void;
+  } = {},
 ): Promise<{
   taskId: string;
   taskIds: string[];
@@ -418,33 +426,53 @@ export async function runComplexityReview(
   summarizedPaths: string[];
   generatedPaths: string[];
 }> {
-  const started = Date.now();
-  const ctx = {
+  const ctx = options.ctx ?? {
     ...createInlineContext(),
     sleepFor: (_name: string, seconds: number) =>
       new Promise<void>((resolve) => {
         setTimeout(resolve, seconds * 1000);
       }),
   };
+  const started = await ctx.step('complexity.started', () =>
+    Promise.resolve(Date.now()),
+  );
   const awaitParsed = async <T>(
     taskId: string,
     parse: (output: unknown) => T,
-  ): Promise<T> =>
-    (
+  ): Promise<T> => (await acceptedResult(taskId, parse)).state;
+  const acceptedResult = async <T>(
+    taskId: string,
+    parse: (output: unknown) => T,
+  ) => {
+    const handle = await beginWorkflowStep<
+      Awaited<ReturnType<typeof waitForAcceptedTask<T>>>
+    >(ctx, `complexity.${taskId}.result`);
+    if (handle.done) return handle.state;
+    return completeWorkflowStep(
+      ctx,
+      handle,
       await waitForAcceptedTask(taskId, {
         tasks,
         ctx,
         pollIntervalSec: 2,
         parse,
-      })
-    ).state;
-  const mapTask = await tasks.createTask(buildChangeMapTask(input, evidence), {
-    idempotencyKey: idempotencyKey(input, 'map'),
-  });
+      }),
+    );
+  };
+  const mapTask = await createTaskStep(ctx, 'complexity.map.create', (meta) =>
+    tasks.createTask(buildChangeMapTask(input, evidence), {
+      idempotencyKey:
+        (options.ctx ? meta.idempotencyKey : undefined) ??
+        idempotencyKey(input, 'map'),
+    }),
+  );
+  options.onTask?.(mapTask.id);
   const groups = await awaitParsed(mapTask.id, (output) =>
     parseChangeMap(output, evidence),
   );
-  const mappedAt = Date.now();
+  const mappedAt = await ctx.step('complexity.mapped', () =>
+    Promise.resolve(Date.now()),
+  );
   const work = buildDomainWork(groups, evidence);
   const selectedWork = work.slice(
     0,
@@ -457,10 +485,12 @@ export async function runComplexityReview(
     parallelTasks({
       ctx,
       items,
-      createStepName: (item) => 'domain.' + item.id + '.create',
-      create: (item) =>
+      createStepName: (item) => 'complexity.domain.' + item.id + '.create',
+      create: (item, _index, meta) =>
         tasks.createTask(buildDomainTask(input, evidence, item), {
-          idempotencyKey: idempotencyKey(input, 'domain:' + item.id),
+          idempotencyKey:
+            (options.ctx ? meta.idempotencyKey : undefined) ??
+            idempotencyKey(input, 'domain:' + item.id),
         }),
       awaitResult: (task, item) =>
         awaitParsed(task.id, (output) =>
@@ -468,7 +498,11 @@ export async function runComplexityReview(
         ),
       // The reusable workflow has two workers. More queued tasks can exhaust
       // their dispatch timeout while earlier tasks occupy both workers.
-      concurrency: 2,
+      // One Absurd sleep parks the whole handler; remote tasks still run in parallel.
+      concurrency: ctx.suspendsOnSleep ? 1 : 2,
+      onCreated: (created) => {
+        for (const task of created) options.onTask?.(task.id);
+      },
     });
   const batches: Array<Awaited<ReturnType<typeof runDomainBatch>>> = [];
   const batchSize = options.serialDomainDispatch ? 1 : 2;
@@ -484,15 +518,34 @@ export async function runComplexityReview(
     created: batches.flatMap((batch) => batch.created),
     results: batches.flatMap((batch) => batch.results),
   };
-  const domainsAt = Date.now();
-  const synthesisTask = await tasks.createTask(
-    buildSynthesisTask(input, evidence, domains.results, unreviewedDomainWork),
-    { idempotencyKey: idempotencyKey(input, 'synthesis') },
+  const domainsAt = await ctx.step('complexity.domains', () =>
+    Promise.resolve(Date.now()),
   );
+  const synthesisTask = await createTaskStep(
+    ctx,
+    'complexity.synthesis.create',
+    (meta) =>
+      tasks.createTask(
+        buildSynthesisTask(
+          input,
+          evidence,
+          domains.results,
+          unreviewedDomainWork,
+        ),
+        {
+          idempotencyKey:
+            (options.ctx ? meta.idempotencyKey : undefined) ??
+            idempotencyKey(input, 'synthesis'),
+        },
+      ),
+  );
+  options.onTask?.(synthesisTask.id);
   const output = await awaitParsed(synthesisTask.id, (value) =>
     parseFreeformReviewOutput(value, input.rubric),
   );
-  const finishedAt = Date.now();
+  const finishedAt = await ctx.step('complexity.finished', () =>
+    Promise.resolve(Date.now()),
+  );
   return {
     summarizedPaths: evidence.files
       .filter((file) => file.summarized)

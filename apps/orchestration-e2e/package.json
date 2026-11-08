@@ -12,7 +12,8 @@
     "@types/pg": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@moltnet/adaptive-review": "workspace:*"
   },
   "nx": {
     "projectType": "application",

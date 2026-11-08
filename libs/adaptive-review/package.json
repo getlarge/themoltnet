@@ -79,6 +79,7 @@
     "@themoltnet/tasks-orchestrator": "workspace:*",
     "re2js": "catalog:",
     "typebox": "catalog:",
-    "yaml": "catalog:"
+    "yaml": "catalog:",
+    "absurd-sdk": "catalog:"
   }
 }

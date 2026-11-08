@@ -26,6 +26,7 @@ function docsResult(
   const taskIds = [
     ...new Set([
       ...createdTaskIds,
+      ...(report.taskIds ?? []),
       ...Object.values(report.timings.stages).flatMap((stage) =>
         stage ? [stage.taskId] : [],
       ),
@@ -75,7 +76,7 @@ function docsResult(
 /** Runs the docs impact review for the pinned revision. */
 export async function runDocsLane(ctx: LaneContext): Promise<LaneResult> {
   const { git, identity } = ctx;
-  const taskIds: string[] = [];
+  const taskIds = ctx.taskIds ?? [];
   const stages = new Map<string, string>();
   const tasks = withCreateHook(ctx.tasks, (task, body) => {
     taskIds.push(task.id);
@@ -90,7 +91,7 @@ export async function runDocsLane(ctx: LaneContext): Promise<LaneResult> {
     ctx.policy.docs?.config,
   );
   const report = await runDocsImpactReview(
-    { git, tasks, ctx: createSleepingContext() },
+    { git, tasks, ctx: ctx.ctx ?? createSleepingContext() },
     {
       repo: identity.repo,
       pr: identity.pr,

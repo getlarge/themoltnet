@@ -8,9 +8,11 @@ import {
   TaskOutcomeError,
   waitForAcceptedTask,
   waitForValidatedTask,
+  type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 
 import type { TaskBudget } from './config.js';
+import { reviewCheckpoint } from './context.js';
 import type { ChangedPath, Lane, ReviewIdentity } from './core.js';
 import type { AdaptivePolicy } from './policy.js';
 import type { PriorFindingOutcome } from './prior-findings.js';
@@ -39,6 +41,9 @@ export interface LaneResult {
 
 /** Everything one lane needs to review the pinned revision. */
 export interface LaneContext {
+  ctx?: WorkflowContext;
+  /** Reconstructed task ledger, also retained when a downstream stage fails. */
+  taskIds?: string[];
   identity: ReviewIdentity;
   git: Git;
   evidence: ReviewEvidence;
@@ -155,10 +160,11 @@ export async function accepted<T>(
   tasks: TaskClient,
   id: string,
   parse: (output: unknown) => T,
+  ctx: WorkflowContext = createSleepingContext(),
 ): Promise<T> {
   const result = await waitForAcceptedTask(id, {
     tasks,
-    ctx: createSleepingContext(),
+    ctx,
     pollIntervalSec: 2,
     parse,
   });
@@ -180,8 +186,9 @@ export async function acceptedReview<T>(
   body: Parameters<TaskClient['createTask']>[0],
   taskIds: string[],
   parse: (output: unknown) => T,
+  ctx: WorkflowContext = { ...createSleepingContext(), executionId: task.id },
 ): Promise<T> {
-  taskIds.push(task.id);
+  if (!taskIds.includes(task.id)) taskIds.push(task.id);
   const runningTimeoutSec = Math.min(
     body.runningTimeoutSec ?? REVIEW_REPAIR_LIMITS.runningTimeoutSec,
     REVIEW_REPAIR_LIMITS.runningTimeoutSec,
@@ -199,18 +206,30 @@ export async function acceptedReview<T>(
       runningTimeoutSec + dispatchTimeoutSec,
     ),
   };
-  const outcome = await waitForValidatedTask(task, {
-    tasks,
-    ctx: { ...createSleepingContext(), executionId: task.id },
-    pollIntervalSec: 2,
-    parse,
-    maxRepairs: REVIEW_REPAIR_LIMITS.maxRepairs,
-    createRepairTask: async (args) => {
-      const repair = await createFreeformRepairTask(tasks, repairBody, args);
-      taskIds.push(repair.id);
-      return repair;
-    },
-  });
+  const outcome = await reviewCheckpoint(
+    ctx,
+    `validated.${task.id}.result`,
+    () =>
+      waitForValidatedTask(task, {
+        tasks,
+        ctx,
+        pollIntervalSec: 2,
+        parse,
+        maxRepairs: REVIEW_REPAIR_LIMITS.maxRepairs,
+        createRepairTask: async (args) => {
+          const repair = await createFreeformRepairTask(
+            tasks,
+            repairBody,
+            args,
+          );
+          return repair;
+        },
+      }),
+  );
+  for (const { outcome: item } of outcome.chain) {
+    const id = item.kind === 'accepted' ? item.result.task.id : item.task.id;
+    if (!taskIds.includes(id)) taskIds.push(id);
+  }
   if (outcome.kind === 'accepted') return outcome.result.state;
   throw new TaskOutcomeError(
     outcome.task.id,

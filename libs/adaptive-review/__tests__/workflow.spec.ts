@@ -69,8 +69,12 @@ vi.mock('@themoltnet/tasks-orchestrator', async (importOriginal) => {
   return {
     ...original,
     waitForTaskOutcome: mocks.waitForTaskOutcome,
-    waitForValidatedTask: (task: { id: string }, opts: unknown) =>
-      mocks.waitForTaskOutcome(task.id, opts) as Promise<unknown>,
+    waitForValidatedTask: async (task: { id: string }, opts: unknown) => {
+      const outcome = await mocks.waitForTaskOutcome(task.id, opts);
+      if (outcome.kind === 'accepted') outcome.result.task = task;
+      else outcome.task = task;
+      return { ...outcome, chain: [{ repairN: 0, outcome }] };
+    },
     // The real helper calls the unmocked module-internal poll; mirror it.
     waitForAcceptedTask: async (id: string, opts: unknown) => {
       const outcome = (await mocks.waitForTaskOutcome(id, opts)) as {
@@ -1237,7 +1241,7 @@ describe('adaptive review orchestration', () => {
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      { serialDomainDispatch: true },
+      expect.objectContaining({ serialDomainDispatch: true }),
     );
     expect(
       [...created.values()].some((task) =>
