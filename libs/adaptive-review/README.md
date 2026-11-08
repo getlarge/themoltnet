@@ -1,7 +1,10 @@
 # Adaptive review policy
 
-For launching stages, replacing interrupted hosts, and running outside Actions,
-see [Run and resume an adaptive review](EXECUTION.md).
+For caller workflow examples, local stage commands, and recovery, see
+[Run and resume an adaptive review](EXECUTION.md). The caller's `execution-mode`
+chooses persistent (`durable`, the default) or disposable (`ephemeral`) Postgres.
+This is separate from `mode: active` / `shadow`, which selects review coverage;
+`.github/adaptive-review.json` does not control execution infrastructure.
 
 Adaptive review reads `.github/adaptive-review.json` from the pull request's
 **base commit**. A repository opts in by adding a version 1 JSON file on its

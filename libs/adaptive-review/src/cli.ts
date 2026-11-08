@@ -11,9 +11,12 @@ import { collectWorkflowSpend, formatWorkflowSpend } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
+  assertPreparedExecution,
   formatReviewTaskBudgets,
+  parseReviewExecutionMode,
   parseReviewTaskBudgets,
   required,
+  type ReviewExecutionMode,
 } from './config.js';
 import { reviewCheckpoint } from './context.js';
 import type { Lane } from './core.js';
@@ -39,6 +42,9 @@ export interface Prepared {
   base: string;
   head: string;
   correlationId: string;
+  /** Older durable handoffs omit this field. */
+  executionMode?: ReviewExecutionMode;
+  executionAttempt?: string;
 }
 
 /** Process boundaries of the adaptive review CLI, injectable for tests. */
@@ -186,6 +192,11 @@ function writeOutputs(
 
 async function prepare(deps: CliDeps): Promise<number> {
   const { env } = deps;
+  const executionMode = parseReviewExecutionMode(env.ADAPTIVE_EXECUTION_MODE);
+  const executionAttempt =
+    executionMode === 'ephemeral' && env.GITHUB_RUN_ID
+      ? (env.GITHUB_RUN_ATTEMPT ?? '1')
+      : undefined;
   const repo = required('GITHUB_REPOSITORY', env);
   const event = JSON.parse(
     readFileSync(required('GITHUB_EVENT_PATH', env), 'utf8'),
@@ -196,13 +207,21 @@ async function prepare(deps: CliDeps): Promise<number> {
   const correlationId =
     env.ADAPTIVE_EXECUTION_ID ||
     (env.GITHUB_RUN_ID
-      ? executionCorrelation(`${repo}:${env.GITHUB_RUN_ID}`)
+      ? executionCorrelation(
+          `${repo}:${env.GITHUB_RUN_ID}${executionMode === 'ephemeral' ? `:attempt:${executionAttempt}` : ''}`,
+        )
       : randomUUID());
   const pinned = await executeAdaptiveStage({
     databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
     executionId: correlationId,
     stage: 'prepare',
-    input: { repo, pr: prNumber, protectedPaths: env.PROTECTED_PATHS ?? '' },
+    input: {
+      repo,
+      pr: prNumber,
+      protectedPaths: env.PROTECTED_PATHS ?? '',
+      executionMode,
+      ...(executionAttempt ? { executionAttempt } : {}),
+    },
     retryFailed: env.ADAPTIVE_RETRY_FAILED === 'true',
     run: async () => {
       const pr =
@@ -227,6 +246,8 @@ async function prepare(deps: CliDeps): Promise<number> {
           base: pr.base.sha,
           head: pr.head.sha,
           correlationId,
+          executionMode,
+          ...(executionAttempt ? { executionAttempt } : {}),
         },
       };
     },
@@ -466,12 +487,14 @@ export async function runAdaptiveStage(
   deps: CliDeps,
 ): Promise<number> {
   const { env } = deps;
+  parseReviewExecutionMode(env.ADAPTIVE_EXECUTION_MODE);
   if (stage === 'prepare') return prepare(deps);
   if (stage !== 'plan' && stage !== 'route' && stage !== 'review')
     throw new Error('ADAPTIVE_STAGE must be prepare, plan, route, or review');
   const prepared = JSON.parse(
     readFileSync(required('ADAPTIVE_PREPARED', env), 'utf8'),
   ) as Prepared;
+  assertPreparedExecution(prepared, env);
   const snapshot = loadAdaptivePolicy(createGit(deps.cwd), prepared.base);
   if (stage === 'plan') return plan(deps, prepared, snapshot !== null);
   if (!snapshot)

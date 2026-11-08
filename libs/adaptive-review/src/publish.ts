@@ -8,7 +8,11 @@ import {
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-import { env } from './config.js';
+import {
+  assertPreparedExecution,
+  env,
+  type ReviewExecutionMode,
+} from './config.js';
 import { executeAdaptiveStage } from './execution.js';
 import { PriorFindingReviewSchema } from './prior-findings.js';
 import {
@@ -472,7 +476,10 @@ export async function publishAdaptiveReportFromEnv(): Promise<void> {
     base: string;
     head: string;
     correlationId: string;
+    executionMode?: ReviewExecutionMode;
+    executionAttempt?: string;
   };
+  assertPreparedExecution(prepared, env());
   const route = JSON.parse(
     readFileSync(env().ADAPTIVE_ROUTE ?? '', 'utf8'),
   ) as {

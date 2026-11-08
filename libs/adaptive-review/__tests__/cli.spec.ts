@@ -208,7 +208,12 @@ describe('prepare stage', () => {
       expect.objectContaining({
         executionId: prepared.correlationId,
         stage: 'prepare',
-        input: { repo: REPO, pr: 42, protectedPaths: cli.env.PROTECTED_PATHS },
+        input: {
+          repo: REPO,
+          pr: 42,
+          protectedPaths: cli.env.PROTECTED_PATHS,
+          executionMode: 'durable',
+        },
       }),
     );
   });
@@ -248,8 +253,37 @@ describe('prepare stage', () => {
       base: BASE,
       head: HEAD,
       correlationId: out.correlation,
+      executionMode: 'durable',
     });
     expect(files).toHaveBeenCalledWith(REPO, 42);
+  });
+
+  it('starts a distinct ephemeral review on each Actions attempt', async () => {
+    writeEvent();
+    const { deps: cli } = deps();
+    cli.env.ADAPTIVE_EXECUTION_MODE = 'ephemeral';
+    cli.env.GITHUB_RUN_ID = '100';
+    cli.env.GITHUB_RUN_ATTEMPT = '1';
+    await runAdaptiveStage('prepare', cli);
+    const first = outputs().correlation;
+    await runAdaptiveStage('prepare', cli);
+    expect(outputs().correlation).toBe(first);
+    cli.env.GITHUB_RUN_ATTEMPT = '2';
+    await runAdaptiveStage('prepare', cli);
+    expect(outputs().correlation).not.toBe(first);
+    expect(JSON.parse(outputs().prepared)).toMatchObject({
+      executionMode: 'ephemeral',
+      executionAttempt: '2',
+    });
+  });
+
+  it('rejects an unknown execution mode before reading GitHub', async () => {
+    const { deps: cli, files } = deps();
+    cli.env.ADAPTIVE_EXECUTION_MODE = 'automatic';
+    await expect(runAdaptiveStage('prepare', cli)).rejects.toThrow(
+      'must be durable or ephemeral',
+    );
+    expect(files).not.toHaveBeenCalled();
   });
 
   it('reads the pull request a review comment names from the API', async () => {
@@ -357,6 +391,34 @@ describe('prepare stage edges', () => {
 describe('plan stage', () => {
   beforeEach(() => {
     writeFileSync(file('prepared.json'), JSON.stringify(prepared));
+  });
+
+  it('rejects an ephemeral handoff from an earlier Actions attempt before submission', async () => {
+    const { deps: cli } = deps();
+    cli.env.ADAPTIVE_EXECUTION_MODE = 'ephemeral';
+    cli.env.GITHUB_RUN_ID = '100';
+    cli.env.GITHUB_RUN_ATTEMPT = '2';
+    writeFileSync(
+      file('prepared.json'),
+      JSON.stringify({
+        ...prepared,
+        executionMode: 'ephemeral',
+        executionAttempt: '1',
+      }),
+    );
+    await expect(runAdaptiveStage('route', cli)).rejects.toThrow(
+      'rerun all jobs',
+    );
+    expect(cli.connect).not.toHaveBeenCalled();
+  });
+
+  it('rejects changing execution mode after preparation', async () => {
+    const { deps: cli } = deps();
+    cli.env.ADAPTIVE_EXECUTION_MODE = 'ephemeral';
+    await expect(runAdaptiveStage('route', cli)).rejects.toThrow(
+      'execution mode changed after preparation',
+    );
+    expect(cli.connect).not.toHaveBeenCalled();
   });
 
   it.each([

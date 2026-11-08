@@ -138,107 +138,123 @@ function pinnedInput(cwd: string): Omit<RunOptions, 'tasks' | 'ctx'> {
 }
 
 describe('adaptive review integration (real Absurd; simulated task services)', () => {
-  it('runs the local stage interface and restores lost handoff files without Actions', async () => {
-    const repo = reviewFixture();
-    const executionId = `local-stages-${process.pid}-${Date.now()}`;
-    const tasks = new IdempotentReviewTasks();
-    const eventPath = join(repo.cwd, 'event.json');
-    const preparedPath = join(repo.cwd, 'prepared.json');
-    const routePath = join(repo.cwd, 'route.json');
-    const reportPath = join(repo.cwd, 'report.json');
-    writeFileSync(
-      eventPath,
-      JSON.stringify({ issue: { number: 7, pull_request: {} } }),
-    );
-    const deps: CliDeps = {
-      cwd: repo.cwd,
-      env: {
-        GITHUB_REPOSITORY: 'another/project',
-        GITHUB_EVENT_NAME: 'issue_comment',
-        GITHUB_EVENT_PATH: eventPath,
-        ADAPTIVE_EXECUTION_ID: executionId,
-        ADAPTIVE_DATABASE_URL: databaseUrl,
-        ADAPTIVE_PREPARED: preparedPath,
-        ADAPTIVE_ROUTE: routePath,
-        ADAPTIVE_REPORT: reportPath,
-        ADAPTIVE_MODE: 'shadow',
-        ADAPTIVE_RUNTIME_SHA: repo.base,
-        ADAPTIVE_APP_LOGIN: 'reviewer[bot]',
-        ADAPTIVE_CLASSIFIER_PROFILE: 'classifier',
-        ADAPTIVE_FOCUSED_PROFILE: 'reviewer',
-        MOLTNET_TEAM_ID: 'team',
-        MOLTNET_DIARY_ID: 'diary',
-      },
-      github: {
-        pullRequest: async () => ({
-          number: 7,
-          title: 'Change value',
-          body: '',
-          changed_files: 1,
-          user: { login: 'contributor' },
-          head: { sha: repo.head, repo: { full_name: 'another/project' } },
-          base: { sha: repo.base },
+  it.each(['durable', 'ephemeral'] as const)(
+    'runs %s local stages with the appropriate checkpoint lifetime',
+    async (executionMode) => {
+      const repo = reviewFixture();
+      const executionId = `local-stages-${process.pid}-${Date.now()}`;
+      const tasks = new IdempotentReviewTasks();
+      const eventPath = join(repo.cwd, 'event.json');
+      const preparedPath = join(repo.cwd, 'prepared.json');
+      const routePath = join(repo.cwd, 'route.json');
+      const reportPath = join(repo.cwd, 'report.json');
+      writeFileSync(
+        eventPath,
+        JSON.stringify({ issue: { number: 7, pull_request: {} } }),
+      );
+      const deps: CliDeps = {
+        cwd: repo.cwd,
+        env: {
+          GITHUB_REPOSITORY: 'another/project',
+          GITHUB_EVENT_NAME: 'issue_comment',
+          GITHUB_EVENT_PATH: eventPath,
+          ADAPTIVE_EXECUTION_ID: executionId,
+          ADAPTIVE_EXECUTION_MODE: executionMode,
+          ADAPTIVE_DATABASE_URL: databaseUrl,
+          ADAPTIVE_PREPARED: preparedPath,
+          ADAPTIVE_ROUTE: routePath,
+          ADAPTIVE_REPORT: reportPath,
+          ADAPTIVE_MODE: 'shadow',
+          ADAPTIVE_RUNTIME_SHA: repo.base,
+          ADAPTIVE_APP_LOGIN: 'reviewer[bot]',
+          ADAPTIVE_CLASSIFIER_PROFILE: 'classifier',
+          ADAPTIVE_FOCUSED_PROFILE: 'reviewer',
+          MOLTNET_TEAM_ID: 'team',
+          MOLTNET_DIARY_ID: 'diary',
+        },
+        github: {
+          pullRequest: async () => ({
+            number: 7,
+            title: 'Change value',
+            body: '',
+            changed_files: 1,
+            user: { login: 'contributor' },
+            head: { sha: repo.head, repo: { full_name: 'another/project' } },
+            base: { sha: repo.base },
+          }),
+          files: async () => [{ filename: 'example.ts' }],
+          revisions: async () => ({ base: repo.base, head: repo.head }),
+          reviewThreads: async () => [],
+        },
+        connect: async () => ({
+          profiles: async () =>
+            ['classifier', 'reviewer'].map((id) => ({
+              id,
+              name: id,
+              revision: 1,
+            })),
+          tasks,
         }),
-        files: async () => [{ filename: 'example.ts' }],
-        revisions: async () => ({ base: repo.base, head: repo.head }),
-        reviewThreads: async () => [],
-      },
-      connect: async () => ({
-        profiles: async () =>
-          ['classifier', 'reviewer'].map((id) => ({
-            id,
-            name: id,
-            revision: 1,
-          })),
-        tasks,
-      }),
-      stdout: () => {},
-    };
-    try {
-      for (const stage of ['prepare', 'plan', 'route', 'review'])
-        expect(await runAdaptiveStage(stage, deps)).toBe(0);
-      const readReport = () =>
-        JSON.parse(readFileSync(reportPath, 'utf8')) as AdaptiveReport;
-      const report = readReport();
-      expect(report.repo).toBe('another/project');
-      expect(report.head).toBe(repo.head);
-      expect(report.base).toBe(repo.base);
-      expect(report.correlationId).toBe(executionId);
-      expect(report.results.map((lane) => lane.status)).toEqual([
-        'clear',
-        'clear',
-      ]);
-      expect(tasks.requests).toHaveLength(3);
-      expect(report.taskIds).toHaveLength(3);
-      expect(new Set(report.taskIds)).toEqual(
-        new Set(tasks.requests.map(({ id }) => id)),
-      );
-      const originals = [preparedPath, routePath, reportPath].map((path) =>
-        readFileSync(path, 'utf8'),
-      );
-      for (const path of [preparedPath, routePath, reportPath]) rmSync(path);
-      for (const stage of ['prepare', 'route', 'review'])
-        expect(await runAdaptiveStage(stage, { ...deps })).toBe(0);
-      expect(readReport()).toEqual(report);
-      expect(
-        [preparedPath, routePath, reportPath].map((path) =>
+        stdout: () => {},
+      };
+      const clearStore = async () => {
+        for (const suffix of ['', '-input']) {
+          const app = createAdaptiveStageApp({
+            databaseUrl,
+            queueName: executionQueue(executionId) + suffix,
+            run: async () => null,
+          });
+          await app.dropQueue();
+          await app.close();
+        }
+      };
+      try {
+        for (const stage of ['prepare', 'plan', 'route', 'review']) {
+          expect(await runAdaptiveStage(stage, deps)).toBe(0);
+          // A fresh job-local service has no previous stage's Absurd queues.
+          // Only the handoff files and simulated remote task records survive.
+          if (
+            executionMode === 'ephemeral' &&
+            (stage === 'prepare' || stage === 'route')
+          )
+            await clearStore();
+        }
+        const readReport = () =>
+          JSON.parse(readFileSync(reportPath, 'utf8')) as AdaptiveReport;
+        const report = readReport();
+        expect(report.repo).toBe('another/project');
+        expect(report.head).toBe(repo.head);
+        expect(report.base).toBe(repo.base);
+        expect(report.correlationId).toBe(executionId);
+        expect(report.results.map((lane) => lane.status)).toEqual([
+          'clear',
+          'clear',
+        ]);
+        expect(tasks.requests).toHaveLength(3);
+        expect(report.taskIds).toHaveLength(3);
+        expect(new Set(report.taskIds)).toEqual(
+          new Set(tasks.requests.map(({ id }) => id)),
+        );
+        if (executionMode === 'ephemeral') return;
+        const originals = [preparedPath, routePath, reportPath].map((path) =>
           readFileSync(path, 'utf8'),
-        ),
-      ).toEqual(originals);
-      expect(tasks.requests).toHaveLength(3);
-    } finally {
-      for (const suffix of ['', '-input']) {
-        const app = createAdaptiveStageApp({
-          databaseUrl,
-          queueName: executionQueue(executionId) + suffix,
-          run: async () => null,
-        });
-        await app.dropQueue();
-        await app.close();
+        );
+        for (const path of [preparedPath, routePath, reportPath]) rmSync(path);
+        for (const stage of ['prepare', 'route', 'review'])
+          expect(await runAdaptiveStage(stage, { ...deps })).toBe(0);
+        expect(readReport()).toEqual(report);
+        expect(
+          [preparedPath, routePath, reportPath].map((path) =>
+            readFileSync(path, 'utf8'),
+          ),
+        ).toEqual(originals);
+        expect(tasks.requests).toHaveLength(3);
+      } finally {
+        await clearStore();
+        repo.close();
       }
-      repo.close();
-    }
-  });
+    },
+  );
 
   it.each(['create', 'await', 'parallel', 'repair'])(
     'recovers %s without replacement tasks or renewed repair budgets',

@@ -1,37 +1,110 @@
 # Run and resume an adaptive review
 
 Adaptive review classifies a pinned pull request, runs the selected review
-lanes through MoltNet tasks, and publishes an advisory GitHub report. The Node
-entry points used by the reusable Actions workflow persist `prepare`, `route`,
-`review`, and `publish` execution in Absurd, a Postgres-backed workflow engine.
-A replacement process can resume those stages with the same inputs and database.
-`plan` is an ordinary read-only command; it does not create durable work.
-
-Absurd is required for those executable stages, both locally and in Actions.
-The exported library functions can still use an inline `WorkflowContext` for
-embedding and unit tests; that mode has no durable recovery. Running outside
-Actions removes the Actions dependency, not the database or task workers.
+lanes through MoltNet tasks, and publishes an advisory GitHub report. You can
+launch it through the reusable Actions workflow or run its Node stage commands
+from a trusted local checkout. Both use Absurd, a Postgres-backed workflow
+engine, to execute `prepare`, `route`, `review`, and `publish`. `plan` is a
+read-only command and does not create workflow state.
 
 This describes the implementation in this checkout. MoltNet's
-[caller workflow](../../.github/workflows/adaptive-review.yml) still selects a
-released reusable workflow by commit SHA. Changing this source does not deploy
-it: the action must be released, the caller pin updated, and the required
-`ADAPTIVE_DATABASE_URL` secret configured. There is no optional non-durable
-fallback in the stage CLI and no separate durable runner to select.
+[caller workflow](../../.github/workflows/adaptive-review.yml) still selects
+release commit `0808a76a4edb99577f0cbd59c4336d415e051401`. Changing this source
+does not deploy it: release the action and update the caller pin before using
+the configuration below. Local recovery evidence is described under
+[verification limits](#supervisor-responsibilities-and-verification-limits);
+it does not establish production readiness.
 
-The stages can run outside Actions, including against another repository.
-They remain GitHub-specific: preparation and freshness checks use `gh`, prior
-findings use GitHub GraphQL, and publication uses the GitHub API. There is no
-single `start-review` command or installed supervisor that launches the entire
-pipeline and its workers.
+## Choose an execution mode
 
-The source audit was repeated against `main` at `222e8862e`. Before this change,
-Actions used local stage processes, adaptive lanes used `Promise.allSettled`
-and sleeping in-memory contexts, complexity constructed its own context, and
-docs task creation lacked a durable creation checkpoint. Persistent MoltNet
-tasks and Actions artifacts retained results but not coordinator progress.
-The existing Node action stage host is reused here; the issue-lifecycle host
-owns a separate issue workflow and is not adopted as a second review authority.
+`execution-mode` controls how long coordinator checkpoints survive.
+It is separate from `mode: active` or `mode: shadow`, which controls which
+review lanes run.
+
+| Choice              | Database owner                                                                                             | Recovery boundary                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `durable` (default) | You provide an initialized persistent database through the `ADAPTIVE_DATABASE_URL` secret.                 | Replacement jobs resume the same review while its database state and pinned inputs remain available.  |
+| `ephemeral`         | Actions starts and initializes disposable Postgres for each coordinator job. No database secret is needed. | Checkpoints last only for that job. Re-running all jobs starts a new review and can submit new tasks. |
+
+Both choices run the same Absurd-backed stage code. Ephemeral mode does not
+select an in-memory engine or fall back when a durable database is unavailable.
+The exported library functions can use an inline `WorkflowContext` for embedding
+and unit tests, but that is not a stage CLI launch mode.
+
+### Launch through GitHub Actions
+
+Add a caller workflow in the repository being reviewed. This example assumes
+its base branch has a [review policy](README.md) enabling only `tests`, and
+that you have provisioned classifier and focused review profiles. Replace
+`<release-commit-sha>` with the full action bundle commit SHA from a release
+containing this implementation; the placeholder is not an executable pin.
+
+```yaml
+name: Adaptive review
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+permissions: {}
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<release-commit-sha> # adaptive-review-action-v0
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    with:
+      environment: review
+      execution-mode: durable
+      mode: active
+      api-url: https://api.themolt.net
+      team-id: <team-uuid>
+      diary-id: <diary-uuid>
+      agent-name: <agent-name>
+      app-id: <github-app-client-id>
+      classifier-profile: <classifier-profile-name-or-id>
+      focused-profile: <focused-profile-name-or-id>
+      providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
+      protected-paths: |
+        .github/workflows/adaptive-review.yml
+```
+
+Use your caller's actual filename in `protected-paths`. Keep `runtime-ref`
+unset so the runtime comes from the pinned release. Supply profiles for any
+additional enabled lanes and providers matching those profiles. The
+[runtime policy guide](../../.github/runtime-policies/README.md) covers profiles
+and optional diary access.
+
+Configure the selected environment with `MOLTNET_AGENT_KEY`,
+`MOLTNET_PRIVATE_KEY`, `MOLTNET_GITHUB_APP_PRIVATE_KEY`, and the provider secret
+(`OLLAMA_API_KEY` in this example). The App must be installed on the repository
+and allow pull request writes. In durable mode, also set
+`ADAPTIVE_DATABASE_URL` to an initialized database reachable by the hosted
+runners. The workflow checks that the URL is present; it does not create,
+initialize, or migrate that database.
+
+For disposable execution, change only this input and omit the database secret:
+
+```yaml
+with:
+  execution-mode: ephemeral
+  # Keep the remaining inputs from the caller above.
+```
+
+Actions creates separate Postgres services for the prepare, route, and review
+jobs. The [setup helper](../../tools/setup-adaptive-review-database.sh)
+initializes each disposable service with Absurd schema `0.4.0`. Review and
+publication share the review job's database. Prepared inputs pass through job
+outputs, and routing results through artifacts; no database is carried between
+jobs. An inherited durable database secret is unused in this mode. The helper
+never initializes a supplied durable URL.
+
+The workflow provisions finite MoltNet daemon workers for classification and
+selected specialist lanes. It also performs the stage and artifact handoffs;
+no separate coordinator service is needed. A new authorized `/review` request
+starts a new Actions run. See the [caller guidance](README.md#findings-and-outcomes)
+for adding the comment trigger and its authorization checks.
 
 ## Launch from a trusted runtime checkout
 
@@ -53,9 +126,9 @@ control. Never build or execute the reviewed head to run its review.
 Before launching, supply:
 
 - An existing Postgres database initialized with a compatible Absurd schema.
-  The stage host creates execution queues, but does not install or migrate the
-  schema. The local e2e stack's `issue-lifecycle-db-migrate` service owns test
-  schema setup; it is not a production provisioning command.
+  This is required in **both** local modes. The CLI does not start Postgres;
+  `ADAPTIVE_EXECUTION_MODE=ephemeral` alone does not provision it. The stage host
+  creates execution queues, but does not install or migrate the schema.
 - A GitHub App token in `GH_TOKEN` with repository read access and, for
   publication, pull request write access. Set `ADAPTIVE_APP_LOGIN` to that
   token's App login, including `[bot]`. Tokens may be renewed on resume.
@@ -71,6 +144,23 @@ Before launching, supply:
   `.github/adaptive-review.json`; the [policy guide](README.md) describes lane
   selection and trusted base guidance.
 
+For a fresh database you own, install `uv` and PostgreSQL client tools (including
+`psql`), then initialize the schema explicitly:
+
+```bash
+: "${ADAPTIVE_DATABASE_URL:?set the database URL to initialize}"
+ABSURD_DATABASE_URL="$ADAPTIVE_DATABASE_URL" uvx absurdctl init --ref 0.4.0
+```
+
+Use a persistent database for durable recovery, or supply a disposable database
+whose lifetime you control for a local ephemeral run. Existing database upgrades
+remain an operator responsibility. The Actions setup helper requires a job-local
+service and is not a general persistent-database provisioning command.
+
+These commands still target GitHub: preparation and freshness checks use `gh`,
+prior findings use GraphQL, and publication uses the GitHub API. There is no
+single command or installed supervisor that launches every stage and its workers.
+
 The following uses General work, without a MoltNet project binding. Substitute
 real identifiers and provide secrets through your environment; the shell
 checks deliberately avoid embedding them in the example:
@@ -84,6 +174,7 @@ export MOLTNET_TEAM_ID='<team-uuid>'
 export MOLTNET_DIARY_ID='<diary-uuid>'
 export ADAPTIVE_APP_LOGIN='<reviewer-app>[bot]'
 export ADAPTIVE_RUNTIME_SHA='<full commit SHA of the trusted runtime>'
+export ADAPTIVE_EXECUTION_MODE='durable' # Or ephemeral with a database you supply
 export ADAPTIVE_MODE='active'
 export ADAPTIVE_CLASSIFIER_PROFILE='<classifier-profile-uuid>'
 export ADAPTIVE_FOCUSED_PROFILE='<focused-profile-uuid>'
@@ -165,7 +256,8 @@ incomplete report. There is no implicit approval gate between these commands.
 
 | Setting                                                                             | Meaning                                                                                                                         |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `ADAPTIVE_DATABASE_URL`                                                             | Required for prepare, route, review, and publish; all replacements use the same database.                                       |
+| `ADAPTIVE_EXECUTION_MODE`                                                           | `durable` (default) or `ephemeral`; keep it unchanged from preparation through publication.                                     |
+| `ADAPTIVE_DATABASE_URL`                                                             | Required for prepare, route, review, and publish in both CLI modes. Durable replacements use the same database.                 |
 | `ADAPTIVE_EXECUTION_ID`                                                             | Optional preparation override for the correlation ID. Use a UUID; preserve it on resume.                                        |
 | `ADAPTIVE_RETRY_FAILED=true`                                                        | Explicitly retries an Absurd stage that reached `failed`; does not refresh completed stages or failed lane results.             |
 | `ADAPTIVE_MODE`                                                                     | Required `active` or `shadow`; shadow investigates every enabled lane.                                                          |
@@ -234,19 +326,25 @@ attempts, acceptance, and execution deadlines; the adaptive coordinator resumes
 waiting for those records. Re-running the coordinator does not launch a daemon.
 
 The Actions wrapper gives route and review jobs 55 minutes and worker jobs
-60 minutes. Workers that leave do not immediately fail the durable coordinator:
-the CLI intentionally does not attach Actions job liveness to persisted work.
-Task dispatch/execution/expiry budgets remain authoritative across replacement
-Actions attempts. Outside Actions, the operator supplies process lifetime and
-restart policy.
+60 minutes. In either mode, workers that leave do not immediately fail the
+coordinator: the CLI intentionally does not attach Actions job liveness to
+persisted work.
+Task dispatch/execution/expiry budgets remain authoritative. Durable replacement
+Actions attempts keep those tasks; an ephemeral rerun starts new work. Outside
+Actions, the operator supplies process lifetime and restart policy.
 
 ## What persists and how resume works
+
+This recovery path requires retained database state. In Actions, choose
+`durable` to keep it across jobs and run attempts. An ephemeral job can replay
+checkpoints while its service exists, but losing the job loses those checkpoints;
+MoltNet task records and Actions artifacts do not replace them.
 
 ```mermaid
 sequenceDiagram
     participant S as Operator or Actions
     participant C as Node stage host
-    participant D as Absurd Postgres
+    participant D as Absurd Postgres (retained for recovery)
     participant M as MoltNet tasks API
     participant W as Agent daemon
     participant G as GitHub
@@ -273,10 +371,11 @@ the spawn idempotency key within this execution. The resulting Absurd task ID
 is distinct from both the correlation ID and each MoltNet task ID.
 
 Preparation uses `ADAPTIVE_EXECUTION_ID` when supplied. In Actions it otherwise
-derives a stable correlation ID from repository name and `GITHUB_RUN_ID`,
-excluding `GITHUB_RUN_ATTEMPT`. Outside Actions, without either value, it
-creates a random UUID. Re-running preparation without preserving an ID therefore
-starts a new review.
+derives a correlation ID from repository name and `GITHUB_RUN_ID`. Durable mode
+excludes `GITHUB_RUN_ATTEMPT`, so attempts share an identity; ephemeral mode
+includes it, so each attempt gets a new identity. Outside Actions, without an
+explicit execution ID or run ID, preparation creates a random UUID. Re-running
+preparation without preserving an ID therefore starts a new review.
 
 To resume, keep the execution ID and original environment, reconnect to the
 same database, and rerun the interrupted stage command. If the prepared file
@@ -314,8 +413,9 @@ Do not reuse an ID to change inputs or upgrade the runtime mid-execution.
 
 ### Resume in Actions
 
-Re-run **all jobs** of the original run so preparation restores its inputs and
-worker jobs can reconnect, rather than re-running only a failed coordinator:
+In durable mode, re-run **all jobs** of the original run so preparation restores
+its inputs and worker jobs can reconnect, rather than re-running only a failed
+coordinator:
 
 ```bash
 gh run rerun <run-id> --repo <owner/repository>
@@ -326,6 +426,15 @@ Absurd stage. A new authorized `/review` request creates a new Actions run and
 therefore a new execution. Retain the original workflow/runtime revision and
 profile revisions. A completed report with failed lanes remains that report;
 rerunning is not a request for more review budget.
+
+In ephemeral mode, also re-run **all jobs**, but treat this as a fresh review:
+preparation uses the new attempt's identity and each coordinator gets a fresh
+database. Prepared inputs record the Actions attempt, and later stages reject
+inputs from another attempt with a request to rerun all jobs. A failed-jobs-only
+rerun therefore cannot reuse the earlier ephemeral handoff. Locally, if you
+discard an ephemeral database, choose a new execution ID and new state files
+before preparing again. Mode changes also require a new review; later stages
+reject a mode different from the prepared input.
 
 Keep both execution queues and their task/checkpoint records for as long as
 resume is required. There are two queues per execution, so database retention
@@ -392,26 +501,34 @@ shared adapter tests. A complete local review instead uses the stage commands
 and real daemon workers described above, producing `ADAPTIVE_REPORT` before
 the separately invoked publication command.
 
-| Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                 |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Submission accepted before creation checkpoint | Replay test asserts repeated key returns same task ID and counts requests                                                        | SIGKILL creation case passed                         |
-| Restart while awaiting                         | Replay keeps the waiting task ID                                                                                                 | SIGKILL awaiting case passed                         |
-| Some parallel lanes complete                   | Replay retains completed lane checkpoint and three total submissions                                                             | SIGKILL partial-lane case passed                     |
-| Interrupted semantic repair                    | Replay retains original plus two bounded corrections, including crash-gap retry count                                            | SIGKILL repair case passed                           |
-| Resume budgets and spend inputs                | Saved classifier deadline, same task requests and repair cap, restored task-ID ledger, and all five priced attempts counted once | Task ID/request counts passed; live usage unverified |
-| Intentional new review                         | Distinct execution/correlation produces distinct tasks; Actions attempt preserves identity                                       | New stage execution case passed                      |
-| Incompatible inputs                            | Rejects changed repository, head, profiles/revisions, budgets, runtime                                                           | Binding case passed                                  |
-| Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                         |
+| Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                       |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Submission accepted before creation checkpoint | Replay test asserts repeated key returns same task ID and counts requests                                                        | SIGKILL creation case passed                               |
+| Restart while awaiting                         | Replay keeps the waiting task ID                                                                                                 | SIGKILL awaiting case passed                               |
+| Some parallel lanes complete                   | Replay retains completed lane checkpoint and three total submissions                                                             | SIGKILL partial-lane case passed                           |
+| Interrupted semantic repair                    | Replay retains original plus two bounded corrections, including crash-gap retry count                                            | SIGKILL repair case passed                                 |
+| Resume budgets and spend inputs                | Saved classifier deadline, same task requests and repair cap, restored task-ID ledger, and all five priced attempts counted once | Task ID/request counts passed; live usage unverified       |
+| Intentional new review                         | Distinct executions produce distinct tasks; durable Actions attempts preserve identity                                           | New stage execution case passed                            |
+| Incompatible inputs                            | Rejects changed repository, head, profiles/revisions, budgets, runtime                                                           | Binding case passed                                        |
+| Ephemeral stage handoffs                       | Prepared and route files carry inputs across jobs; later Actions attempts must prepare anew                                      | Local stage flow passed with queues removed between stages |
+| Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                               |
 
-The real-Absurd integration suite was run locally against an isolated
+All seven real-Absurd integration cases passed locally against isolated
 Postgres with Absurd schema `0.4.0`. The process tests killed and replaced
-coordinators and verified preserved task IDs and submission counts. A sixth
-case ran `prepare`, `plan`, `route`, and `review` through the local stage
-interface for a separate repository fixture. It deleted the prepared, route,
-and report files, then restored all three from Absurd with the same three
-task IDs and no additional submissions. This caught and now guards against
-JSON object-key ordering differences at the route-to-review handoff. GitHub
-responses and MoltNet task execution remain simulated: this does not verify
-live provider behavior, GitHub publication recovery, deployed credentials, or
-production readiness. Before relying on this path operationally, validate a
+coordinators and verified preserved task IDs and submission counts. The durable
+local-stage case ran `prepare`, `plan`, `route`, and `review` for a separate
+repository fixture, deleted the prepared, route, and report files, then restored
+all three from Absurd with the same three task IDs and no additional submissions.
+This also guards against JSON object-key ordering differences at the
+route-to-review handoff. The ephemeral local-stage case removed the execution
+queues between prepare, route, and review, and completed using the handoff files
+with three simulated task submissions.
+
+Local validation also passed 329 unit tests and 49 setup/workflow tests. The
+actual database setup helper successfully initialized a fresh isolated Postgres
+database with Absurd schema `0.4.0`. These checks do not exercise GitHub-hosted
+service creation or job handoffs. GitHub responses and MoltNet task execution
+remain simulated: no real model or GitHub API was used. Live provider behavior,
+GitHub publication recovery, deployed credentials, and production readiness
+remain unverified. Before relying on this path operationally, validate a
 controlled review against the intended database and worker deployment.
