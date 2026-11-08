@@ -126,6 +126,15 @@ function workerAction(name: string): Step {
 }
 
 describe('adaptive review workflow trust gates', () => {
+  it('wires the same durable database and retry intent into every coordinator host', () => {
+    for (const name of ['prepare', 'route', 'review']) {
+      expect(job(name).env).toMatchObject({
+        ADAPTIVE_DATABASE_URL: '${{ secrets.ADAPTIVE_DATABASE_URL }}',
+        ADAPTIVE_RETRY_FAILED: '${{ github.run_attempt > 1 }}',
+      });
+    }
+  });
+
   it('gates every downstream job that can reach credentials', () => {
     expect(job('prepare').if).toBe(
       "github.event_name == 'issue_comment' || github.event.pull_request.draft == false",
@@ -280,10 +289,9 @@ describe('adaptive review workflow trust gates', () => {
       ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
   });
 
-  it('lets the stage jobs read worker liveness', () => {
+  it('keeps coordinator recovery independent of Actions job liveness', () => {
     for (const name of ['route', 'review'])
       expect(job(name).permissions).toEqual({
-        actions: 'read',
         contents: 'read',
         'pull-requests': 'read',
       });

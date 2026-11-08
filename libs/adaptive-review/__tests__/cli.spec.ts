@@ -9,7 +9,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { PullRequestFile } from '@moltnet/docs-impact-review/eligibility';
-import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+import {
+  inlineContext,
+  type TaskClient,
+  type WorkflowContext,
+} from '@themoltnet/tasks-orchestrator';
+import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -22,6 +27,7 @@ import {
   specialistMatrix,
 } from '../src/cli.js';
 import type { LaneRoute } from '../src/core.js';
+import { executeAdaptiveStage } from '../src/execution.js';
 import type { AdaptivePreparation, AdaptiveReport } from '../src/workflow.js';
 
 const mocks = vi.hoisted(() => ({
@@ -29,6 +35,15 @@ const mocks = vi.hoisted(() => ({
   classifierTaskPossible: vi.fn(),
   prepareAdaptiveReview: vi.fn(),
   runRoutedAdaptiveReview: vi.fn(),
+}));
+
+vi.mock('../src/execution.js', () => ({
+  executeAdaptiveStage: vi.fn(
+    (args: {
+      input: unknown;
+      run: (input: unknown, ctx: WorkflowContext) => Promise<unknown>;
+    }) => args.run(args.input, inlineContext),
+  ),
 }));
 
 vi.mock('../src/snapshot.js', () => ({
@@ -83,6 +98,7 @@ function deps(overrides: Partial<CliDeps> = {}) {
       ADAPTIVE_ROUTE: file('route.json'),
       ADAPTIVE_REPORT: file('report.json'),
       ADAPTIVE_MODE: 'shadow',
+      ADAPTIVE_DATABASE_URL: 'test-only',
       ADAPTIVE_APP_LOGIN: 'legreffier[bot]',
       ADAPTIVE_RUNTIME_SHA: RUNTIME,
       ADAPTIVE_CLASSIFIER_PROFILE: 'classifier-v2',
@@ -106,13 +122,12 @@ function deps(overrides: Partial<CliDeps> = {}) {
         profiles: () =>
           Promise.resolve(
             ['classifier-v2', 'docs-v1', 'security-v2', 'focused-v1'].map(
-              (name) => ({ id: `${name}-id`, name }),
+              (name) => ({ id: `${name}-id`, name, revision: 1 }),
             ),
           ),
         tasks,
       }),
     ),
-    workers: () => undefined,
     stdout,
     ...overrides,
   };
@@ -176,6 +191,45 @@ afterEach(() => {
 });
 
 describe('prepare stage', () => {
+  it('restores persisted preparation instead of replacing it with changed live metadata', async () => {
+    writeEvent({ title: 'Changed live title' });
+    const { deps: cli, files } = deps();
+    cli.env.ADAPTIVE_EXECUTION_ID = prepared.correlationId;
+    vi.mocked(executeAdaptiveStage).mockResolvedValueOnce({
+      skip: false,
+      prepared,
+    });
+    await runAdaptiveStage('prepare', cli);
+    expect(JSON.parse(readFileSync(file('prepared.json'), 'utf8'))).toEqual(
+      prepared,
+    );
+    expect(files).not.toHaveBeenCalled();
+    expect(executeAdaptiveStage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        executionId: prepared.correlationId,
+        stage: 'prepare',
+        input: { repo: REPO, pr: 42, protectedPaths: cli.env.PROTECTED_PATHS },
+      }),
+    );
+  });
+
+  it('resumes an Actions run identity and allocates another for a new run', async () => {
+    writeEvent();
+    const { deps: cli } = deps();
+    cli.env.GITHUB_RUN_ID = '100';
+    await runAdaptiveStage('prepare', cli);
+    const first = outputs().correlation;
+    cli.env.GITHUB_RUN_ATTEMPT = '2';
+    await runAdaptiveStage('prepare', cli);
+    expect(outputs().correlation).toBe(first);
+    cli.env.GITHUB_RUN_ID = '101';
+    await runAdaptiveStage('prepare', cli);
+    expect(outputs().correlation).not.toBe(first);
+    cli.env.ADAPTIVE_EXECUTION_ID = 'explicit-execution';
+    await runAdaptiveStage('prepare', cli);
+    expect(outputs().correlation).toBe('explicit-execution');
+  });
+
   it('pins an eligible pull request for later stages', async () => {
     writeEvent({ title: 'x'.repeat(600) });
     const { deps: cli, files } = deps();
@@ -352,7 +406,7 @@ describe('plan stage', () => {
         },
       });
 
-      await expect(runAdaptiveStage('plan', cli)).rejects.toThrow(
+      await expect(runAdaptiveStage('route', cli)).rejects.toThrow(
         `head ${HEAD} -> ${current.head}, base ${BASE} -> ${current.base}`,
       );
     },
@@ -360,6 +414,36 @@ describe('plan stage', () => {
 });
 
 describe('route to review handoff', () => {
+  it('restores a completed report after revisions move so publication can reconcile stale output', async () => {
+    writeFileSync(file('prepared.json'), JSON.stringify(prepared));
+    writeFileSync(
+      file('route.json'),
+      JSON.stringify({ routing: { routes: [] } }),
+    );
+    const ctx = replayContext('completed-review');
+    const runWithContext: typeof executeAdaptiveStage = (args) =>
+      args.run(args.input, ctx);
+    const { deps: cli } = deps();
+    mocks.runRoutedAdaptiveReview.mockResolvedValue({
+      gaps: [],
+      routing: { routes: [] },
+      results: [],
+    });
+    vi.mocked(executeAdaptiveStage).mockImplementationOnce(runWithContext);
+    await runAdaptiveStage('review', cli);
+    const first = readFileSync(file('report.json'), 'utf8');
+    rmSync(file('report.json'));
+    cli.github.revisions = vi
+      .fn()
+      .mockResolvedValue({ head: 'f'.repeat(40), base: BASE });
+    ctx.resetForReplay();
+    vi.mocked(executeAdaptiveStage).mockImplementationOnce(runWithContext);
+    await runAdaptiveStage('review', cli);
+    expect(readFileSync(file('report.json'), 'utf8')).toBe(first);
+    expect(mocks.runRoutedAdaptiveReview).toHaveBeenCalledTimes(1);
+    expect(cli.github.revisions).not.toHaveBeenCalled();
+  });
+
   it('passes the pinned identity and routing file from route to review', async () => {
     writeFileSync(file('prepared.json'), JSON.stringify(prepared));
     const preparation = {

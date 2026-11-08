@@ -72,6 +72,9 @@ on:
       correlation-id:
         value: ${{ jobs.prepare.outputs.correlation }}
     secrets:
+      ADAPTIVE_DATABASE_URL:
+        description: Initialized persistent Absurd Postgres accessible to the coordinator.
+        required: true
       MOLTNET_AGENT_KEY:
         required: false
       MOLTNET_PRIVATE_KEY:
@@ -101,6 +104,10 @@ jobs:
     if: github.event_name == 'issue_comment' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      ADAPTIVE_DATABASE_URL: ${{ secrets.ADAPTIVE_DATABASE_URL }}
+      ADAPTIVE_RETRY_FAILED: ${{ github.run_attempt > 1 }}
     permissions:
       contents: read
       pull-requests: read
@@ -246,8 +253,6 @@ jobs:
     timeout-minutes: 55
     environment: ${{ inputs.environment }}
     permissions:
-      # Reads this run's worker jobs to stop waiting once they have exited.
-      actions: read
       contents: read
       pull-requests: read
     outputs:
@@ -255,6 +260,8 @@ jobs:
       has-specialists: ${{ steps.route.outputs.has-specialists }}
       route-artifact-id: ${{ steps.route-artifact.outputs.artifact-id }}
     env:
+      ADAPTIVE_DATABASE_URL: ${{ secrets.ADAPTIVE_DATABASE_URL }}
+      ADAPTIVE_RETRY_FAILED: ${{ github.run_attempt > 1 }}
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
       ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
@@ -330,11 +337,11 @@ jobs:
     timeout-minutes: 55
     environment: ${{ inputs.environment }}
     permissions:
-      # Reads this run's worker jobs to stop waiting once they have exited.
-      actions: read
       contents: read
       pull-requests: read
     env:
+      ADAPTIVE_DATABASE_URL: ${{ secrets.ADAPTIVE_DATABASE_URL }}
+      ADAPTIVE_RETRY_FAILED: ${{ github.run_attempt > 1 }}
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
       ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json

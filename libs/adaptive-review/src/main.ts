@@ -1,14 +1,11 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
   type CliDeps,
-  jsonLines,
-  PROFILE_ENV,
   type PullRequest,
   pullRequestFiles,
   reportStageFailure,
@@ -16,11 +13,6 @@ import {
 } from './cli.js';
 import { env, required } from './config.js';
 import { createGraphQL, fetchReviewThreads } from './threads.js';
-import {
-  type WorkerJob,
-  type WorkerLiveness,
-  workflowWorkerLiveness,
-} from './workers.js';
 
 async function gh(args: string[]): Promise<string> {
   const { stdout } = await promisify(execFile)('gh', args, {
@@ -28,46 +20,6 @@ async function gh(args: string[]): Promise<string> {
     maxBuffer: 64 * 1024 * 1024,
   });
   return stdout;
-}
-
-/** Watches this run's worker jobs; absent outside GitHub Actions. */
-function runWorkerLiveness(): WorkerLiveness | undefined {
-  const { GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT } = env();
-  if (!GITHUB_REPOSITORY || !GITHUB_RUN_ID) return undefined;
-  const path = `repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT || '1'}/jobs?per_page=100`;
-  let reported = false;
-  return workflowWorkerLiveness({
-    profiles: Object.fromEntries(
-      Object.entries(PROFILE_ENV).map(([pool, name]) => [
-        pool,
-        env()[name] || undefined,
-      ]),
-    ),
-    async listJobs() {
-      return jsonLines<WorkerJob>(
-        await gh([
-          'api',
-          '--paginate',
-          path,
-          '--jq',
-          '.jobs[] | {name, status}',
-        ]),
-      );
-    },
-    onLookupError(error) {
-      // Liveness is advisory: keep waiting on the task budgets instead.
-      if (reported) return;
-      reported = true;
-      const cause = (error instanceof Error ? error.message : String(error))
-        .trim()
-        .split('\n')
-        .at(-1)
-        ?.slice(0, 200);
-      process.stdout.write(
-        `::warning::Adaptive worker liveness unavailable (${workflowCommandValue(cause ?? 'unknown error')}); waiting on task budgets.\n`,
-      );
-    },
-  });
 }
 
 const deps: CliDeps = {
@@ -127,7 +79,6 @@ const deps: CliDeps = {
       },
     };
   },
-  workers: runWorkerLiveness,
   stdout: (text) => process.stdout.write(text),
 };
 

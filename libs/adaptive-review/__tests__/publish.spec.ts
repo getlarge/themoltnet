@@ -4,6 +4,7 @@ import { publishAdaptiveReport } from '../src/publish.js';
 import {
   ADAPTIVE_FINDING_MARKER,
   ADAPTIVE_REVIEW_MARKER,
+  renderAdaptiveComment,
 } from '../src/report.js';
 import type { AdaptiveReport, LaneResult } from '../src/workflow.js';
 
@@ -998,4 +999,130 @@ describe('continuing focused findings', () => {
       expect(recorded.summaries).toEqual([]);
     },
   );
+});
+
+describe('publication replay after an ambiguous GitHub write', () => {
+  it('reuses review threads committed before their response was lost', async () => {
+    const recorded = calls();
+    const threads: ExistingThread[] = [];
+    const request = stableRequest(recorded, () => {
+      const [finding] = reviewComments(recorded.reviews[0]);
+      threads.push({ login: OPTIONS.appLogin, body: finding.body });
+      return Promise.reject(new Error('review response lost'));
+    });
+    const value = { ...report(), results: [concern('tests', [TESTS_FINDING])] };
+    const options = { ...OPTIONS, request, graphql: threadsGraphQL(threads) };
+    await expect(publishAdaptiveReport(value, options)).rejects.toThrow(
+      'review response lost',
+    );
+    await publishAdaptiveReport(value, options);
+    expect(recorded.reviews).toHaveLength(1);
+    expect(recorded.summaries).toHaveLength(1);
+    expect(recorded.reviews[0]).toMatchObject({ commit_id: HEAD });
+  });
+
+  it('replaces its partially published summary with a stale notice after the base moves', async () => {
+    const value = report();
+    const summary = comment(
+      100,
+      OPTIONS.appLogin,
+      renderAdaptiveComment(value, OPTIONS.runUrl),
+    );
+    const writes: string[] = [];
+    const request = async (
+      url: string,
+      method = 'GET',
+      body?: object,
+    ): Promise<unknown> => {
+      if (url === PR_PATH)
+        return { head: { sha: HEAD }, base: { sha: 'e'.repeat(40) } };
+      if (url.startsWith(`${PR_PATH}/comments`)) return [];
+      if (url.startsWith(COMMENTS_PATH) && method === 'GET') return [summary];
+      if (url.endsWith('/issues/comments/100') && method === 'PATCH') {
+        writes.push(method);
+        summary.body = (body as { body: string }).body;
+        return {};
+      }
+      throw new Error(`unexpected ${method} ${url}`);
+    };
+    await expect(
+      publishAdaptiveReport(value, { ...OPTIONS, request, recoverStale: true }),
+    ).rejects.toThrow('PR base changed');
+    expect(writes).toEqual(['PATCH']);
+    expect(summary.body).toContain('stale');
+  });
+
+  it('finds the summary created before a lost response instead of posting another', async () => {
+    const value = report();
+    const comments: Array<ReturnType<typeof comment>> = [];
+    let posts = 0;
+    let loseResponse = true;
+    const request = async (
+      url: string,
+      method = 'GET',
+      body?: object,
+    ): Promise<unknown> => {
+      if (url === PR_PATH) return { head: { sha: HEAD }, base: { sha: BASE } };
+      if (url.startsWith(COMMENTS_PATH) && method === 'GET') return comments;
+      if (url === COMMENTS_PATH && method === 'POST') {
+        posts += 1;
+        comments.push(
+          comment(100, OPTIONS.appLogin, (body as { body: string }).body),
+        );
+        if (loseResponse) {
+          loseResponse = false;
+          throw new Error('response lost after GitHub committed');
+        }
+        return { id: 100 };
+      }
+      if (url.endsWith('/issues/comments/100') && method === 'PATCH') {
+        comments[0].body = (body as { body: string }).body;
+        return {};
+      }
+      throw new Error(`unexpected ${method} ${url}`);
+    };
+    await expect(
+      publishAdaptiveReport(value, { ...OPTIONS, request }),
+    ).rejects.toThrow('response lost');
+    await publishAdaptiveReport(value, { ...OPTIONS, request });
+    expect(posts).toBe(1);
+    expect(comments).toHaveLength(1);
+    expect(comments[0].body).toContain(HEAD.slice(0, 7));
+  });
+
+  it('withdraws only its own stale output on recovery and leaves a newer summary alone', async () => {
+    const value = report();
+    const removed: string[] = [];
+    const writes: string[] = [];
+    const ownFinding = `${ADAPTIVE_FINDING_MARKER}tests:new:1:example.ts correlation=test -->\nold`;
+    const otherFinding = `${ADAPTIVE_FINDING_MARKER}tests:new:2:example.ts correlation=newer -->\nnew`;
+    const request = async (url: string, method = 'GET'): Promise<unknown> => {
+      if (url === PR_PATH)
+        return { head: { sha: 'd'.repeat(40) }, base: { sha: BASE } };
+      if (url.startsWith(`${PR_PATH}/comments`) && method === 'GET')
+        return [
+          comment(10, OPTIONS.appLogin, ownFinding),
+          comment(11, OPTIONS.appLogin, otherFinding),
+        ];
+      if (url.startsWith(COMMENTS_PATH) && method === 'GET')
+        return [
+          comment(
+            20,
+            OPTIONS.appLogin,
+            `${ADAPTIVE_REVIEW_MARKER}\nnewer review`,
+          ),
+        ];
+      if (method === 'DELETE') {
+        removed.push(url);
+        return {};
+      }
+      writes.push(`${method} ${url}`);
+      return {};
+    };
+    await expect(
+      publishAdaptiveReport(value, { ...OPTIONS, request, recoverStale: true }),
+    ).rejects.toThrow('PR head changed');
+    expect(removed).toEqual(['/repos/getlarge/themoltnet/pulls/comments/10']);
+    expect(writes).toEqual([]);
+  });
 });

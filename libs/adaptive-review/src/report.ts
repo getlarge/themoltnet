@@ -6,6 +6,12 @@ import type { AdaptiveReport, LaneResult } from './workflow.js';
 
 export const ADAPTIVE_REVIEW_MARKER = '<!-- moltnet:adaptive-review -->';
 /** Prefix of the hidden marker that identifies a finding's review thread. */
+export function reviewExecutionMarker(
+  report: Pick<AdaptiveReport, 'correlationId' | 'head' | 'base'>,
+): string {
+  return `<!-- moltnet:adaptive-execution ${encodeURIComponent(report.correlationId)} ${report.base} ${report.head} -->`;
+}
+
 export const ADAPTIVE_FINDING_MARKER = '<!-- moltnet:adaptive-finding ';
 
 /** A finding a review thread can anchor to: a cited line on a known side. */
@@ -186,7 +192,8 @@ export function hasIncompleteCoverage(report: AdaptiveReport): boolean {
 
 /** Replaces a result whose pull request moved while it was being published. */
 export function renderAdaptiveStale(
-  report: Pick<AdaptiveReport, 'head' | 'base'>,
+  report: Pick<AdaptiveReport, 'head' | 'base'> &
+    Partial<Pick<AdaptiveReport, 'correlationId'>>,
   current: { head: string; base: string },
   runUrl: string,
 ): string {
@@ -196,6 +203,14 @@ export function renderAdaptiveStale(
       : `head now points at \`${current.head.slice(0, 7)}\``;
   return [
     ADAPTIVE_REVIEW_MARKER,
+    ...(report.correlationId
+      ? [
+          reviewExecutionMarker({
+            ...report,
+            correlationId: report.correlationId,
+          }),
+        ]
+      : []),
     '## Adaptive review: stale',
     '',
     `Reviewed head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
@@ -211,6 +226,14 @@ export function renderAdaptiveComment(
 ): string {
   const lines = [
     ADAPTIVE_REVIEW_MARKER,
+    ...(report.correlationId
+      ? [
+          reviewExecutionMarker({
+            ...report,
+            correlationId: report.correlationId,
+          }),
+        ]
+      : []),
     hasIncompleteCoverage(report)
       ? '## Adaptive review: incomplete coverage'
       : '## Adaptive review',
