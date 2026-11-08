@@ -601,7 +601,7 @@ catalogs:
       version: 7.30.1
     vite:
       specifier: ^8.0.0
-      version: 8.3.5
+      version: 8.3.6
     vite-plugin-dts:
       specifier: ^4.5.4
       version: 4.5.4
@@ -710,13 +710,13 @@ importers:
         version: 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@playwright/test@1.64.1)(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
       '@nx/vite':
         specifier: 'catalog:'
-        version: 22.7.12(c348de1f2991e66f5fda5d7dfed5751a)
+        version: 22.7.12(51be3b52305090886961cb84d3ac090c)
       '@nx/vitest':
         specifier: 'catalog:'
-        version: 22.7.12(c348de1f2991e66f5fda5d7dfed5751a)
+        version: 22.7.12(51be3b52305090886961cb84d3ac090c)
       '@nx/web':
         specifier: 'catalog:'
-        version: 22.7.12(6fb0a003a6bc2b351fe96b72569c9840)
+        version: 22.7.12(f7a697743753e1630c956eb436d509f8)
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.64.1
@@ -809,7 +809,7 @@ importers:
         version: 8.58.0(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -984,10 +984,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1094,7 +1094,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -1103,7 +1103,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1161,7 +1161,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       webdriverio:
         specifier: 'catalog:'
         version: 9.31.9(supports-color@8.1.1)
@@ -1231,7 +1231,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -1240,7 +1240,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1326,10 +1326,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1466,7 +1466,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1552,7 +1552,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -1812,7 +1812,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2086,10 +2086,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2302,10 +2302,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2330,10 +2330,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2380,10 +2380,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2445,7 +2445,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -2460,10 +2460,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2528,7 +2528,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -2564,7 +2564,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2621,7 +2621,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -2630,10 +2630,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-singlefile:
         specifier: 'catalog:'
-        version: 2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.3.4(rollup@4.60.1)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2799,7 +2799,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2821,7 +2821,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2839,10 +2839,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -2984,10 +2984,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3111,10 +3111,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3145,7 +3145,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -3157,10 +3157,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3294,10 +3294,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3361,10 +3361,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3548,10 +3548,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-singlefile:
         specifier: 'catalog:'
-        version: 2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 2.3.4(rollup@4.60.1)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3650,7 +3650,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: 'catalog:'
-        version: 5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1(supports-color@10.2.2)
@@ -3662,10 +3662,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3743,10 +3743,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3774,10 +3774,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3808,7 +3808,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3839,7 +3839,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3907,10 +3907,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -3925,7 +3925,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: 'catalog:'
-        version: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
@@ -14909,8 +14909,8 @@ packages:
       yaml:
         optional: true
 
-  vite@8.3.5:
-    resolution: {integrity: sha512-z1YpjieJ9g0ebTmQpLBv/oq9E3F9EIlOe+7LahW8SrE3LTiG3udBRUXQOlYXP9b+IC2q2phHeVxj9xGlw34OEQ==}
+  vite@8.3.6:
+    resolution: {integrity: sha512-UI7dK29NnS54Fk+mmo7o+jI6U8Fp7hDl+X5Q1k45WH+d4dSlbLVUETGQ+hfkNgvLQGyoElPj837nZyv4MBc0VA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -19007,11 +19007,11 @@ snapshots:
       - supports-color
       - verdaccio
 
-  '@nx/vite@22.7.12(c348de1f2991e66f5fda5d7dfed5751a)':
+  '@nx/vite@22.7.12(51be3b52305090886961cb84d3ac090c)':
     dependencies:
       '@nx/devkit': 22.7.12(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))
       '@nx/js': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
-      '@nx/vitest': 22.7.12(c348de1f2991e66f5fda5d7dfed5751a)
+      '@nx/vitest': 22.7.12(51be3b52305090886961cb84d3ac090c)
       '@phenomnomnominal/tsquery': 6.2.0(typescript@5.9.3)
       ajv: 8.20.0
       enquirer: 2.3.6
@@ -19019,7 +19019,7 @@ snapshots:
       semver: 7.8.5
       tsconfig-paths: 4.2.0
       tslib: 2.8.1
-      vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@babel/traverse'
@@ -19031,7 +19031,7 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nx/vitest@22.7.12(c348de1f2991e66f5fda5d7dfed5751a)':
+  '@nx/vitest@22.7.12(51be3b52305090886961cb84d3ac090c)':
     dependencies:
       '@nx/devkit': 22.7.12(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))
       '@nx/js': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
@@ -19040,7 +19040,7 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@nx/eslint': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
-      vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
       vitest: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@babel/traverse'
@@ -19051,7 +19051,7 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nx/web@22.7.12(6fb0a003a6bc2b351fe96b72569c9840)':
+  '@nx/web@22.7.12(f7a697743753e1630c956eb436d509f8)':
     dependencies:
       '@nx/devkit': 22.7.12(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))
       '@nx/js': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
@@ -19062,7 +19062,7 @@ snapshots:
     optionalDependencies:
       '@nx/eslint': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
       '@nx/playwright': 22.7.12(@babel/traverse@7.29.8(supports-color@8.1.1))(@playwright/test@1.64.1)(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21))(@zkochan/js-yaml@0.0.7)(eslint@9.39.4(jiti@2.4.2)(supports-color@8.1.1))(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))(supports-color@8.1.1)
-      '@nx/vite': 22.7.12(c348de1f2991e66f5fda5d7dfed5751a)
+      '@nx/vite': 22.7.12(51be3b52305090886961cb84d3ac090c)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -20989,7 +20989,7 @@ snapshots:
       d3-selection: 3.0.0
       d3-transition: 3.0.1(d3-selection@3.0.0)
 
-  '@vitejs/plugin-react@5.2.0(supports-color@10.2.2)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))':
+  '@vitejs/plugin-react@5.2.0(supports-color@10.2.2)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.29.7(supports-color@10.2.2))
@@ -20997,7 +20997,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.3
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -28184,7 +28184,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-plugin-dts@4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@microsoft/api-extractor': 7.57.2(@types/node@22.19.19)
       '@rollup/pluginutils': 5.3.0(rollup@4.60.1)
@@ -28197,16 +28197,16 @@ snapshots:
       magic-string: 0.30.21
       typescript: 5.9.3
     optionalDependencies:
-      vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
 
-  vite-plugin-singlefile@2.3.4(rollup@4.60.1)(vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-plugin-singlefile@2.3.4(rollup@4.60.1)(vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       picomatch: 4.0.7
-      vite: 8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+      vite: 8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
     optionalDependencies:
       rollup: 4.60.1
 
@@ -28238,7 +28238,7 @@ snapshots:
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vite@8.3.5(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1):
+  vite@8.3.6(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
