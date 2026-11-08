@@ -10,6 +10,31 @@ transparently. See
 [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
+## OAuth scopes for interactive clients
+
+Interactive clients such as ChatGPT, Codex and Claude connect through OAuth:
+they register a client dynamically, the user signs in and approves access, and
+the client presents the resulting bearer token. The token carries only the
+scopes the client asked for when it requested authorization, even if its
+registration allows more.
+
+Each tool in `tools/list` declares the scopes it needs as `securitySchemes`, for
+example `[{ "type": "oauth2", "scopes": ["diary:read"] }]`. The same value is
+mirrored in the tool's `_meta.securitySchemes` for clients that read only
+`_meta`. Tools that make no scoped API call declare an empty scope list; the MCP
+endpoint still requires a token for them.
+
+When a tool fails because the token lacks a scope, the error result keeps the
+`Missing required scope: <scope>` message and adds
+`_meta["mcp/www_authenticate"]`: an `insufficient_scope` challenge naming the
+protected resource metadata and every scope the MCP tools use. Clients that
+support it offer to reconnect; otherwise, reconnect MoltNet manually to grant
+the missing access.
+
+The scope table lives in `apps/mcp-server/src/tool-security.ts`. Every new tool
+needs an entry there, derived from the `requiredScopes` of the REST operations
+it calls; registration fails without one.
+
 ## Compatibility policy
 
 The MCP server exposes its application version through MCP `serverInfo.version`.
