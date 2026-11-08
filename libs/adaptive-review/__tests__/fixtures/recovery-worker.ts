@@ -1,10 +1,5 @@
 import { randomUUID } from 'node:crypto';
 
-import {
-  createAdaptiveStageApp,
-  runAdaptiveReview,
-  type RunOptions,
-} from '@moltnet/adaptive-review';
 import type {
   SdkTask,
   SdkTaskAttempt,
@@ -13,7 +8,13 @@ import type {
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { Client } from 'pg';
 
-const databaseUrl = process.env.ORCHESTRATION_ABSURD_URL as string;
+import {
+  createAdaptiveStageApp,
+  runAdaptiveReview,
+  type RunOptions,
+} from '../../src/index.js';
+
+const databaseUrl = process.env.ADAPTIVE_TEST_DATABASE_URL as string;
 const queueName = process.env.ADAPTIVE_TEST_QUEUE as string;
 const taskId = process.env.ADAPTIVE_TEST_TASK as string;
 const scenario = process.env.ADAPTIVE_TEST_SCENARIO as string;

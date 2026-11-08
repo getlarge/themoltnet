@@ -1569,9 +1569,6 @@ importers:
         specifier: 'catalog:'
         version: 8.18.0
     devDependencies:
-      '@moltnet/adaptive-review':
-        specifier: workspace:*
-        version: link:../../libs/adaptive-review
       '@types/pg':
         specifier: 'catalog:'
         version: 8.16.0
@@ -1957,6 +1954,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.16.0
+      pg:
+        specifier: 'catalog:'
+        version: 8.18.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

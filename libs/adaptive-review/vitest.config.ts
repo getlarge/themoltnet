@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.spec.ts'],
+    exclude: ['__tests__/**/*.integration.spec.ts'],
     testTimeout: 10_000,
   },
 });

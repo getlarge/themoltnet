@@ -10,9 +10,6 @@
       "path": "../issue-lifecycle"
     },
     {
-      "path": "../../libs/adaptive-review"
-    },
-    {
       "path": "./tsconfig.spec.json"
     }
   ]

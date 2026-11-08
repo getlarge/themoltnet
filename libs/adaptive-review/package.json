@@ -30,7 +30,10 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
+    "tsx": "catalog:"
   },
   "nx": {
     "projectType": "library",
@@ -65,6 +68,15 @@
           },
           "{workspaceRoot}/.github/runtime-profiles/*.json"
         ]
+      },
+      "test:integration": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "vitest run --config vitest.integration.config.ts",
+          "cwd": "libs/adaptive-review"
+        },
+        "outputs": []
       }
     }
   },

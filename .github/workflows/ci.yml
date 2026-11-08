@@ -499,7 +499,7 @@ jobs:
           # Absurd Postgres (issue-lifecycle-db + its migrate sibling), NOT the
           # app-image stack. Its own lightweight job (below) keeps it off the
           # long e2e-node/rest-api job and out of the *_IMAGE dependency.
-          if contains "@themoltnet/orchestration-e2e"; then
+          if contains "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review"; then
             echo "e2e-orchestration=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-orchestration=false" >> "$GITHUB_OUTPUT"
@@ -1953,6 +1953,11 @@ jobs:
       - name: Run Orchestration Durability E2E tests
         if: needs.affected.outputs.e2e-orchestration == 'true'
         run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e
+      - name: Run Adaptive Review Integration tests
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+        env:
+          ADAPTIVE_TEST_DATABASE_URL: ${{ env.ORCHESTRATION_ABSURD_URL }}
+        run: pnpm exec nx run @moltnet/adaptive-review:test:integration
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-orchestration == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50 issue-lifecycle-db issue-lifecycle-db-migrate

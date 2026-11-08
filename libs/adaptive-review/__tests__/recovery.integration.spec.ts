@@ -8,6 +8,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { Client } from 'pg';
+import { describe, expect, it } from 'vitest';
+
 import {
   ADAPTIVE_STAGE_TASK,
   type AdaptiveReport,
@@ -15,11 +18,9 @@ import {
   executeAdaptiveStage,
   executionQueue,
   type RunOptions,
-} from '@moltnet/adaptive-review';
-import { Client } from 'pg';
-import { describe, expect, it } from 'vitest';
+} from '../src/index.js';
 
-const databaseUrl = process.env.ORCHESTRATION_ABSURD_URL as string;
+const databaseUrl = process.env.ADAPTIVE_TEST_DATABASE_URL as string;
 function output(
   child: ChildProcessWithoutNullStreams,
   marker: string,
@@ -128,7 +129,7 @@ function pinnedInput(cwd: string): Omit<RunOptions, 'tasks' | 'ctx'> {
   };
 }
 
-describe('adaptive review process recovery (real Absurd; SQL task-service fixture)', () => {
+describe('adaptive review integration (real Absurd; SQL task-service fixture)', () => {
   it.each(['create', 'await', 'parallel', 'repair'])(
     'recovers %s without replacement tasks or renewed repair budgets',
     async (scenario) => {
@@ -158,10 +159,7 @@ describe('adaptive review process recovery (real Absurd; SQL task-service fixtur
             [
               '--import',
               'tsx',
-              resolve(
-                import.meta.dirname,
-                'fixtures/adaptive-recovery-worker.ts',
-              ),
+              resolve(import.meta.dirname, 'fixtures/recovery-worker.ts'),
             ],
             {
               env: {

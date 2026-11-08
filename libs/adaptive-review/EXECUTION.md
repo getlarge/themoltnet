@@ -7,6 +7,11 @@ entry points used by the reusable Actions workflow persist `prepare`, `route`,
 A replacement process can resume those stages with the same inputs and database.
 `plan` is an ordinary read-only command; it does not create durable work.
 
+Absurd is required for those executable stages, both locally and in Actions.
+The exported library functions can still use an inline `WorkflowContext` for
+embedding and unit tests; that mode has no durable recovery. Running outside
+Actions removes the Actions dependency, not the database or task workers.
+
 This describes the implementation in this checkout. MoltNet's
 [caller workflow](../../.github/workflows/adaptive-review.yml) still selects a
 released reusable workflow by commit SHA. Changing this source does not deploy
@@ -368,15 +373,24 @@ An external supervisor must decide who may launch a review and publish it.
 responses, completed parallel branches, and repair replay. Publication tests
 mock GitHub. These establish local contracts, not recovery against deployed
 services. The
-[adaptive recovery e2e suite](../../apps/orchestration-e2e/src/adaptive-recovery.e2e.spec.ts)
+[adaptive recovery integration suite](__tests__/recovery.integration.spec.ts)
 uses child processes and a real Absurd database, with simulated MoltNet task
-execution. Run it only with an already initialized test database:
+execution. It belongs to adaptive review and runs separately from unit tests.
+It does not exercise GitHub or live model workers. Run it only with an already
+initialized test database:
 
 ```bash
 NX_LOAD_DOT_ENV_FILES=false \
-ORCHESTRATION_ABSURD_URL="$ADAPTIVE_TEST_DATABASE_URL" \
-pnpm exec nx run @themoltnet/orchestration-e2e:e2e
+ADAPTIVE_TEST_DATABASE_URL='<Absurd test database URL>' \
+pnpm exec nx run @moltnet/adaptive-review:test:integration
 ```
+
+The target is not cached and never starts or migrates a database. It requires
+the explicit test URL and uses isolated execution queues, removed after each
+test. CI runs it in the existing database-only orchestration job alongside the
+shared adapter tests. A complete local review instead uses the stage commands
+and real daemon workers described above, producing `ADAPTIVE_REPORT` before
+the separately invoked publication command.
 
 | Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                                  |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
