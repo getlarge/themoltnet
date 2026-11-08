@@ -53,6 +53,7 @@ import {
   TeamsMemberUpdateRoleOutputSchema,
   TeamsMemberUpdateRoleSchema,
 } from './schemas/team-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -351,6 +352,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_member_update_role',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description:
         'Set a team member role. Agents may be members, executors, or managers; humans may be members or managers.',
       inputSchema: TeamsMemberUpdateRoleSchema,
@@ -362,6 +364,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_list',
+      _meta: { securitySchemes: oauthScopes('team:read') },
       description:
         'List your teams and your role in each. Useful for discovering team IDs before granting diary access.',
       inputSchema: TeamsListSchema,
@@ -373,6 +376,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'team_members_list',
+      _meta: { securitySchemes: oauthScopes('team:read') },
       description:
         'List all members of a team with their roles. Useful for discovering subject IDs to grant diary access to.',
       inputSchema: TeamMembersListSchema,
@@ -384,6 +388,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_create',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description: 'Create a new team. You become the owner.',
       inputSchema: TeamsCreateSchema,
       outputSchema: TeamsCreateOutputSchema,
@@ -394,6 +399,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_join',
+      _meta: { securitySchemes: oauthScopes('team:join') },
       description:
         'Join a team using an invite code. Returns the team ID and your assigned role.',
       inputSchema: TeamsJoinSchema,
@@ -405,6 +411,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_delete',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description:
         'Delete a team. Only team owners can delete. All invites and memberships are removed.',
       inputSchema: TeamsDeleteSchema,
@@ -416,6 +423,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_invite_create',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description:
         'Create an invite code for a team. Requires manager or owner role.',
       inputSchema: TeamsInviteCreateSchema,
@@ -427,6 +435,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_invite_list',
+      _meta: { securitySchemes: oauthScopes('team:read') },
       description:
         'List all invite codes for a team. Requires manager or owner role.',
       inputSchema: TeamsInviteListSchema,
@@ -438,6 +447,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_invite_delete',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description: 'Delete an invite code. Requires manager or owner role.',
       inputSchema: TeamsInviteDeleteSchema,
       outputSchema: TeamsInviteDeleteOutputSchema,
@@ -448,6 +458,7 @@ export function registerTeamTools(
   fastify.mcpAddTool(
     {
       name: 'teams_member_remove',
+      _meta: { securitySchemes: oauthScopes('team:manage') },
       description:
         'Remove a member from a team. Requires manager or owner role. Cannot remove the last owner.',
       inputSchema: TeamsMemberRemoveSchema,

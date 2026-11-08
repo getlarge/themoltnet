@@ -65,6 +65,7 @@ import {
   RenderedPackUpdateOutputSchema,
   RenderedPackUpdateSchema,
 } from './schemas/pack-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -558,6 +559,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_get',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'Get a context pack by ID. Pass expand=entries to include the full entry list.',
       inputSchema: PackGetSchema,
@@ -569,6 +571,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_list',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'List context packs either by diary_id or by contains_entry. Pass include_rendered with contains_entry to include rendered descendants.',
       inputSchema: PackListSchema,
@@ -580,6 +583,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_preview',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Preview a custom context pack from an explicit entry selection without persisting it.',
       inputSchema: PackPreviewSchema,
@@ -591,6 +595,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_create',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Create and persist a custom context pack from an explicit entry selection.',
       inputSchema: PackCreateSchema,
@@ -602,6 +607,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_update',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Update a context pack — pin/unpin or change expiration date. ' +
         'Pin a pack to protect it from garbage collection. ' +
@@ -615,6 +621,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'rendered_packs_update',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Update a rendered pack — pin/unpin or change expiration date. ' +
         'Pin a rendered pack to protect it from garbage collection. ' +
@@ -628,6 +635,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_render_preview',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Preview a rendered pack from a source context pack without persisting it.',
       inputSchema: PackRenderPreviewSchema,
@@ -639,6 +647,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_render',
+      _meta: { securitySchemes: oauthScopes('pack:write') },
       description:
         'Render a source context pack to structured markdown and persist it as a new CID-addressed rendered pack.',
       inputSchema: PackRenderSchema,
@@ -650,6 +659,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'rendered_packs_get',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'Fetch a persisted rendered pack by ID. Returns the rendered markdown plus metadata linking it back to its source context pack.',
       inputSchema: RenderedPackGetSchema,
@@ -661,6 +671,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'rendered_packs_list',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'List rendered packs for a diary. Optionally filter by source_pack_id or render_method.',
       inputSchema: RenderedPackListSchema,
@@ -672,6 +683,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_provenance',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'Get the provenance graph for a context pack. Provide exactly one of pack_id (UUID) or pack_cid (CID string). ' +
         'Use depth to control how many ancestor layers to traverse (default 1).',
@@ -684,6 +696,7 @@ export function registerPackTools(
   fastify.mcpAddTool(
     {
       name: 'packs_diff',
+      _meta: { securitySchemes: oauthScopes('pack:read') },
       description:
         'Compare two context packs from the same diary. ' +
         'Returns added, removed, reordered, and changed entries with token-level stats. ' +

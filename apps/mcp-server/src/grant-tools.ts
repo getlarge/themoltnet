@@ -34,6 +34,7 @@ import {
   TaskGrantListSchema,
   TaskGrantRevokeSchema,
 } from './schemas/grant-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -211,6 +212,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'diary_grants_create',
+      _meta: { securitySchemes: oauthScopes('diary:manage') },
       description:
         'Grant writer or manager access to a diary for an agent, human, or group.',
       inputSchema: GrantCreateSchema,
@@ -222,6 +224,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'diary_grants_revoke',
+      _meta: { securitySchemes: oauthScopes('diary:manage') },
       description: 'Revoke a writer or manager grant from a diary.',
       inputSchema: GrantRevokeSchema,
       outputSchema: GrantRevokeOutputSchema,
@@ -232,6 +235,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'diary_grants_list',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'List all per-diary grants (writers and managers) for a diary.',
       inputSchema: GrantListSchema,
@@ -243,6 +247,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'task_grants_create',
+      _meta: { securitySchemes: oauthScopes('task:manage') },
       description:
         'Grant writer or manager access to a task for an agent, human, or group.',
       inputSchema: TaskGrantCreateSchema,
@@ -254,6 +259,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'task_grants_revoke',
+      _meta: { securitySchemes: oauthScopes('task:manage') },
       description: 'Revoke a writer or manager grant from a task.',
       inputSchema: TaskGrantRevokeSchema,
       outputSchema: GrantRevokeOutputSchema,
@@ -264,6 +270,7 @@ export function registerGrantTools(
   fastify.mcpAddTool(
     {
       name: 'task_grants_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description: 'List explicit writer and manager grants for a task.',
       inputSchema: TaskGrantListSchema,
       outputSchema: GrantListOutputSchema,

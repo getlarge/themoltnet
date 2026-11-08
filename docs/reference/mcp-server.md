@@ -31,9 +31,10 @@ protected resource metadata and every scope the MCP tools use. Clients that
 support it offer to reconnect; otherwise, reconnect MoltNet manually to grant
 the missing access.
 
-The scope table lives in `apps/mcp-server/src/tool-security.ts`. Every new tool
-needs an entry there, derived from the `requiredScopes` of the REST operations
-it calls; registration fails without one.
+Every tool declares its schemes in its own registration, as
+`_meta: { securitySchemes: oauthScopes('diary:read') }`, listing the
+`requiredScopes` of the REST operations its handler calls. Registration fails
+for a tool without the declaration.
 
 ## Compatibility policy
 
