@@ -4,13 +4,20 @@ import {
   spawn,
 } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { Client } from 'pg';
 import { describe, expect, it } from 'vitest';
 
+import { type CliDeps, runAdaptiveStage } from '../src/cli.js';
 import {
   ADAPTIVE_STAGE_TASK,
   type AdaptiveReport,
@@ -19,6 +26,7 @@ import {
   executionQueue,
   type RunOptions,
 } from '../src/index.js';
+import { IdempotentReviewTasks, reviewFixture } from './recovery-fixture.js';
 
 const databaseUrl = process.env.ADAPTIVE_TEST_DATABASE_URL as string;
 function output(
@@ -129,7 +137,109 @@ function pinnedInput(cwd: string): Omit<RunOptions, 'tasks' | 'ctx'> {
   };
 }
 
-describe('adaptive review integration (real Absurd; SQL task-service fixture)', () => {
+describe('adaptive review integration (real Absurd; simulated task services)', () => {
+  it('runs the local stage interface and restores lost handoff files without Actions', async () => {
+    const repo = reviewFixture();
+    const executionId = `local-stages-${process.pid}-${Date.now()}`;
+    const tasks = new IdempotentReviewTasks();
+    const eventPath = join(repo.cwd, 'event.json');
+    const preparedPath = join(repo.cwd, 'prepared.json');
+    const routePath = join(repo.cwd, 'route.json');
+    const reportPath = join(repo.cwd, 'report.json');
+    writeFileSync(
+      eventPath,
+      JSON.stringify({ issue: { number: 7, pull_request: {} } }),
+    );
+    const deps: CliDeps = {
+      cwd: repo.cwd,
+      env: {
+        GITHUB_REPOSITORY: 'another/project',
+        GITHUB_EVENT_NAME: 'issue_comment',
+        GITHUB_EVENT_PATH: eventPath,
+        ADAPTIVE_EXECUTION_ID: executionId,
+        ADAPTIVE_DATABASE_URL: databaseUrl,
+        ADAPTIVE_PREPARED: preparedPath,
+        ADAPTIVE_ROUTE: routePath,
+        ADAPTIVE_REPORT: reportPath,
+        ADAPTIVE_MODE: 'shadow',
+        ADAPTIVE_RUNTIME_SHA: repo.base,
+        ADAPTIVE_APP_LOGIN: 'reviewer[bot]',
+        ADAPTIVE_CLASSIFIER_PROFILE: 'classifier',
+        ADAPTIVE_FOCUSED_PROFILE: 'reviewer',
+        MOLTNET_TEAM_ID: 'team',
+        MOLTNET_DIARY_ID: 'diary',
+      },
+      github: {
+        pullRequest: async () => ({
+          number: 7,
+          title: 'Change value',
+          body: '',
+          changed_files: 1,
+          user: { login: 'contributor' },
+          head: { sha: repo.head, repo: { full_name: 'another/project' } },
+          base: { sha: repo.base },
+        }),
+        files: async () => [{ filename: 'example.ts' }],
+        revisions: async () => ({ base: repo.base, head: repo.head }),
+        reviewThreads: async () => [],
+      },
+      connect: async () => ({
+        profiles: async () =>
+          ['classifier', 'reviewer'].map((id) => ({
+            id,
+            name: id,
+            revision: 1,
+          })),
+        tasks,
+      }),
+      stdout: () => {},
+    };
+    try {
+      for (const stage of ['prepare', 'plan', 'route', 'review'])
+        expect(await runAdaptiveStage(stage, deps)).toBe(0);
+      const readReport = () =>
+        JSON.parse(readFileSync(reportPath, 'utf8')) as AdaptiveReport;
+      const report = readReport();
+      expect(report.repo).toBe('another/project');
+      expect(report.head).toBe(repo.head);
+      expect(report.base).toBe(repo.base);
+      expect(report.correlationId).toBe(executionId);
+      expect(report.results.map((lane) => lane.status)).toEqual([
+        'clear',
+        'clear',
+      ]);
+      expect(tasks.requests).toHaveLength(3);
+      expect(report.taskIds).toHaveLength(3);
+      expect(new Set(report.taskIds)).toEqual(
+        new Set(tasks.requests.map(({ id }) => id)),
+      );
+      const originals = [preparedPath, routePath, reportPath].map((path) =>
+        readFileSync(path, 'utf8'),
+      );
+      for (const path of [preparedPath, routePath, reportPath]) rmSync(path);
+      for (const stage of ['prepare', 'route', 'review'])
+        expect(await runAdaptiveStage(stage, { ...deps })).toBe(0);
+      expect(readReport()).toEqual(report);
+      expect(
+        [preparedPath, routePath, reportPath].map((path) =>
+          readFileSync(path, 'utf8'),
+        ),
+      ).toEqual(originals);
+      expect(tasks.requests).toHaveLength(3);
+    } finally {
+      for (const suffix of ['', '-input']) {
+        const app = createAdaptiveStageApp({
+          databaseUrl,
+          queueName: executionQueue(executionId) + suffix,
+          run: async () => null,
+        });
+        await app.dropQueue();
+        await app.close();
+      }
+      repo.close();
+    }
+  });
+
   it.each(['create', 'await', 'parallel', 'repair'])(
     'recovers %s without replacement tasks or renewed repair budgets',
     async (scenario) => {

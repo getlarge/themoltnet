@@ -428,11 +428,11 @@ export async function runRoutedAdaptiveReview(
     preparation.head !== identity.head ||
     preparation.correlationId !== identity.correlationId ||
     preparation.policyDigest !== snapshot.digest ||
-    JSON.stringify(preparation.referenceDigests) !==
-      JSON.stringify(snapshot.referenceDigests) ||
+    canonicalInput(preparation.referenceDigests) !==
+      canonicalInput(snapshot.referenceDigests) ||
     preparation.runtimeSha !== options.runtimeSha ||
-    JSON.stringify(preparation.taskBudgets) !==
-      JSON.stringify(options.taskBudgets) ||
+    canonicalInput(preparation.taskBudgets) !==
+      canonicalInput(options.taskBudgets) ||
     JSON.stringify(preparation.routing.routes.map((route) => route.lane)) !==
       JSON.stringify(snapshot.policy.lanes)
   ) {

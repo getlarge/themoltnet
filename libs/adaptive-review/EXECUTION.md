@@ -392,21 +392,26 @@ shared adapter tests. A complete local review instead uses the stage commands
 and real daemon workers described above, producing `ADAPTIVE_REPORT` before
 the separately invoked publication command.
 
-| Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                                  |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Submission accepted before creation checkpoint | Replay test asserts repeated key returns same task ID and counts requests                                                        | SIGKILL creation case authored, unrun                                 |
-| Restart while awaiting                         | Replay keeps the waiting task ID                                                                                                 | SIGKILL awaiting case authored, unrun                                 |
-| Some parallel lanes complete                   | Replay retains completed lane checkpoint and three total submissions                                                             | SIGKILL partial-lane case authored, unrun                             |
-| Interrupted semantic repair                    | Replay retains original plus two bounded corrections, including crash-gap retry count                                            | SIGKILL repair case authored, unrun                                   |
-| Resume budgets and spend inputs                | Saved classifier deadline, same task requests and repair cap, restored task-ID ledger, and all five priced attempts counted once | Task ID/request counts asserted in unrun suite; live usage unverified |
-| Intentional new review                         | Distinct execution/correlation produces distinct tasks; Actions attempt preserves identity                                       | New stage execution case authored, unrun                              |
-| Incompatible inputs                            | Rejects changed repository, head, profiles/revisions, budgets, runtime                                                           | Binding case authored, unrun                                          |
-| Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                                          |
+| Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Submission accepted before creation checkpoint | Replay test asserts repeated key returns same task ID and counts requests                                                        | SIGKILL creation case passed                         |
+| Restart while awaiting                         | Replay keeps the waiting task ID                                                                                                 | SIGKILL awaiting case passed                         |
+| Some parallel lanes complete                   | Replay retains completed lane checkpoint and three total submissions                                                             | SIGKILL partial-lane case passed                     |
+| Interrupted semantic repair                    | Replay retains original plus two bounded corrections, including crash-gap retry count                                            | SIGKILL repair case passed                           |
+| Resume budgets and spend inputs                | Saved classifier deadline, same task requests and repair cap, restored task-ID ledger, and all five priced attempts counted once | Task ID/request counts passed; live usage unverified |
+| Intentional new review                         | Distinct execution/correlation produces distinct tasks; Actions attempt preserves identity                                       | New stage execution case passed                      |
+| Incompatible inputs                            | Rejects changed repository, head, profiles/revisions, budgets, runtime                                                           | Binding case passed                                  |
+| Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                         |
 
-During implementation verification, the local test database on port 55434
-refused connections, so the new real-database recovery tests were authored but
-not executed. Simulated replay tests are not evidence of a successful real
-Absurd crash/restart. Neither suite demonstrates live provider behavior,
-GitHub publication recovery, deployed credentials, or production readiness.
-Before relying on this path operationally, validate a controlled review and
-interruption/replacement against the intended database and worker deployment.
+The real-Absurd integration suite was run locally against an isolated
+Postgres with Absurd schema `0.4.0`. The process tests killed and replaced
+coordinators and verified preserved task IDs and submission counts. A sixth
+case ran `prepare`, `plan`, `route`, and `review` through the local stage
+interface for a separate repository fixture. It deleted the prepared, route,
+and report files, then restored all three from Absurd with the same three
+task IDs and no additional submissions. This caught and now guards against
+JSON object-key ordering differences at the route-to-review handoff. GitHub
+responses and MoltNet task execution remain simulated: this does not verify
+live provider behavior, GitHub publication recovery, deployed credentials, or
+production readiness. Before relying on this path operationally, validate a
+controlled review against the intended database and worker deployment.
