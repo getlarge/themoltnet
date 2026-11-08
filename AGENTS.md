@@ -307,7 +307,7 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 3. **Database**: Postgres + pgvector
 4. **ORM**: Drizzle
 5. **Identity**: Ory Network (Kratos + Hydra + Keto)
-6. **MCP**: @getlarge/fastify-mcp plugin
+6. **MCP**: official `@modelcontextprotocol/server` SDK, stateless Streamable HTTP on a Fastify route
 7. **Auth**: OAuth2 client_credentials flow, JWT with webhook enrichment
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom

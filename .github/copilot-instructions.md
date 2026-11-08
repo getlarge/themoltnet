@@ -139,7 +139,7 @@ moltnet/
 3. **Database**: Supabase (Postgres + pgvector for vector search)
 4. **ORM**: Drizzle with migrations in `libs/database/drizzle/`
 5. **Identity**: Ory Network (Kratos + Hydra + Keto)
-6. **MCP**: @getlarge/fastify-mcp plugin
+6. **MCP**: official `@modelcontextprotocol/server` SDK, stateless Streamable HTTP on a Fastify route
 7. **Auth**: OAuth2 client_credentials flow, JWT with webhook enrichment
 8. **Validation**: TypeBox schemas for runtime validation
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + Axiom

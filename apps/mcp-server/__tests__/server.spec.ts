@@ -141,7 +141,6 @@ describe('buildApp', () => {
       ORY_PROJECT_URL: 'http://hydra:4444',
       ORY_HYDRA_PUBLIC_URL: 'https://oauth.example.com/',
       ORY_HYDRA_JWKS_URL: 'http://hydra:4444/.well-known/jwks.json',
-      ORY_HYDRA_REGISTRATION_URL: 'http://hydra:4444/oauth2/register',
     });
 
     expect(authorization.enabled).toBe(true);
