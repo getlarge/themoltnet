@@ -5,8 +5,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@modelcontextprotocol/ext-apps": "catalog:",
-    "@modelcontextprotocol/sdk": "catalog:"
+    "@modelcontextprotocol/client": "catalog:",
+    "@modelcontextprotocol/ext-apps": "catalog:"
   },
   "nx": {
     "projectType": "application",

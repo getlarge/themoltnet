@@ -2,7 +2,21 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+// Types only: the runtime package would pull its React peers into the image.
+import type {
+  McpUiResourceMeta,
+  McpUiToolMeta,
+} from '@modelcontextprotocol/ext-apps';
+import type {
+  RESOURCE_MIME_TYPE,
+  RESOURCE_URI_META_KEY,
+} from '@modelcontextprotocol/ext-apps/server';
+
+/** ext-apps' `RESOURCE_MIME_TYPE`. */
+export const MCP_APP_RESOURCE_MIME_TYPE: typeof RESOURCE_MIME_TYPE =
+  'text/html;profile=mcp-app';
+/** ext-apps' `RESOURCE_URI_META_KEY`: the flat key older hosts read. */
+const LEGACY_RESOURCE_URI_KEY: typeof RESOURCE_URI_META_KEY = 'ui/resourceUri';
 
 export function resolveInstalledMcpAppHtmlPath(
   packageName: string,
@@ -43,29 +57,10 @@ export interface McpAppResourceMetaOptions {
 
 export function createMcpAppResourceMeta(
   options: McpAppResourceMetaOptions = {},
-): {
-  ui: {
-    domain?: string;
-    csp: {
-      connectDomains: string[];
-      resourceDomains: string[];
-      frameDomains: string[];
-    };
-    prefersBorder: boolean;
-  };
-} {
-  const meta: {
+): { ui: McpUiResourceMeta } {
+  return {
     ui: {
-      domain?: string;
-      csp: {
-        connectDomains: string[];
-        resourceDomains: string[];
-        frameDomains: string[];
-      };
-      prefersBorder: boolean;
-    };
-  } = {
-    ui: {
+      ...(options.domain ? { domain: options.domain } : {}),
       csp: {
         connectDomains: options.connectDomains ?? [],
         resourceDomains: options.resourceDomains ?? [],
@@ -74,12 +69,6 @@ export function createMcpAppResourceMeta(
       prefersBorder: options.prefersBorder ?? false,
     },
   };
-
-  if (options.domain) {
-    meta.ui.domain = options.domain;
-  }
-
-  return meta;
 }
 
 /**
@@ -88,17 +77,14 @@ export function createMcpAppResourceMeta(
  * does.
  */
 export function createMcpAppToolMeta(resourceUri: string): {
-  ui: {
-    resourceUri: string;
-    visibility: ['model', 'app'];
-  };
-  'ui/resourceUri': string;
+  ui: McpUiToolMeta;
+  [LEGACY_RESOURCE_URI_KEY]: string;
 } {
   return {
     ui: {
       resourceUri,
       visibility: ['model', 'app'],
     },
-    'ui/resourceUri': resourceUri,
+    [LEGACY_RESOURCE_URI_KEY]: resourceUri,
   };
 }

@@ -56,11 +56,12 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "catalog:",
     "pino-pretty": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "tsx": "catalog:",
-    "vite": "catalog:"
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "nx": {
     "projectType": "application",

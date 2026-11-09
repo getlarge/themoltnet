@@ -1,4 +1,11 @@
 import {
+  type CallToolResult,
+  Client,
+  type Resource,
+  StreamableHTTPClientTransport,
+  type Tool,
+} from '@modelcontextprotocol/client';
+import {
   AppBridge,
   buildAllowAttribute,
   getToolUiResourceUri,
@@ -7,13 +14,6 @@ import {
   PostMessageTransport,
   RESOURCE_MIME_TYPE,
 } from '@modelcontextprotocol/ext-apps/app-bridge';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import type {
-  CallToolResult,
-  Resource,
-  Tool,
-} from '@modelcontextprotocol/sdk/types.js';
 
 export interface ServerInfo {
   client: Client;
@@ -95,7 +95,7 @@ export function callTool(
   const resultPromise = serverInfo.client.callTool({
     name,
     arguments: input,
-  }) as Promise<CallToolResult>;
+  });
 
   const toolCallInfo: ToolCallInfo = {
     input,
