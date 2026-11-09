@@ -103,6 +103,8 @@ describe('released action runtime inputs', () => {
     expect(adaptive.pathspecs).toEqual(
       expect.arrayContaining([
         '.github/workflows/adaptive-review-reusable.yml',
+        'tools/setup-adaptive-review-database.sh',
+        'infra/absurd/Dockerfile',
         'libs/adaptive-review/src',
         ':(exclude,glob)**/*.spec.ts',
       ]),
