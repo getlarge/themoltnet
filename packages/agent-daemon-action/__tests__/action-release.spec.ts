@@ -174,8 +174,13 @@ describe('daemon release lookup', () => {
     expect(stepById(action, 'install-daemon').env?.MOLTNET_AGENT_VERSION).toBe(
       '${{ steps.daemon-release.outputs.version || inputs.daemon-version }}',
     );
+    // The install step reads the same releases through the API when the
+    // public download fails; no other step may see the token.
+    expect(stepById(action, 'install-daemon').env?.RELEASE_TOKEN).toBe(
+      '${{ inputs.github-release-token }}',
+    );
     for (const other of action.runs.steps.filter(
-      (candidate) => candidate !== step,
+      (candidate) => candidate !== step && candidate.id !== 'install-daemon',
     )) {
       expect(JSON.stringify(other)).not.toContain(
         'inputs.github-release-token',

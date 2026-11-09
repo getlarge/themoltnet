@@ -144,10 +144,11 @@ inputs:
     default: 'latest'
   github-release-token:
     description: >
-      GitHub.com token used only to resolve daemon-version: latest from
-      getlarge/themoltnet releases. Defaults to the workflow token; pass a
-      repository-scoped GitHub App token with contents: read to use the App's
-      rate limit. Unused for an exact version or workspace mode.
+      GitHub.com token used only to read getlarge/themoltnet releases: to
+      resolve daemon-version: latest, and to download the agent bundle through
+      the GitHub API when the public release download fails. Defaults to the
+      workflow token; pass a repository-scoped GitHub App token with
+      contents: read to use the App's rate limit. Unused in workspace mode.
     required: false
     default: ${{ github.token }}
   running-timeout-sec:
@@ -931,7 +932,15 @@ runs:
     # fields empty and cannot verify anything.
     #
     # Pass the resolved exact version so the signed installer does not need
-    # a GitHub API request or the release-reading token.
+    # a GitHub API request to pick one.
+    #
+    # The served installer and the bundle it downloads come from public
+    # GitHub release-download URLs. curl retries 408, 429 and 5xx answers
+    # itself; the fixed delay rides out a short outage. If that path still
+    # fails, the same release assets are fetched through the GitHub API,
+    # which is served by a different front end, with the release-reading
+    # token. The installer then runs on the local archive and verifies its
+    # signature against the same embedded publisher key.
     - name: Install agent release bundle
       id: install-daemon
       if: ${{ inputs.daemon-version != 'workspace' }}
@@ -944,9 +953,56 @@ runs:
         MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
         GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         MOLTNET_AGENT_VERSION: ${{ steps.daemon-release.outputs.version || inputs.daemon-version }}
+        RELEASE_TOKEN: ${{ inputs.github-release-token }}
       run: |
         set -euo pipefail
-        curl -fsSL https://themolt.net/install | sh
+        work="$ACTION_TEMP/agent-install"
+        rm -rf "$work"
+        mkdir -p "$work"
+
+        public_install() {
+          curl -fsSL --retry 6 --retry-delay 10 --connect-timeout 15 --max-time 120 \
+            -o "$work/install.sh" https://themolt.net/install &&
+            sh "$work/install.sh"
+        }
+
+        api_install() {
+          if ! [[ "$MOLTNET_AGENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::the GitHub API fallback needs an exact daemon version' >&2
+            return 1
+          fi
+          if ! command -v gh >/dev/null; then
+            echo '::error::the GitHub API fallback needs the gh CLI on the runner' >&2
+            return 1
+          fi
+          local plat
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64) plat=linux-x64 ;;
+            Darwin-arm64) plat=darwin-arm64 ;;
+            *)
+              echo "::error::no agent release for $(uname -s)-$(uname -m)" >&2
+              return 1
+              ;;
+          esac
+          local name="moltnet-agent-$plat.tar.gz" dir="$work/api" attempt
+          for attempt in 1 2 3; do
+            rm -rf "$dir"
+            if GH_TOKEN="$RELEASE_TOKEN" gh release download \
+              "agent-daemon-v$MOLTNET_AGENT_VERSION" --repo getlarge/themoltnet \
+              --dir "$dir" --pattern install.sh --pattern "$name" \
+              --pattern "$name.sha256" --pattern "$name.sha256.sig"; then
+              MOLTNET_AGENT_ARCHIVE="$dir/$name" sh "$dir/install.sh"
+              return
+            fi
+            [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
+          done
+          return 1
+        }
+
+        if ! public_install; then
+          echo '::warning::public agent download failed; retrying through the GitHub API' >&2
+          api_install
+        fi
         bin="$HOME/.local/bin/moltnet-agent"
         if [ ! -x "$bin" ]; then
           echo "::error::agent bundle installed but $bin is not executable" >&2

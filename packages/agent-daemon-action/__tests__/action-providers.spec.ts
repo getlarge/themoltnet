@@ -708,35 +708,93 @@ describe('provider cache key', () => {
 });
 
 describe('installed daemon version', () => {
+  /** An existing install plus a tools dir that shadows network commands. */
+  function existingInstall() {
+    const bundle = resolve(root, 'bundle');
+    const binDir = resolve(root, '.local/bin');
+    const tools = resolve(root, 'tools');
+    mkdirSync(resolve(bundle, 'bin'), { recursive: true });
+    mkdirSync(binDir, { recursive: true });
+    mkdirSync(tools);
+    writeFileSync(resolve(bundle, 'manifest.json'), '{"version":"0.67.1"}');
+    writeExecutable(resolve(bundle, 'bin/moltnet-agent'), 'exit 1');
+    symlinkSync(
+      resolve(bundle, 'bin/moltnet-agent'),
+      resolve(binDir, 'moltnet-agent'),
+    );
+    // Logs each call; the fallback's backoff must not slow the suite.
+    writeExecutable(
+      resolve(tools, 'sleep'),
+      `printf '%s\\n' "$*" >> "${root}/sleep.log"`,
+    );
+    return { binDir, tools };
+  }
+
+  /** curl stub: writes a no-op installer to `-o`, or fails with `code`. */
+  function fakeCurl(tools: string, code = 0) {
+    writeExecutable(
+      resolve(tools, 'curl'),
+      [
+        `printf '%s\\n' "$*" >> "${root}/curl.log"`,
+        `[ ${code} -eq 0 ] || exit ${code}`,
+        'while [ $# -gt 0 ]; do',
+        '  [ "$1" = -o ] && printf "exit 0\\n" > "$2"',
+        '  shift',
+        'done',
+      ].join('\n'),
+    );
+  }
+
+  /**
+   * gh stub: logs argv and GH_TOKEN, fails `failures` times, then writes the
+   * requested assets with an installer that records the archive it was given.
+   */
+  function fakeGh(tools: string, failures = 0) {
+    writeExecutable(
+      resolve(tools, 'gh'),
+      [
+        `printf '%s|%s\\n' "$GH_TOKEN" "$*" >> "${root}/gh.log"`,
+        `count=$(wc -l < "${root}/gh.log")`,
+        `[ "$count" -gt ${failures} ] || exit 1`,
+        'while [ $# -gt 0 ]; do',
+        '  [ "$1" = --dir ] && dir="$2"',
+        '  shift',
+        'done',
+        'mkdir -p "$dir"',
+        `printf 'printf "%%s" "$MOLTNET_AGENT_ARCHIVE" > "${root}/archive.log"\\n' > "$dir/install.sh"`,
+      ].join('\n'),
+    );
+  }
+
+  function runInstall(tools: string, env: Record<string, string> = {}) {
+    return runStep('install-daemon', {
+      HOME: root,
+      PATH: `${tools}:${process.env.PATH}`,
+      MOLTNET_AGENT_VERSION: '0.67.1',
+      // secretlint-disable-next-line @secretlint/secretlint-rule-github -- fixture-only token
+      RELEASE_TOKEN: 'fixture-release-token',
+      ...env,
+    });
+  }
+
+  const log = (name: string) =>
+    existsSync(resolve(root, name)) ? readCalls(resolve(root, name)) : [];
+
   it.each(['0.67.1', 'latest'])(
     'reads the installed manifest for %s without probing --version',
     (requested) => {
-      const bundle = resolve(root, 'bundle');
-      const binDir = resolve(root, '.local/bin');
-      const tools = resolve(root, 'tools');
-      mkdirSync(resolve(bundle, 'bin'), { recursive: true });
-      mkdirSync(binDir, { recursive: true });
-      mkdirSync(tools);
-      writeFileSync(resolve(bundle, 'manifest.json'), '{"version":"0.67.1"}');
-      writeExecutable(resolve(bundle, 'bin/moltnet-agent'), 'exit 1');
-      symlinkSync(
-        resolve(bundle, 'bin/moltnet-agent'),
-        resolve(binDir, 'moltnet-agent'),
-      );
-      // The install already exists; stub the download without any network.
-      writeExecutable(resolve(tools, 'curl'), 'exit 0');
+      const { binDir, tools } = existingInstall();
+      fakeCurl(tools);
       const env = resolve(root, 'github-env');
       const path = resolve(root, 'github-path');
       writeFileSync(env, '');
       writeFileSync(path, '');
-      const result = runStep('install-daemon', {
-        HOME: root,
-        PATH: `${tools}:${process.env.PATH}`,
+      const result = runInstall(tools, {
         MOLTNET_AGENT_VERSION: requested,
         GITHUB_ENV: env,
         GITHUB_PATH: path,
       });
-      expect(result.status).toBe(0);
+      expect(result.status, result.stderr).toBe(0);
       expect(outputs()).toMatchObject({
         version: '0.67.1',
         bin: resolve(binDir, 'moltnet-agent'),
@@ -745,6 +803,72 @@ describe('installed daemon version', () => {
       expect(readFileSync(path, 'utf8')).toBe('');
     },
   );
+
+  it('retries the public installer download and skips the API when it works', () => {
+    const { tools } = existingInstall();
+    fakeCurl(tools);
+    fakeGh(tools);
+
+    const result = runInstall(tools);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(log('curl.log')).toEqual([
+      expect.stringMatching(
+        /--retry 6 --retry-delay 10 .*https:\/\/themolt\.net\/install$/,
+      ),
+    ]);
+    expect(log('gh.log')).toEqual([]);
+  });
+
+  it('falls back to the GitHub API and installs the downloaded archive', () => {
+    // Arrange
+    const { tools } = existingInstall();
+    fakeCurl(tools, 22);
+    fakeGh(tools, 1);
+    const plat = process.platform === 'darwin' ? 'darwin-arm64' : 'linux-x64';
+    const archive = `moltnet-agent-${plat}.tar.gz`;
+
+    // Act
+    const result = runInstall(tools);
+
+    // Assert
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).toContain('retrying through the GitHub API');
+    const calls = log('gh.log');
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toBe(
+      `fixture-release-token|release download agent-daemon-v0.67.1 --repo getlarge/themoltnet --dir ${root}/agent-install/api --pattern install.sh --pattern ${archive} --pattern ${archive}.sha256 --pattern ${archive}.sha256.sig`,
+    );
+    expect(log('sleep.log')).toEqual(['15']);
+    expect(readFileSync(resolve(root, 'archive.log'), 'utf8')).toBe(
+      `${root}/agent-install/api/${archive}`,
+    );
+  });
+
+  it('fails after three API attempts', () => {
+    const { tools } = existingInstall();
+    fakeCurl(tools, 22);
+    fakeGh(tools, 3);
+
+    const result = runInstall(tools);
+
+    expect(result.status).not.toBe(0);
+    expect(log('gh.log')).toHaveLength(3);
+    expect(log('sleep.log')).toEqual(['15', '30']);
+    expect(outputs()).toEqual({});
+  });
+
+  it('refuses the API fallback without an exact version', () => {
+    const { tools } = existingInstall();
+    fakeCurl(tools, 22);
+    fakeGh(tools);
+
+    const result = runInstall(tools, { MOLTNET_AGENT_VERSION: 'latest' });
+
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('needs an exact daemon version');
+    expect(log('gh.log')).toEqual([]);
+  });
 });
 
 describe('daemon command', () => {
