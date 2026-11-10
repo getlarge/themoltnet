@@ -1,0 +1,91 @@
+/** Build the real route graph without database or network dependencies. */
+import { type AppOptions, buildApp } from '../src/app.js';
+
+// Proxy that returns a no-op function for any property access.
+// Used as a stub for services that won't be called during spec generation.
+function createStubService(): unknown {
+  return new Proxy(
+    {},
+    {
+      get: () => () => Promise.resolve(null),
+    },
+  );
+}
+
+export function buildSchemaApp(overrides: Partial<AppOptions> = {}) {
+  return buildApp({
+    diaryService: createStubService() as never,
+    diaryEntryRepository: createStubService() as never,
+    contextPackRepository: createStubService() as never,
+    renderedPackRepository: createStubService() as never,
+    contextPackService: createStubService() as never,
+    entryRelationRepository: createStubService() as never,
+    agentRepository: createStubService() as never,
+    humanRepository: createStubService() as never,
+    cryptoService: createStubService() as never,
+    groupRepository: createStubService() as never,
+    projectRepository: createStubService() as never,
+    diaryTransferRepository: createStubService() as never,
+    runtimeProfileRepository: createStubService() as never,
+    runtimeSessionRepository: createStubService() as never,
+    runtimeSessionStorage: createStubService() as never,
+    taskArtifactRepository: createStubService() as never,
+    taskArtifactStorage: createStubService() as never,
+    runtimeSlotRepository: createStubService() as never,
+    runtimeModelRepository: createStubService() as never,
+    runtimePolicyRepository: createStubService() as never,
+    runtimePolicySnapshotRepository: createStubService() as never,
+    taskRepository: createStubService() as never,
+    taskAnalyticsService: createStubService() as never,
+    taskService: createStubService() as never,
+    signingRequestRepository: createStubService() as never,
+    signingCredentialRepository: createStubService() as never,
+    nonceRepository: createStubService() as never,
+    dataSource: createStubService() as never,
+    transactionRunner: createStubService() as never,
+    embeddingService: createStubService() as never,
+    permissionChecker: createStubService() as never,
+    relationshipWriter: createStubService() as never,
+    tokenValidator: createStubService() as never,
+    teamResolver: createStubService() as never,
+    teamRepository: createStubService() as never,
+    relationshipReader: createStubService() as never,
+    webhookApiKey: 'stub-key-for-spec-generation',
+    recoverySecret: 'stub-recovery-secret-16chars',
+    oryClients: createStubService() as never,
+    security: {
+      corsOrigins: 'http://localhost:3000',
+      rateLimitGlobalAuth: 100,
+      rateLimitGlobalAnon: 30,
+      rateLimitTokenIp: 1000,
+      rateLimitOauthConsent: 1000,
+      rateLimitOauthProvision: 1000,
+      rateLimitTokenUpstreamIp: 1000,
+      rateLimitEmbedding: 20,
+      rateLimitSigning: 5,
+      rateLimitAgentKey: 5,
+      rateLimitRecovery: 5,
+      rateLimitPublicVerify: 10,
+      rateLimitPublicSearch: 15,
+      rateLimitLegreffierStart: 3,
+      rateLimitLegreffierStatus: 120,
+      rateLimitRegistration: 5,
+      rateLimitReadiness: 12,
+      rateLimitGlobalRead: 150,
+      rateLimitPreResolveIp: 300,
+      rateLimitOauthApprovalIp: 300,
+      rateLimitAllowList: ['/health', '/problems'],
+      trustProxy: false,
+      apiBaseUrl: 'http://localhost:8000',
+    },
+    hydraPublicUrl: 'http://hydra-mock:4444',
+    packGcConfig: {
+      PACK_GC_COMPILE_TTL_DAYS: 7,
+      PACK_GC_CRON: '0 * * * *',
+      PACK_GC_BATCH_SIZE: 100,
+    },
+    runtimeSessionMaxBytes: 1024 * 1024,
+    taskArtifactMaxBytes: 1024 * 1024,
+    ...overrides,
+  });
+}
