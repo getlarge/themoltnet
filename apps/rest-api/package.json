@@ -129,7 +129,8 @@
           "{projectRoot}/dist/main.js",
           "{projectRoot}/dist/embedding-worker-thread.js",
           "{projectRoot}/dist/assets/**",
-          "{projectRoot}/dist/openapi.json"
+          "{projectRoot}/dist/openapi.json",
+          "{projectRoot}/dist/response-serializers.cjs"
         ]
       },
       "build:migrate": {
