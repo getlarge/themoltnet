@@ -963,6 +963,7 @@ export async function createTestApp(
   resolveAuthContextImpl?: (token: string) => AuthContext | null,
   /** Fastify logger option — pass a pino stream config to capture log output. */
   logger?: AppOptions['logger'],
+  serializerCompilerFactory?: AppOptions['serializerCompilerFactory'],
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
     evictOAuthClient: healthOptions?.evictOAuthClient ?? vi.fn(),
@@ -1069,6 +1070,7 @@ export async function createTestApp(
   });
 
   const app = await buildApp({
+    serializerCompilerFactory,
     diaryService: mocks.diaryService as unknown as DiaryService,
     diaryEntryRepository:
       mocks.diaryEntryRepository as unknown as DiaryEntryRepository,

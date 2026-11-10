@@ -4,6 +4,7 @@ import { runInNewContext } from 'node:vm';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { describe, expect, it } from 'vitest';
 
+import { DateTime } from '../src/schemas/atoms.js';
 import {
   createPrecompiledSerializerFactory,
   createSerializerArtifactBuilder,
@@ -11,6 +12,15 @@ import {
   type SerializerArtifact,
 } from '../src/serializer-artifact.js';
 import { createSerializerCompilerFactory } from '../src/serializer-compiler.js';
+import {
+  createMockEntry,
+  createMockServices,
+  createTestApp,
+  DIARY_ID,
+  OWNER_ID,
+  TEST_BEARER_TOKEN,
+  VALID_AUTH_CONTEXT,
+} from './helpers.js';
 
 const route = { method: 'GET', url: '/', httpStatus: '200' };
 const require = createRequire(import.meta.url);
@@ -22,6 +32,104 @@ function restore(source: string): SerializerArtifact {
 }
 
 describe('precompiled response serializers', () => {
+  it('serves populated diary entries with database Date values through the real route', async () => {
+    const mocks = createMockServices();
+    const builder = createSerializerArtifactBuilder();
+    const generator = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      builder.factory,
+    );
+    await generator.close();
+    const app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      createPrecompiledSerializerFactory(restore(builder.source())),
+    );
+    const accessed = new Date('2026-11-10T12:34:56.000Z');
+    const entry = createMockEntry({ lastAccessedAt: accessed });
+    const diary = {
+      id: DIARY_ID,
+      creatorAgentId: OWNER_ID,
+      creatorHumanId: null,
+      teamId: '00000000-0000-4000-b000-000000000001',
+      name: 'private',
+      visibility: 'private' as const,
+      signed: false,
+      createdAt: accessed,
+      updatedAt: accessed,
+    };
+    mocks.diaryService.findDiary.mockResolvedValue(diary);
+    mocks.diaryService.findOwnedDiary.mockResolvedValue(diary);
+    mocks.diaryService.listEntries.mockResolvedValue({
+      items: [entry],
+      total: 1,
+    });
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/diaries/${DIARY_ID}/entries`,
+        headers: { authorization: `Bearer ${TEST_BEARER_TOKEN}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items[0]).toMatchObject({
+        lastAccessedAt: accessed.toISOString(),
+        createdAt: entry.createdAt.toISOString(),
+        updatedAt: entry.updatedAt.toISOString(),
+      });
+      expect(response.body).not.toContain('embedding');
+      expect(response.body).not.toContain('injectionThreats');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('preserves Date values in nullable unions within referenced arrays', () => {
+    const schemas = {
+      Entry: {
+        $id: 'Entry',
+        type: 'object',
+        properties: { lastAccessedAt: { anyOf: [DateTime, { type: 'null' }] } },
+        required: ['lastAccessedAt'],
+      },
+    };
+    const schema = { type: 'array', items: { $ref: 'Entry' } };
+    const builder = createSerializerArtifactBuilder();
+    builder.factory(schemas)({ ...route, schema });
+    const actual = createPrecompiledSerializerFactory(
+      restore(builder.source()),
+    )(schemas)({ ...route, schema });
+    const expected = createSerializerCompilerFactory()(schemas)({
+      ...route,
+      schema,
+    });
+    const iso = '2026-11-10T12:34:56.000Z';
+    for (const value of [null, iso, new Date(iso)]) {
+      const entries = [{ lastAccessedAt: value, secret: 'hidden' }];
+      expect(actual(entries)).toBe(expected(entries));
+      expect(JSON.parse(actual(entries))).toEqual([
+        { lastAccessedAt: value === null ? null : iso },
+      ]);
+    }
+    for (const value of [
+      {},
+      'invalid-date',
+      new Date('invalid'),
+      { toJSON: () => iso },
+    ]) {
+      expect(() => actual([{ lastAccessedAt: value }])).toThrow();
+      expect(() => expected([{ lastAccessedAt: value }])).toThrow();
+    }
+  });
+
   it('preserves filtering, required fields, references, arrays and union behavior', () => {
     const schemas = {
       Item: {

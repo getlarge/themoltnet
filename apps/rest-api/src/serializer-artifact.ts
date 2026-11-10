@@ -129,13 +129,28 @@ export function createSerializerArtifactBuilder(): {
       const lines = [
         "'use strict';",
         "const runtimeRequire = require('node:module').createRequire(require.resolve('@fastify/fast-json-stringify-compiler'));",
+        // Upstream standalone restoration feeds raw schemas straight to Ajv,
+        // skipping addSchema's Date/toJSON adaptation for string branches in
+        // unions. Restore through the same addSchema path as runtime builds.
+        // Keep this adapter local to the artifact; never patch the shared class.
+        "const Validator = runtimeRequire('fast-json-stringify/lib/validator');",
+        'class StandaloneValidator extends Validator {',
+        '  static restoreFromState(state) {',
+        '    const validator = new Validator(state.ajvOptions);',
+        '    for (const [id, schema] of Object.entries(state.ajvSchemas)) {',
+        '      validator.addSchema(schema, id);',
+        '    }',
+        '    return validator;',
+        '  }',
+        '}',
+        "const serializerRequire = id => id === 'fast-json-stringify/lib/validator' ? StandaloneValidator : runtimeRequire(id);",
         'module.exports = { version: 1, scopes: {',
       ];
       for (const [key, serializers] of scopes) {
         lines.push(`${JSON.stringify(key)}: {`);
         for (const [schema, source] of serializers) {
           lines.push(
-            `${JSON.stringify(schema)}: (function(require) { const module = { exports: {} }; ${source}\nreturn module.exports; })(runtimeRequire),`,
+            `${JSON.stringify(schema)}: (function(require) { const module = { exports: {} }; ${source}\nreturn module.exports; })(serializerRequire),`,
           );
         }
         lines.push('},');
