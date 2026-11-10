@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.8.1...agent-daemon-action-v0.8.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** retry the bundle install and fall back to the GitHub API ([42b8a9c](https://github.com/getlarge/themoltnet/commit/42b8a9cbabb479236a515a5a6ea3c13900c9792a))
+* **agent-daemon-action:** retry the bundle install and fall back to the GitHub API ([36824a8](https://github.com/getlarge/themoltnet/commit/36824a89707e2dfd7902504762156b1054d67433))
+* **agent-daemon-action:** scope and bound release downloads ([feaa04f](https://github.com/getlarge/themoltnet/commit/feaa04f17d25b30d16afcb4726747f14e07dfe21))
+
 ## [0.8.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.8.0...agent-daemon-action-v0.8.1) (2026-11-05)
 
 

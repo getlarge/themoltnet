@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.74.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.4...agent-daemon-v0.74.5) (2026-11-10)
+
+
+### Bug Fixes
+
+* **agent-daemon:** recover interrupted Durable attempts ([825b7ad](https://github.com/getlarge/themoltnet/commit/825b7ad16cb6b28ed557be8b89d4a6441c3855c4))
+* **agent-daemon:** resume interrupted durable attempts ([292e047](https://github.com/getlarge/themoltnet/commit/292e0470118416aee872f6168d40a9f33798e00f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.21.0
+    * @themoltnet/pi-runtime bumped to 0.29.3
+
 ## [0.74.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.3...agent-daemon-v0.74.4) (2026-11-05)
 
 

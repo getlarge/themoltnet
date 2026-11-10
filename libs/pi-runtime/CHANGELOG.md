@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.2...pi-runtime-v0.29.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **agent-daemon:** recover interrupted Durable attempts ([825b7ad](https://github.com/getlarge/themoltnet/commit/825b7ad16cb6b28ed557be8b89d4a6441c3855c4))
+* **agent-runtime:** require confirmed teardown before recovery ([60f4d4e](https://github.com/getlarge/themoltnet/commit/60f4d4ed3d2e7be1bd9a10d029e8249c897abf2e))
+* **pi-runtime:** require successful harness shutdown for recovery ([1b4850a](https://github.com/getlarge/themoltnet/commit/1b4850a1589264be737e58990482918c50e11f0d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.21.0
+
 ## [0.29.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.1...pi-runtime-v0.29.2) (2026-11-05)
 
 
