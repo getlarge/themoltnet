@@ -72,6 +72,7 @@ import {
   TaskSchemasOutputSchema,
   TasksSchemasInputSchema,
 } from './schemas/task-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -719,6 +720,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_schemas',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'List registered task types with input schemas, schema CIDs, and output kinds.',
       inputSchema: TasksSchemasInputSchema,
@@ -731,6 +733,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_create',
+      _meta: { securitySchemes: oauthScopes('task:write') },
       description:
         'Create and enqueue a task after validating its input against the registered task-type schema.',
       inputSchema: TaskCreateSchema,
@@ -743,6 +746,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_continue',
+      _meta: { securitySchemes: oauthScopes('task:read', 'task:write') },
       description:
         'Continue a prior freeform task in a warm agent session. Creates and enqueues a new task linked to the completed source attempt.',
       inputSchema: TaskContinueSchema,
@@ -755,6 +759,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_get',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description: 'Get a task by ID and include consoleUrl when configured.',
       inputSchema: TaskGetSchema,
       outputSchema: TaskOutputSchema,
@@ -766,6 +771,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_cancel',
+      _meta: { securitySchemes: oauthScopes('task:manage') },
       description:
         'Cancel a task and record the reason. Requires task:manage access.',
       inputSchema: TaskCancelSchema,
@@ -778,6 +784,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'List tasks for a team with optional status, task_type, correlation_id, diary_id, project_id, requester, worker, attempts, date-window, limit, and cursor filters.',
       inputSchema: TaskListSchema,
@@ -790,6 +797,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_attempts_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description: 'List attempts for a task. Read-only.',
       inputSchema: TaskAttemptsListSchema,
       outputSchema: TaskAttemptsListOutputSchema,
@@ -801,6 +809,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_messages_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'List messages for a task attempt. Use after_seq as a polling cursor.',
       inputSchema: TaskMessagesListSchema,
@@ -813,6 +822,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_conversations_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'List the root and subagent conversations for a task attempt. Read-only; use tasks_conversations_get to read assistant text and tool results.',
       inputSchema: TaskConversationsListSchema,
@@ -825,6 +835,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_conversations_get',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'Read a task attempt conversation, including assistant text and tool results. Messages marked inherited are prior context, not work performed by this attempt. Use before_entry_id and limit to page backward through older entries.',
       inputSchema: TaskConversationGetSchema,
@@ -837,6 +848,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_artifacts_list',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'List immutable artifact metadata for a task. Read-only; returns metadata and pagination cursor, not bytes.',
       inputSchema: TaskArtifactsListSchema,
@@ -849,6 +861,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_artifacts_upload',
+      _meta: { securitySchemes: oauthScopes('task:execute') },
       description:
         'Upload base64-encoded bytes as an immutable artifact for a task attempt. Only the claiming agent can upload for its attempt.',
       inputSchema: TaskArtifactUploadSchema,
@@ -861,6 +874,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_artifacts_stage',
+      _meta: { securitySchemes: oauthScopes('task:write') },
       description:
         'Stage base64-encoded bytes as a content-addressed object for later binding as a task input artifact. Returns the CID to reference in tasks_create references (taskId null, artifact.cid). Staged bytes are not downloadable until bound and are garbage-collected if never bound.',
       inputSchema: TaskArtifactStageSchema,
@@ -873,6 +887,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_artifacts_download',
+      _meta: { securitySchemes: oauthScopes('task:read') },
       description:
         'Download immutable task artifact content by task and CID. Pass attempt_n for attempt-scoped artifacts; omit it to resolve any artifact on the task, including input artifacts bound at creation. Returns base64 bytes plus artifact response headers.',
       inputSchema: TaskArtifactDownloadSchema,
@@ -885,6 +900,7 @@ export function registerTaskTools(
   fastify.mcpAddTool(
     {
       name: 'tasks_console_link',
+      _meta: { securitySchemes: oauthScopes() },
       description:
         'Return the console URL for a task ID when CONSOLE_BASE_URL is configured.',
       inputSchema: TaskConsoleLinkSchema,

@@ -18,6 +18,7 @@ import {
   WhoamiOutputSchema,
   WhoamiSchema,
 } from './schemas/identity-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -101,6 +102,7 @@ export function registerIdentityTools(
   fastify.mcpAddTool(
     {
       name: 'moltnet_whoami',
+      _meta: { securitySchemes: oauthScopes('agent:profile') },
       description:
         "Check if you're logged in and get your authenticated identity " +
         '(subjectId, subjectType, identityId, clientId, publicKey, ' +
@@ -116,6 +118,7 @@ export function registerIdentityTools(
   fastify.mcpAddTool(
     {
       name: 'agent_lookup',
+      _meta: { securitySchemes: oauthScopes() },
       description:
         "Get an agent's public key and profile info by their key fingerprint.",
       inputSchema: AgentLookupSchema,
