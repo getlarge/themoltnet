@@ -276,6 +276,123 @@ it('does not finalize a durably interrupted attempt', async () => {
   expect(reporter.events).toContain('close');
 });
 
+it('resumes an interrupted attempt with a fresh reporter before claiming more work', async () => {
+  const task = makeFulfillBriefTask();
+  const source = new ArraySource([task]);
+  const reporters: RecordingReporter[] = [];
+  const onTaskFinished = vi.fn();
+  const executeTask = vi
+    .fn()
+    .mockRejectedValueOnce(
+      Object.assign(new TaskExecutionInterrupted('writer lost'), {
+        recoveryAllowed: true,
+      }),
+    )
+    .mockResolvedValue(makeOutput(task, 'completed'));
+  const resumeInterruptedTask = vi.fn(async (claimed: ClaimedTask) => {
+    expect(reporters[0].events).toContain('close');
+    expect(onTaskFinished).not.toHaveBeenCalled();
+    return claimed;
+  });
+  const runtime = new AgentRuntime({
+    source,
+    makeReporter: () => {
+      const reporter = Object.assign(new RecordingReporter(), {
+        reconcileAttempt: async () => {
+          throw new Error('API temporarily unavailable');
+        },
+      });
+      reporters.push(reporter);
+      return reporter;
+    },
+    executeTask,
+    resumeInterruptedTask,
+    onTaskFinished,
+  });
+
+  expect(await runtime.start()).toEqual([makeOutput(task, 'completed')]);
+  expect(executeTask).toHaveBeenCalledTimes(2);
+  expect(executeTask.mock.calls[0][0]).toEqual(executeTask.mock.calls[1][0]);
+  expect(reporters).toHaveLength(2);
+  expect(source.events).toEqual(['claim', 'claim', 'close']);
+  expect(onTaskFinished).toHaveBeenCalledTimes(1);
+  expect(runtime.getStatus().tasksProcessed).toBe(1);
+});
+
+it('bounds repeated interruptions without finalizing uncertain work', async () => {
+  const interruption = new TaskExecutionInterrupted('still unavailable');
+  interruption.recoveryAllowed = true;
+  const resumeInterruptedTask = vi.fn(async (claimed: ClaimedTask) => claimed);
+  const executeTask = vi.fn(async () => {
+    throw interruption;
+  });
+  const onTaskFinished = vi.fn();
+  const runtime = new AgentRuntime({
+    source: new ArraySource([makeFulfillBriefTask()]),
+    makeReporter: () => new RecordingReporter(),
+    executeTask,
+    resumeInterruptedTask,
+    onTaskFinished,
+  });
+  await expect(runtime.start()).rejects.toBe(interruption);
+  expect(resumeInterruptedTask).toHaveBeenCalledTimes(2);
+  expect(executeTask).toHaveBeenCalledTimes(3);
+  expect(onTaskFinished).not.toHaveBeenCalled();
+});
+
+it.each([
+  'cancelled',
+  'stopped',
+  'stopped during recovery',
+  'terminal',
+  'denied',
+  'lookup failed',
+  'cleanup unconfirmed',
+])('does not resume %s work', async (mode) => {
+  const task = makeFulfillBriefTask();
+  const interruption = new TaskExecutionInterrupted('writer lost');
+  interruption.recoveryAllowed =
+    mode !== 'cleanup unconfirmed' && mode !== 'terminal';
+  const reporter = Object.assign(new RecordingReporter(), {
+    reconcileAttempt: vi.fn(async () =>
+      mode === 'terminal' ? makeOutput(task, 'completed') : null,
+    ),
+  });
+  const resumeInterruptedTask = vi.fn(async () => {
+    if (mode === 'lookup failed') throw new Error('lookup unavailable');
+    if (mode === 'stopped during recovery') {
+      runtime.stop();
+      return { task, attemptN: 1, traceHeaders: {} };
+    }
+    return null;
+  });
+  const executeTask = vi.fn(async () => {
+    if (mode === 'cancelled') reporter.triggerCancel();
+    if (mode === 'stopped') runtime.stop();
+    throw interruption;
+  });
+  const onTaskFinished = vi.fn();
+  const runtime = new AgentRuntime({
+    source: new ArraySource([task]),
+    makeReporter: () => reporter,
+    executeTask,
+    resumeInterruptedTask,
+    onTaskFinished,
+  });
+  if (mode === 'terminal')
+    expect(await runtime.start()).toEqual([makeOutput(task, 'completed')]);
+  else await expect(runtime.start()).rejects.toBe(interruption);
+  expect(executeTask).toHaveBeenCalledTimes(1);
+  expect(onTaskFinished).not.toHaveBeenCalled();
+  expect(resumeInterruptedTask).toHaveBeenCalledTimes(
+    mode === 'denied' ||
+      mode === 'lookup failed' ||
+      mode === 'stopped during recovery'
+      ? 1
+      : 0,
+  );
+});
+
 it('reports an authoritative timeout and continues without finalizing it again', async () => {
   const first = makeFulfillBriefTask({
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',

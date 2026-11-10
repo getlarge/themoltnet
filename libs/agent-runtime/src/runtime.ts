@@ -56,6 +56,12 @@ export interface AgentRuntimeOptions {
    * package stays free of pi / Gondolin / SDK dependencies.
    */
   executeTask: TaskExecutor;
+  /** Opt-in, authoritative reattachment to the same Durable attempt after its
+   * executor has stopped. Must validate ownership and lease without claiming
+   * new work. At most two recoveries are allowed per task. */
+  resumeInterruptedTask?: (
+    claimedTask: ClaimedTask,
+  ) => Promise<ClaimedTask | null>;
   /**
    * Called inside the loop, immediately after each task's executor
    * resolves and the cancel-signal override has been applied. The
@@ -113,9 +119,14 @@ export class AgentRuntime {
     this.status.state = 'running';
 
     const outputs: TaskOutput[] = [];
+    let resumed: ClaimedTask | null = null;
+    let recoveries = 0;
     try {
       while (!this.stopRequested) {
-        const claimedTask = await this.opts.source.claim();
+        const claimedTask: ClaimedTask | null =
+          resumed ?? (await this.opts.source.claim());
+        if (!resumed) recoveries = 0;
+        resumed = null;
         if (!claimedTask) break;
 
         this.status.currentTaskId = claimedTask.task.id;
@@ -181,6 +192,39 @@ export class AgentRuntime {
                 return null;
               });
             if (!settled) {
+              if (
+                err.recoveryAllowed &&
+                !this.stopRequested &&
+                !reporter.cancelSignal.aborted &&
+                recoveries < 2 &&
+                this.opts.resumeInterruptedTask
+              ) {
+                recoveries += 1;
+                taskLogger.warn(
+                  { err, recovery: recoveries },
+                  'agent-runtime.attempt_recovery_started',
+                );
+                resumed = await this.opts
+                  .resumeInterruptedTask(claimedTask)
+                  .catch((cause: unknown) => {
+                    taskLogger.warn(
+                      { err: cause },
+                      'agent-runtime.attempt_recovery_failed',
+                    );
+                    return null;
+                  });
+                if (
+                  resumed &&
+                  !this.stopRequested &&
+                  !reporter.cancelSignal.aborted
+                ) {
+                  taskLogger.info(
+                    { recovery: recoveries },
+                    'agent-runtime.attempt_resumed',
+                  );
+                  continue;
+                }
+              }
               taskLogger.warn(
                 { err, reason: err.message },
                 'agent-runtime.task_interrupted',

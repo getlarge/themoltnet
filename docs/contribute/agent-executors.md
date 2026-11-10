@@ -79,9 +79,11 @@ Three things the runtime does for you that aren't obvious from the code:
 - **Trace propagation** — the claim carries W3C trace context; any OpenTelemetry
   spans your executor creates land under the server-side workflow root.
 
-If the executor throws, the runtime reports `failed` with the error rather than
-letting the exception escape. If the process receives `SIGTERM`/`SIGINT`, call
-`runtime.stop()`; the current task finishes and the queue closes cleanly.
+Ordinary executor exceptions become `failed` results. A
+`TaskExecutionInterrupted` instead requires authoritative reconciliation before
+finalization or recovery; see [Interrupted execution](#interrupted-execution).
+If the process receives `SIGTERM`/`SIGINT`, call `runtime.stop()`; the current
+task finishes and the queue closes cleanly.
 
 ## Identity and sandbox are executor concerns, not runtime concerns
 
@@ -121,12 +123,45 @@ Whatever you pass as `executeTask`, it MUST:
 - **Resolve with `status: 'failed'` for agent-side failures.** Throwing escapes
   the runtime's structured handling — only throw on unrecoverable setup errors
   (snapshot build, VM resume, unexpected bugs). The runtime catches throws and
-  converts them to `executor_threw`, but a structured `failed` carries better
-  diagnostics.
+  converts ordinary throws to `executor_threw`, but a structured `failed`
+  carries better diagnostics. Durable interruptions follow the contract below.
 
 The runtime trusts the executor on these points and there is no compile-time
 enforcement; getting any of them wrong surfaces as an opaque 4xx/409 from the
 server.
+
+## Interrupted execution
+
+Throw `TaskExecutionInterrupted` when Durable execution stops with an uncertain
+outcome. The runtime closes the reporter and asks its optional
+`reconcileAttempt()` hook for the server's terminal result. A known result is
+returned without finalizing it again.
+
+Automatic recovery requires two explicit opt-ins. The executor must set
+`interruption.recoveryAllowed = true` only after stopping all execution
+resources and completing cleanup. The default is `false`; failed or unconfirmed
+teardown must leave it disabled. The host must also provide
+`AgentRuntimeOptions.resumeInterruptedTask(claimed)`, which returns a freshly
+validated `ClaimedTask` for the **same attempt**, or `null` to refuse recovery.
+It must preserve the original ownership, project, profile, executor and claim
+authority, and must not create a new claim. The server still validates the
+active lease when the executor acquires its next writer.
+
+The runtime permits at most two resumptions per task and creates a fresh
+reporter each time. Cancellation and shutdown prevent recovery. A refused or
+exhausted recovery propagates the interruption without finalizing the uncertain
+attempt. Persisted conversation state and the original running deadline remain
+in effect.
+
+The daemon's `poll` and `drain` hosts provide this callback for adapters
+declaring `pi-durable.v1`, `same-agent-valid-lease` and `persistent-mount` in
+their manifest's `durability` field. They wait 30 seconds for the stopped
+writer's lease and bound each reattachment lookup to 10 seconds, retrying
+transient lookup failures twice after five and ten seconds. `once` does not
+enable automatic recovery; an explicit `--resume-attempt` reattachment remains a
+separate operation. See
+[Pi Durable execution](custom-pi-runtimes.md#pi-durable-execution) for storage
+and workspace requirements.
 
 ## Submit tool contract
 
@@ -226,7 +261,11 @@ incorrect status reporting; only compute is wasted.
 ## Source options
 
 - `ApiTaskSource` — claims a single task by id from the API. The right choice
-  for `agent-daemon once --task-id <uuid>` and any one-shot runner.
+  for `agent-daemon once --task-id <uuid>` and any one-shot runner. With
+  `resumeAttempt`, it reattaches using read-only identity, task and attempt
+  checks instead of claiming again. `ApiTaskSourceOptions.signal` bounds those
+  reads; see [Interrupted execution](#interrupted-execution) for host
+  obligations.
 - `PollingApiTaskSource` — long-running polling source for the daemon. Filters
   by team (required) and optionally by `taskType` whitelist and `diaryId`
   whitelist. Skips 409s on race-lost claims. Has a `stopWhenEmpty` mode for

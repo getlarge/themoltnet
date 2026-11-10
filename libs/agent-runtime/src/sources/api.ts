@@ -13,6 +13,8 @@ export interface ApiTaskSourceOptions {
   taskId: string;
   /** Reattach to an existing valid attempt instead of creating a claim. */
   resumeAttempt?: number;
+  /** Bounds the read-only authority checks during reattachment. */
+  signal?: AbortSignal;
   /** Owning team context. Falls back to SDK task context when already known. */
   teamId?: string;
   projectId?: string | null;
@@ -97,10 +99,11 @@ export class ApiTaskSource implements TaskSource {
         'Resume requires a positive attempt number, team, profile, and executor fingerprint',
       );
     }
+    const signal = this.opts.signal;
     const [identity, task, attempts] = await Promise.all([
-      agent.agents.whoami(),
-      agent.tasks.get(taskId, { teamId }),
-      agent.tasks.listAttempts(taskId, { teamId }),
+      agent.agents.whoami({ signal }),
+      agent.tasks.get(taskId, { teamId, signal }),
+      agent.tasks.listAttempts(taskId, { teamId, signal }),
     ]);
     this.opts.assertTaskEligible?.(task);
     const attempt = attempts.find((item) => item.attemptN === attemptN);

@@ -301,6 +301,7 @@ export function createDurableTaskExecutor(options: {
     let onAbort: (() => void) | undefined;
     let reporterOpen = false;
     let failed = false;
+    let interruption: TaskExecutionInterrupted | undefined;
     // Live task messages are telemetry: Durable storage stays the source of
     // truth, so a reporter failure never fails or interrupts the attempt.
     const emit = async (
@@ -1181,8 +1182,8 @@ export function createDurableTaskExecutor(options: {
       if (
         terminalRecorded ||
         (connection?.signal.aborted && !reporter.cancelSignal.aborted)
-      )
-        throw new TaskExecutionInterrupted(
+      ) {
+        interruption = new TaskExecutionInterrupted(
           'Durable execution interrupted; reconcile the attempt before resuming',
           {
             // Closing the harness rejects pending work with "Harness is closed".
@@ -1193,6 +1194,9 @@ export function createDurableTaskExecutor(options: {
               : error,
           },
         );
+        throw interruption;
+      }
+      if (error instanceof TaskExecutionInterrupted) interruption = error;
       if (reporterOpen)
         await emit('error', {
           phase: 'durable_execution',
@@ -1212,11 +1216,10 @@ export function createDurableTaskExecutor(options: {
           cleanupErrors.push(new TaskExecutionInterrupted(message, { cause }));
         }
       };
+      // Writer loss does not prove harness shutdown. The transport handles
+      // best-effort writer release separately; every harness failure blocks recovery.
       await cleanup('Durable shutdown interrupted', () =>
-        harness?.close(BACKGROUND_CONTEXT).catch((cause: unknown) => {
-          // Closing after the writer was lost is expected to fail.
-          if (!connection?.signal.aborted) throw cause;
-        }),
+        harness?.close(BACKGROUND_CONTEXT),
       );
       await connection?.storage
         .close(BACKGROUND_CONTEXT)
@@ -1229,6 +1232,10 @@ export function createDurableTaskExecutor(options: {
         'Durable reporter cleanup interrupted; reconcile the attempt',
         () => reporter.close(),
       );
+      // The runtime can reattach only after this executor has stopped. Keep the
+      // original error/cause while making failed teardown ineligible for replay.
+      if (interruption)
+        interruption.recoveryAllowed = cleanupErrors.length === 0;
       if (failed) {
         for (const error of cleanupErrors)
           process.stderr.write(
