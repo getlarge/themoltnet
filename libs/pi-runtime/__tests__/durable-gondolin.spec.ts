@@ -17,6 +17,7 @@ import {
   Type,
 } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
+import { Harness } from '@earendil-works/pi-durable';
 import {
   AgentRuntime,
   type ClaimedTask,
@@ -207,10 +208,24 @@ it.each([
   'vm close delayed',
   'vm close failed',
   'services stop failed',
+  'harness close failed',
 ])(
   'integrates Durable interruption with runtime recovery: %s',
   async (cleanup) => {
     const s = setup(false, ['bash', 'submit_freeform_output']);
+    if (cleanup === 'harness close failed') {
+      const open = Harness.open.bind(Harness);
+      vi.spyOn(Harness, 'open').mockImplementation(async (...args) => {
+        const harness = await open(...args);
+        const close = harness.close.bind(harness);
+        vi.spyOn(harness, 'close').mockImplementation(async (...closeArgs) => {
+          // Drain the real harness so the injected failure leaks no test work.
+          await close(...closeArgs);
+          throw new Error('Harness shutdown not confirmed');
+        });
+        return harness;
+      });
+    }
     s.allowedTools.mockResolvedValue({
       enforcement: 'enforce',
       runtimeKind: 'gondolin_pi_durable',
@@ -316,6 +331,8 @@ it.each([
       expect(finished).not.toHaveBeenCalled();
     }
     expect(readFileSync(marker, 'utf8')).toBe('effect\n');
+    expect(s.close).toHaveBeenCalled();
+    expect(s.stop).toHaveBeenCalled();
     expect(source.close).toHaveBeenCalledOnce();
   },
 );

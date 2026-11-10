@@ -1216,11 +1216,10 @@ export function createDurableTaskExecutor(options: {
           cleanupErrors.push(new TaskExecutionInterrupted(message, { cause }));
         }
       };
+      // Writer loss does not prove harness shutdown. The transport handles
+      // best-effort writer release separately; every harness failure blocks recovery.
       await cleanup('Durable shutdown interrupted', () =>
-        harness?.close(BACKGROUND_CONTEXT).catch((cause: unknown) => {
-          // Closing after the writer was lost is expected to fail.
-          if (!connection?.signal.aborted) throw cause;
-        }),
+        harness?.close(BACKGROUND_CONTEXT),
       );
       await connection?.storage
         .close(BACKGROUND_CONTEXT)
