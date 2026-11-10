@@ -2,6 +2,7 @@ import type { DestinationStream, LoggerOptions } from 'pino';
 import pino from 'pino';
 
 import { getRequestContextFields } from './request-context.js';
+import { SERVICE_INSTANCE_ID } from './service-instance.js';
 
 /**
  * Options for a single pino-opentelemetry-transport log record processor.
@@ -154,6 +155,7 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
 
   const base: Record<string, string> = {
     service: serviceName,
+    'service.instance.id': SERVICE_INSTANCE_ID,
   };
 
   if (serviceVersion) {
@@ -208,6 +210,9 @@ export function createLogger(options: CreateLoggerOptions): pino.Logger {
               serviceVersion: serviceVersion ?? '',
               resourceAttributes: {
                 'service.name': serviceName,
+                // Pass the main process identity into the transport worker;
+                // its resource detector would otherwise generate another ID.
+                'service.instance.id': SERVICE_INSTANCE_ID,
                 'service.version': serviceVersion ?? '',
                 'deployment.environment': environment ?? '',
               },

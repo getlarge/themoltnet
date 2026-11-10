@@ -215,6 +215,9 @@ catalogs:
     '@fastify/cors':
       specifier: ^11.3.1
       version: 11.3.1
+    '@fastify/fast-json-stringify-compiler':
+      specifier: ^5.0.3
+      version: 5.0.3
     '@fastify/helmet':
       specifier: ^13.1.2
       version: 13.1.2
@@ -1593,6 +1596,9 @@ importers:
       '@fastify/cors':
         specifier: 'catalog:'
         version: 11.3.1
+      '@fastify/fast-json-stringify-compiler':
+        specifier: 'catalog:'
+        version: 5.0.3
       '@fastify/helmet':
         specifier: 'catalog:'
         version: 13.1.2
