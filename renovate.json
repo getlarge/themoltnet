@@ -167,7 +167,6 @@
         "fastify",
         "fastify-plugin",
         "@fastify/**",
-        "@getlarge/fastify-mcp",
         "@scalar/fastify-api-reference"
       ],
       "matchUpdateTypes": ["minor", "patch"]

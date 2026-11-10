@@ -329,7 +329,7 @@ describe('Task tools', () => {
 
     // Global constraint (Review Focus #4): an explicitly empty project_id
     // must error rather than silently fall back to General work. The
-    // fastify-mcp dispatcher's TypeBox validation (format: 'uuid') already
+    // MCP server's TypeBox argument validation (format: 'uuid') already
     // rejects "" before handleTasksCreate runs when a tool call goes
     // through the MCP `tools/call` transport, but this handler is also
     // directly callable (as every other test in this file does), so it

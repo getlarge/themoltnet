@@ -41,11 +41,10 @@ const McpServerConfigSchema = Type.Object({
   ORY_HYDRA_PUBLIC_URL: Type.Optional(
     Type.String({
       minLength: 1,
-      description: 'Ory Hydra public URL (JWKS, DCR, authorization server)',
+      description: 'Ory Hydra public URL (JWKS, authorization server)',
     }),
   ),
   ORY_HYDRA_JWKS_URL: Type.Optional(Type.String({ minLength: 1 })),
-  ORY_HYDRA_REGISTRATION_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_HYDRA_ADMIN_URL: Type.Optional(
     Type.String({
       minLength: 1,
@@ -100,45 +99,6 @@ const McpServerConfigSchema = Type.Object({
       default: false,
       description:
         'Enable client_credentials proxy for headless agent auth via X-Client-Id/X-Client-Secret headers',
-    }),
-  ),
-  MCP_REDIS_URL: Type.Optional(
-    Type.String({
-      minLength: 1,
-      description:
-        'Redis connection URL for MCP session/message persistence (redis:// or rediss://)',
-    }),
-  ),
-  MCP_REDIS_HOST: Type.Optional(
-    Type.String({
-      minLength: 1,
-      description: 'Redis host for MCP session/message persistence',
-    }),
-  ),
-  MCP_REDIS_PORT: Type.Optional(
-    Type.Number({
-      minimum: 1,
-      maximum: 65535,
-      description: 'Redis port for MCP session/message persistence',
-    }),
-  ),
-  MCP_REDIS_PASSWORD: Type.Optional(
-    Type.String({
-      minLength: 1,
-      description: 'Redis password for MCP session/message persistence',
-    }),
-  ),
-  MCP_REDIS_DB: Type.Optional(
-    Type.Number({
-      minimum: 0,
-      description: 'Redis database index for MCP session/message persistence',
-    }),
-  ),
-  MCP_REDIS_TLS: Type.Optional(
-    Type.Boolean({
-      default: false,
-      description:
-        'Enable TLS for MCP Redis connections when using host/port config',
     }),
   ),
 });
@@ -207,14 +167,6 @@ export interface ResolvedHydraUrls {
   apiKey?: string;
 }
 
-export interface ResolvedRedisConfig {
-  host: string;
-  port: number;
-  password?: string;
-  db?: number;
-  tls?: Record<string, unknown>;
-}
-
 export interface McpAppConfig {
   domain?: string;
   connectDomains: string[];
@@ -262,58 +214,5 @@ export function resolveHydraUrls(
     publicUrl,
     adminUrl: adminUrl ?? publicUrl,
     apiKey: config.ORY_PROJECT_API_KEY,
-  };
-}
-
-export function resolveRedisConfig(
-  config: McpServerConfig,
-): ResolvedRedisConfig | null {
-  if (!config.MCP_REDIS_URL && !config.MCP_REDIS_HOST) {
-    return null;
-  }
-
-  if (config.MCP_REDIS_URL) {
-    let redisUrl: URL;
-    try {
-      redisUrl = new URL(config.MCP_REDIS_URL);
-    } catch (error) {
-      throw new Error(
-        `Invalid McpServer config:\n  - /MCP_REDIS_URL: ${error instanceof Error ? error.message : 'invalid URL'}`,
-      );
-    }
-
-    if (redisUrl.protocol !== 'redis:' && redisUrl.protocol !== 'rediss:') {
-      throw new Error(
-        'Invalid McpServer config:\n' +
-          '  - /MCP_REDIS_URL: Expected redis:// or rediss:// URL',
-      );
-    }
-
-    const dbFromPath = redisUrl.pathname
-      ? Number.parseInt(redisUrl.pathname.replace(/^\//, ''), 10)
-      : undefined;
-
-    return {
-      host: redisUrl.hostname,
-      port: redisUrl.port ? Number.parseInt(redisUrl.port, 10) : 6379,
-      password:
-        config.MCP_REDIS_PASSWORD ??
-        (redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined),
-      db:
-        config.MCP_REDIS_DB ??
-        (Number.isNaN(dbFromPath) ? undefined : dbFromPath),
-      tls:
-        config.MCP_REDIS_TLS === true || redisUrl.protocol === 'rediss:'
-          ? {}
-          : undefined,
-    };
-  }
-
-  return {
-    host: config.MCP_REDIS_HOST as string,
-    port: config.MCP_REDIS_PORT ?? 6379,
-    password: config.MCP_REDIS_PASSWORD,
-    db: config.MCP_REDIS_DB,
-    tls: config.MCP_REDIS_TLS === true ? {} : undefined,
   };
 }

@@ -66,7 +66,7 @@ graph TB
 
     subgraph FlyIO["Fly.io — Frankfurt (fra)"]
         subgraph MCP["moltnet-mcp"]
-            MCPS["MCP Server<br/>Fastify + @getlarge/fastify-mcp<br/>Streamable HTTP transport"]
+            MCPS["MCP Server<br/>Fastify + @modelcontextprotocol/server<br/>stateless Streamable HTTP"]
         end
 
         subgraph API["moltnet"]
@@ -781,10 +781,9 @@ The `fast-jwt` row was captured from the pre-migration base revision `e1ced0b0`;
 the command above reproduces the `jose` row on this branch. Both runs used the
 same benchmark file and warm-cache iteration settings.
 
-`@getlarge/fastify-mcp` owns a separate MCP authentication implementation and is
-intentionally unchanged by this migration. Its transitive
-`@fastify/jwt`/`fast-jwt`/`get-jwks` dependencies therefore remain in the
-workspace lockfile.
+The MCP server verifies its bearer tokens with `jose` as well
+(`apps/mcp-server/src/hydra-token-verifier.ts`): JWKS first, Hydra introspection
+as the fallback.
 
 ### Agent-key bindings
 

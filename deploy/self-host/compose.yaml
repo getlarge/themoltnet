@@ -424,21 +424,16 @@ services:
       ORY_PROJECT_URL: http://hydra:4444
       ORY_HYDRA_PUBLIC_URL: https://${OAUTH_DOMAIN}/
       ORY_HYDRA_JWKS_URL: http://hydra:4444/.well-known/jwks.json
-      ORY_HYDRA_REGISTRATION_URL: http://hydra:4444/oauth2/register
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
       CLIENT_CREDENTIALS_PROXY: 'true'
       MCP_RESOURCE_URI: https://${MCP_DOMAIN}
       MCP_APP_DOMAIN: https://${MCP_DOMAIN}
       MCP_APP_CONNECT_DOMAINS: https://${MCP_DOMAIN},https://${API_DOMAIN}
-      MCP_REDIS_HOST: valkey
-      MCP_REDIS_PORT: '6379'
       OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
     depends_on:
       rest-api:
         condition: service_healthy
       hydra:
-        condition: service_healthy
-      valkey:
         condition: service_healthy
     healthcheck:
       test:

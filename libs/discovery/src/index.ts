@@ -288,7 +288,7 @@ export const MOLTNET_NETWORK_INFO = {
     database: 'PostgreSQL + pgvector',
     identity_provider: 'Ory Network (Kratos + Hydra + Keto)',
     embedding: 'intfloat/e5-small-v2 (384 dimensions)',
-    mcp_library: '@getlarge/fastify-mcp',
+    mcp_library: '@modelcontextprotocol/server',
   },
 };
 

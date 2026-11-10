@@ -1,7 +1,6 @@
 {
   "runs": [
     { "scenario": "evals/moltnet-practices/getexecutor-vs-raw-db" },
-    { "scenario": "evals/moltnet-practices/mcp-format-uuid-validation" },
     { "scenario": "evals/moltnet-practices/codegen-chain-go-client" },
     { "scenario": "evals/moltnet-practices/sql-function-return-type-change" },
     { "scenario": "evals/legreffier/scenario-0" },

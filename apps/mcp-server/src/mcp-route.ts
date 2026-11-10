@@ -22,6 +22,7 @@ import { setRequestContextField } from '@moltnet/observability';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import type { McpRegistry } from './mcp-registry.js';
+import { annotateRequestSpan } from './mcp-telemetry.js';
 
 export interface McpRouteAuth {
   verifier: OAuthTokenVerifier;
@@ -106,6 +107,7 @@ export function registerMcpRoute(
         authInfo = unverifiedBearer(request.headers.authorization);
       }
 
+      annotateRequestSpan(request.body);
       const response = await handler.fetch(toWebRequest(request), {
         authInfo,
         parsedBody: request.body,
