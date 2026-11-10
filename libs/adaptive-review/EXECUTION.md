@@ -7,13 +7,13 @@ from a trusted local checkout. Both use Absurd, a Postgres-backed workflow
 engine, to execute `prepare`, `route`, `review`, and `publish`. `plan` is a
 read-only command and does not create workflow state.
 
-This describes the implementation in this checkout. MoltNet's
-[caller workflow](../../.github/workflows/adaptive-review.yml) still selects
-release commit `0808a76a4edb99577f0cbd59c4336d415e051401`. Changing this source
-does not deploy it: release the action and update the caller pin before using
-the configuration below. Local recovery evidence is described under
-[verification limits](#supervisor-responsibilities-and-verification-limits);
-it does not establish production readiness.
+For Actions, pin the reusable workflow to a released action bundle that
+supports the execution mode and inputs you configure. The
+[caller workflow](../../.github/workflows/adaptive-review.yml) selects that
+release independently of your local checkout. Local stage commands use the
+code in your trusted checkout. See
+[verification limits](#supervisor-responsibilities-and-verification-limits)
+for the recovery scenarios tested and the external services they simulate.
 
 ## Choose an execution mode
 
