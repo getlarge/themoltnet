@@ -4,10 +4,10 @@ import { runInNewContext } from 'node:vm';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { describe, expect, it } from 'vitest';
 
+import { createSerializerArtifactBuilder } from '../scripts/serializer-artifact-builder.js';
 import { DateTime } from '../src/schemas/atoms.js';
 import {
   createPrecompiledSerializerFactory,
-  createSerializerArtifactBuilder,
   loadSerializerArtifact,
   type SerializerArtifact,
 } from '../src/serializer-artifact.js';
@@ -207,7 +207,7 @@ describe('precompiled response serializers', () => {
       'Missing precompiled serializer',
     );
     expect(() =>
-      createPrecompiledSerializerFactory({ version: 2 } as never),
+      createPrecompiledSerializerFactory({ version: 1 } as never),
     ).toThrow('Unsupported serializer artifact version');
   });
 

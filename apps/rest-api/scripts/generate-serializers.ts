@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 
-import { createSerializerArtifactBuilder } from '../src/serializer-artifact.js';
 import { buildSchemaApp } from './schema-app.js';
+import { createSerializerArtifactBuilder } from './serializer-artifact-builder.js';
 
 const output = process.argv[2];
 if (!output) throw new Error('Pass the serializer artifact output path');
