@@ -26,6 +26,7 @@
     "@dbos-inc/dbos-sdk": "catalog:",
     "@dbos-inc/drizzle-datasource": "catalog:",
     "@fastify/cors": "catalog:",
+    "@fastify/fast-json-stringify-compiler": "catalog:",
     "@fastify/helmet": "catalog:",
     "@fastify/otel": "catalog:",
     "@fastify/rate-limit": "catalog:",
