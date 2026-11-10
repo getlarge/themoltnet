@@ -956,6 +956,8 @@ runs:
         RELEASE_TOKEN: ${{ inputs.github-release-token }}
       run: |
         set -euo pipefail
+        # Only the authenticated download command receives the release token.
+        export -n RELEASE_TOKEN
         work="$ACTION_TEMP/agent-install"
         rm -rf "$work"
         mkdir -p "$work"
@@ -963,7 +965,7 @@ runs:
         public_install() {
           curl -fsSL --retry 6 --retry-delay 10 --connect-timeout 15 --max-time 120 \
             -o "$work/install.sh" https://themolt.net/install &&
-            sh "$work/install.sh"
+            env -u GH_TOKEN -u GITHUB_TOKEN sh "$work/install.sh"
         }
 
         api_install() {
@@ -975,23 +977,39 @@ runs:
             echo '::error::the GitHub API fallback needs the gh CLI on the runner' >&2
             return 1
           fi
-          local plat
-          case "$(uname -s)-$(uname -m)" in
-            Linux-x86_64) plat=linux-x64 ;;
-            Darwin-arm64) plat=darwin-arm64 ;;
+          # Match platform() in tools/release/agent-bundle/install.sh.
+          local plat os arch
+          os="$(uname -s)"
+          arch="$(uname -m)"
+          if [ "$os" = Darwin ] && [ "$arch" = x86_64 ] \
+            && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = 1 ]; then
+            arch=arm64
+          fi
+          case "$os-$arch" in
+            Linux-x86_64|Linux-amd64) plat=linux-x64 ;;
+            Darwin-arm64|Darwin-aarch64) plat=darwin-arm64 ;;
             *)
-              echo "::error::no agent release for $(uname -s)-$(uname -m)" >&2
+              echo "::error::no agent release for $os-$arch" >&2
               return 1
               ;;
           esac
           local name="moltnet-agent-$plat.tar.gz" dir="$work/api" attempt
           for attempt in 1 2 3; do
             rm -rf "$dir"
-            if GH_TOKEN="$RELEASE_TOKEN" gh release download \
+            if GH_TOKEN="$RELEASE_TOKEN" node -e '
+              const { spawnSync } = require("node:child_process");
+              const result = spawnSync("gh", process.argv.slice(1), {
+                stdio: "inherit", timeout: 120_000, killSignal: "SIGKILL",
+              });
+              if (result.error) {
+                console.error(`::warning::GitHub API download failed: ${result.error.code}`);
+              }
+              process.exit(result.status ?? 1);
+            ' -- release download \
               "agent-daemon-v$MOLTNET_AGENT_VERSION" --repo getlarge/themoltnet \
               --dir "$dir" --pattern install.sh --pattern "$name" \
               --pattern "$name.sha256" --pattern "$name.sha256.sig"; then
-              MOLTNET_AGENT_ARCHIVE="$dir/$name" sh "$dir/install.sh"
+              MOLTNET_AGENT_ARCHIVE="$dir/$name" env -u GH_TOKEN -u GITHUB_TOKEN sh "$dir/install.sh"
               return
             fi
             [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
