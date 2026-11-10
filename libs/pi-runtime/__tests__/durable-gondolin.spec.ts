@@ -1,4 +1,5 @@
 import {
+  appendFileSync,
   existsSync,
   mkdtempSync,
   readFileSync,
@@ -17,6 +18,7 @@ import {
 } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import {
+  AgentRuntime,
   type ClaimedTask,
   TaskExecutionInterrupted,
   type TaskReporter,
@@ -199,6 +201,124 @@ function setup(granted: boolean, tools: string[] = []) {
     revokeSecret,
   };
 }
+
+it.each([
+  'closed',
+  'vm close delayed',
+  'vm close failed',
+  'services stop failed',
+])(
+  'integrates Durable interruption with runtime recovery: %s',
+  async (cleanup) => {
+    const s = setup(false, ['bash', 'submit_freeform_output']);
+    s.allowedTools.mockResolvedValue({
+      enforcement: 'enforce',
+      runtimeKind: 'gondolin_pi_durable',
+      allowedTools: ['bash', 'submit_freeform_output'],
+      allowedShellCommands: [{ argvPrefix: ['touch'] }],
+    });
+    let lease = new AbortController();
+    vi.mocked(acquireDurableTransport).mockImplementation(async () => {
+      lease = new AbortController();
+      return {
+        transport: s.remote.transport,
+        signal: lease.signal,
+        check: () => lease.signal.throwIfAborted(),
+      };
+    });
+    const managed = await s.resumeVm({} as never);
+    s.resumeVm.mockClear();
+    let vmAlive = false;
+    let releaseClose!: () => void;
+    const closeGate = new Promise<void>((resolve) => {
+      releaseClose = resolve;
+    });
+    s.resumeVm.mockImplementation(async () => {
+      expect(vmAlive).toBe(false);
+      vmAlive = true;
+      return managed;
+    });
+    s.close.mockImplementation(async () => {
+      if (cleanup === 'vm close failed') throw new Error('VM did not stop');
+      if (cleanup === 'vm close delayed') await closeGate;
+      vmAlive = false;
+    });
+    if (cleanup === 'services stop failed')
+      s.stop.mockRejectedValue(new Error('Services did not stop'));
+    const marker = join(s.mountPath, 'effects');
+    Object.assign(managed.vm, {
+      exec: vi.fn(async (argv: string[]) => {
+        if (argv[2] === 'touch marker') {
+          appendFileSync(marker, 'effect\n');
+          lease.abort(new TaskExecutionInterrupted('writer lost'));
+          throw new Error('tool interrupted after its effect');
+        }
+        return { ok: true, exitCode: 0, stdout: '0\n' };
+      }),
+    });
+    s.faux.setResponses([
+      fauxAssistantMessage(fauxToolCall('bash', { command: 'touch marker' }), {
+        stopReason: 'toolUse',
+      }),
+      fauxAssistantMessage(
+        fauxToolCall('submit_freeform_output', { summary: 'Recovered' }),
+        { stopReason: 'toolUse' },
+      ),
+    ]);
+    const source = {
+      claim: vi.fn().mockResolvedValueOnce(s.claimed).mockResolvedValue(null),
+      close: vi.fn(),
+    };
+    const recover = vi.fn(async (claimed: ClaimedTask) => {
+      expect(vmAlive).toBe(false);
+      expect(s.close).toHaveBeenCalled();
+      expect(claimed).toBe(s.claimed);
+      return claimed;
+    });
+    const finished = vi.fn();
+    const makeReporter = vi.fn(() => ({ ...s.reporter, close: vi.fn() }));
+    const runtime = new AgentRuntime({
+      source,
+      makeReporter,
+      executeTask: createGondolinDurableTaskExecutor(s.options),
+      resumeInterruptedTask: recover,
+      onTaskFinished: finished,
+    });
+
+    const run = runtime.start();
+    if (cleanup === 'vm close delayed') {
+      try {
+        await vi.waitFor(() => expect(s.close).toHaveBeenCalled());
+        expect(recover).not.toHaveBeenCalled();
+        expect(s.resumeVm).toHaveBeenCalledOnce();
+        expect(finished).not.toHaveBeenCalled();
+      } finally {
+        releaseClose();
+      }
+    }
+    if (cleanup === 'closed' || cleanup === 'vm close delayed') {
+      expect(await run).toMatchObject([
+        {
+          taskId: s.claimed.task.id,
+          attemptN: 1,
+          status: 'completed',
+          output: { summary: 'Recovered' },
+        },
+      ]);
+      expect(recover).toHaveBeenCalledOnce();
+      expect(s.resumeVm).toHaveBeenCalledTimes(2);
+      expect(makeReporter).toHaveBeenCalledTimes(2);
+      expect(finished).toHaveBeenCalledOnce();
+    } else {
+      await expect(run).rejects.toBeInstanceOf(TaskExecutionInterrupted);
+      expect(recover).not.toHaveBeenCalled();
+      expect(s.resumeVm).toHaveBeenCalledOnce();
+      expect(finished).not.toHaveBeenCalled();
+    }
+    expect(readFileSync(marker, 'utf8')).toBe('effect\n');
+    expect(source.close).toHaveBeenCalledOnce();
+  },
+);
 
 it.each([false, true])(
   'enforces host signing policy before VM startup (grant: %s) and revokes access at cleanup',

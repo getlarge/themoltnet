@@ -1141,6 +1141,7 @@ it('resumes after interrupted unsafe tool intent without executing the tool twic
     (error: unknown) => error,
   );
   expect(interrupted).toBeInstanceOf(TaskExecutionInterrupted);
+  expect((interrupted as TaskExecutionInterrupted).recoveryAllowed).toBe(true);
   expect((interrupted as Error).cause).toBe(interruption);
   expect(((interrupted as Error).cause as Error).cause).toEqual(
     new Error('renew request timed out'),
@@ -1385,6 +1386,7 @@ describe('turn limits and cleanup', () => {
     const error = await execute(task(), events).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(TaskExecutionInterrupted);
     expect((error as Error).message).toContain('environment cleanup');
+    expect((error as TaskExecutionInterrupted).recoveryAllowed).toBe(false);
     expect((error as Error).cause).toEqual(new Error('vm stuck'));
     expect(events.close).toHaveBeenCalledOnce();
   });

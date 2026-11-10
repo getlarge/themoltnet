@@ -193,6 +193,7 @@ export class AgentRuntime {
               });
             if (!settled) {
               if (
+                err.recoveryAllowed &&
                 !this.stopRequested &&
                 !reporter.cancelSignal.aborted &&
                 recoveries < 2 &&

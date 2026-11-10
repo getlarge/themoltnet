@@ -283,7 +283,11 @@ it('resumes an interrupted attempt with a fresh reporter before claiming more wo
   const onTaskFinished = vi.fn();
   const executeTask = vi
     .fn()
-    .mockRejectedValueOnce(new TaskExecutionInterrupted('writer lost'))
+    .mockRejectedValueOnce(
+      Object.assign(new TaskExecutionInterrupted('writer lost'), {
+        recoveryAllowed: true,
+      }),
+    )
     .mockResolvedValue(makeOutput(task, 'completed'));
   const resumeInterruptedTask = vi.fn(async (claimed: ClaimedTask) => {
     expect(reporters[0].events).toContain('close');
@@ -317,6 +321,7 @@ it('resumes an interrupted attempt with a fresh reporter before claiming more wo
 
 it('bounds repeated interruptions without finalizing uncertain work', async () => {
   const interruption = new TaskExecutionInterrupted('still unavailable');
+  interruption.recoveryAllowed = true;
   const resumeInterruptedTask = vi.fn(async (claimed: ClaimedTask) => claimed);
   const executeTask = vi.fn(async () => {
     throw interruption;
@@ -342,9 +347,12 @@ it.each([
   'terminal',
   'denied',
   'lookup failed',
+  'cleanup unconfirmed',
 ])('does not resume %s work', async (mode) => {
   const task = makeFulfillBriefTask();
   const interruption = new TaskExecutionInterrupted('writer lost');
+  interruption.recoveryAllowed =
+    mode !== 'cleanup unconfirmed' && mode !== 'terminal';
   const reporter = Object.assign(new RecordingReporter(), {
     reconcileAttempt: vi.fn(async () =>
       mode === 'terminal' ? makeOutput(task, 'completed') : null,
