@@ -12,6 +12,8 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
+import { SERVICE_INSTANCE_ID } from './service-instance.js';
+
 export interface CreateTraceProviderOptions {
   /** Service name for resource identification */
   serviceName: string;
@@ -43,6 +45,7 @@ export function createTraceProvider(
 
   const resourceAttributes: Record<string, string> = {
     [ATTR_SERVICE_NAME]: serviceName,
+    'service.instance.id': SERVICE_INSTANCE_ID,
   };
 
   if (serviceVersion) {
