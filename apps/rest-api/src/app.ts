@@ -67,6 +67,7 @@ import { taskConversationRoutes } from './routes/task-conversations.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { sharedSchemas } from './schemas.js';
+import { createSerializerCompilerFactory } from './serializer-compiler.js';
 import type {
   AgentIdentityKeyRepository,
   AgentRepository,
@@ -259,6 +260,9 @@ export async function registerApiRoutes(
   app: FastifyInstance,
   options: Omit<AppOptions, 'logger'>,
 ): Promise<void> {
+  app.setSchemaController({
+    compilersFactory: { buildSerializer: createSerializerCompilerFactory() },
+  });
   // Register security plugins first (order matters)
   // 1. Security headers (helmet)
   await app.register(securityHeadersPlugin);

@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { metrics as metricsApi } from '@opentelemetry/api';
 import {
   type Resource,
@@ -11,16 +9,10 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
+import { SERVICE_INSTANCE_ID } from './service-instance.js';
 import type { RequestMetrics } from './types.js';
 
-/**
- * Identifies this process in exported metrics. Metrics are cumulative, and
- * Axiom converts each tag-distinct series to deltas before aggregating. Without
- * a per-process id, replicas interleave in one series and every interleaving
- * reads as a counter reset (phantom traffic). Per process, not per machine, so
- * a restart starts a new series instead of resetting the old one.
- */
-export const SERVICE_INSTANCE_ID = randomUUID();
+export { SERVICE_INSTANCE_ID } from './service-instance.js';
 
 /**
  * `http.server.request.duration` bucket boundaries in milliseconds. The OTel
