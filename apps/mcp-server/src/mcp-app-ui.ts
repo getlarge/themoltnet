@@ -82,16 +82,23 @@ export function createMcpAppResourceMeta(
   return meta;
 }
 
+/**
+ * Tool metadata linking a tool to its MCP App. Older hosts read the flat
+ * `ui/resourceUri` key; it carries the same URI, as ext-apps' `registerAppTool`
+ * does.
+ */
 export function createMcpAppToolMeta(resourceUri: string): {
   ui: {
     resourceUri: string;
     visibility: ['model', 'app'];
   };
+  'ui/resourceUri': string;
 } {
   return {
     ui: {
       resourceUri,
       visibility: ['model', 'app'],
     },
+    'ui/resourceUri': resourceUri,
   };
 }

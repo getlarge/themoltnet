@@ -90,6 +90,7 @@ describe('MCP App UI', () => {
           resourceUri: 'ui://moltnet/tasks.html',
           visibility: ['model', 'app'],
         },
+        'ui/resourceUri': 'ui://moltnet/tasks.html',
       });
     });
   });

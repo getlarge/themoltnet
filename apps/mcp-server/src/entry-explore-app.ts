@@ -47,8 +47,6 @@ const ENTRY_EXPLORE_MCP_APP_PACKAGE = '@moltnet/entry-explore-mcp-app';
 export const ENTRY_MAP_APP_RESOURCE_URI = ENTRY_EXPLORE_MCP_APP_RESOURCE_URI;
 export const ENTRY_MAP_APP_MIME_TYPE = MCP_APP_RESOURCE_MIME_TYPE;
 
-const ENTRY_MAP_APP_RESOURCE_META = createMcpAppResourceMeta();
-
 const DEFAULT_SAMPLE_LIMIT = 96;
 
 /** Read tools the map app orchestrates, plus the packs tools for zone drafts. */
@@ -98,14 +96,19 @@ export function handleEntriesMapOpen(args: EntryMapOpenInput): CallToolResult {
   return structuredResult(output);
 }
 
-export async function handleEntriesMapResource(): Promise<ReadResourceResult> {
+/** `meta` must match the listing's sandbox metadata; see `handleTasksAppResource`. */
+export async function handleEntriesMapResource(
+  meta: ReturnType<
+    typeof createMcpAppResourceMeta
+  > = createMcpAppResourceMeta(),
+): Promise<ReadResourceResult> {
   return {
     contents: [
       {
         uri: ENTRY_MAP_APP_RESOURCE_URI,
         mimeType: ENTRY_MAP_APP_MIME_TYPE,
         text: await buildEntryMapAppHtml(),
-        _meta: ENTRY_MAP_APP_RESOURCE_META,
+        _meta: meta,
       },
     ],
   };
@@ -152,6 +155,6 @@ export function registerEntryExploreApp(registry: McpRegistry): void {
       mimeType: ENTRY_MAP_APP_MIME_TYPE,
       _meta: entryMapAppResourceMeta,
     },
-    async () => handleEntriesMapResource(),
+    async () => handleEntriesMapResource(entryMapAppResourceMeta),
   );
 }

@@ -35,8 +35,6 @@ import { structuredResult } from './utils.js';
 export const TASK_APP_RESOURCE_URI = TASK_MCP_APP_RESOURCE_URI;
 export const TASK_APP_MIME_TYPE = MCP_APP_RESOURCE_MIME_TYPE;
 
-const TASK_APP_RESOURCE_META = createMcpAppResourceMeta();
-
 async function buildTaskAppHtml(): Promise<string> {
   return fs.readFile(
     resolveInstalledMcpAppHtmlPath('@moltnet/task-mcp-app', import.meta.url),
@@ -104,14 +102,23 @@ export function handleTasksAppOpen(
   return structuredResult(output);
 }
 
-export async function handleTasksAppResource(): Promise<ReadResourceResult> {
+/**
+ * `meta` must be the same sandbox metadata the resource is listed with: hosts
+ * prefer the read result's `_meta.ui` over the listing's, so a bare default
+ * here would drop the configured domain and CSP.
+ */
+export async function handleTasksAppResource(
+  meta: ReturnType<
+    typeof createMcpAppResourceMeta
+  > = createMcpAppResourceMeta(),
+): Promise<ReadResourceResult> {
   return {
     contents: [
       {
         uri: TASK_APP_RESOURCE_URI,
         mimeType: TASK_APP_MIME_TYPE,
         text: await buildTaskAppHtml(),
-        _meta: TASK_APP_RESOURCE_META,
+        _meta: meta,
       },
     ],
   };
@@ -151,6 +158,6 @@ export function registerTaskApp(
       mimeType: TASK_APP_MIME_TYPE,
       _meta: taskAppResourceMeta,
     },
-    async () => handleTasksAppResource(),
+    async () => handleTasksAppResource(taskAppResourceMeta),
   );
 }
