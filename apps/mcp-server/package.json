@@ -23,6 +23,7 @@
   "dependencies": {
     "@fastify/otel": "catalog:",
     "@getlarge/fastify-mcp": "catalog:",
+    "@modelcontextprotocol/server": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/entry-explore-mcp-app": "workspace:*",
     "@moltnet/mcp-auth-proxy": "workspace:*",
@@ -49,6 +50,7 @@
     "@opentelemetry/semantic-conventions": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",
+    "jose": "catalog:",
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",
     "thread-stream": "catalog:",
