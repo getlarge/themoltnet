@@ -14,6 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import type { WorkflowContext } from '@themoltnet/tasks-orchestrator';
 import { Client } from 'pg';
 import { describe, expect, it } from 'vitest';
 
@@ -404,6 +405,86 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
           await app.close();
         }
       }
+    }
+  });
+  it('only explicitly retries a failed stage, retaining its task and budget checkpoints', async () => {
+    const executionId = `failed-stage-${process.pid}-${Date.now()}`;
+    const queueName = executionQueue(executionId);
+    const input = { repo: 'another/project', head: 'a'.repeat(40) };
+    let available = false;
+    let submissions = 0;
+    let runs = 0;
+    const run = async (_input: typeof input, ctx: WorkflowContext) => {
+      runs++;
+      const state = await ctx.step('submitted-review', async () => {
+        submissions++;
+        return { taskId: `child-${submissions}`, spent: 1.5, repairs: 2 };
+      });
+      if (!available) throw new Error('temporary coordinator failure');
+      return state;
+    };
+    const app = createAdaptiveStageApp({
+      databaseUrl,
+      queueName,
+      stage: 'review',
+      run,
+    });
+    const database = new Client({ connectionString: databaseUrl });
+    await database.connect();
+    try {
+      await app.createQueue();
+      const spawned = await app.spawn(
+        `${ADAPTIVE_STAGE_TASK}:review`,
+        { operation: 'run', input },
+        { idempotencyKey: 'review', maxAttempts: 1 },
+      );
+      await app.workBatch();
+      expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe('failed');
+      expect(runs).toBe(1);
+      const args = {
+        databaseUrl,
+        executionId,
+        stage: 'review' as const,
+        input,
+        run,
+      };
+      available = true;
+      for (const retryFailed of [undefined, false]) {
+        await expect(
+          executeAdaptiveStage({ ...args, retryFailed }),
+        ).rejects.toThrow('failed');
+        expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe(
+          'failed',
+        );
+        expect(runs).toBe(1);
+      }
+      expect(
+        await executeAdaptiveStage({ ...args, retryFailed: true }),
+      ).toEqual({ taskId: 'child-1', spent: 1.5, repairs: 2 });
+      expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe(
+        'completed',
+      );
+      expect(runs).toBe(2);
+      expect(submissions).toBe(1);
+      const tasks = await database.query(
+        `SELECT task_id FROM absurd."t_${queueName}"`,
+      );
+      expect(tasks.rows).toEqual([{ task_id: spawned.taskID }]);
+      // Retrying an already completed stage just returns its retained result.
+      expect(
+        await executeAdaptiveStage({ ...args, retryFailed: true }),
+      ).toEqual({ taskId: 'child-1', spent: 1.5, repairs: 2 });
+      expect(runs).toBe(2);
+      expect(submissions).toBe(1);
+    } finally {
+      await app.dropQueue();
+      await app.dropQueue(`${queueName}-input`);
+      await app.close();
+      await database.query(
+        'DELETE FROM public.adaptive_review_retention WHERE queue_name = $1',
+        [queueName],
+      );
+      await database.end();
     }
   });
 });

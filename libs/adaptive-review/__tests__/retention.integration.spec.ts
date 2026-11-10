@@ -228,20 +228,20 @@ describe('review retention (real Absurd/Postgres)', () => {
     }
   });
 
-  it('bounds cleanup batches and applies explicit retention overrides', async () => {
+  it('bounds cleanup batches and rejects policy changes from a caller', async () => {
     const first = newId(),
       second = newId();
     await stage(first, true);
     await stage(second, true);
     await age(first, 40);
     await age(second, 35);
-    expect(
-      await cleanupReviewExecutions({
+    await expect(
+      cleanupReviewExecutions({
         databaseUrl,
         policy: { completedDays: 60, unfinishedDays: 90 },
         apply: true,
       }),
-    ).toEqual([]);
+    ).rejects.toThrow('differs from the database policy');
     expect(
       await cleanupReviewExecutions({ databaseUrl, limit: 1, apply: true }),
     ).toEqual([{ queueName: executionQueue(first), outcome: 'expired' }]);
@@ -375,6 +375,63 @@ describe('review retention (real Absurd/Postgres)', () => {
       outcome: 'expired',
     });
     expect(await queues(id)).toEqual([]);
+  });
+
+  it('rejects a second repository with a shorter policy before any work or deletion', async () => {
+    const existing = newId();
+    await stage(existing);
+    await age(existing, 10);
+    let submissions = 0;
+    await expect(
+      executeAdaptiveStage({
+        databaseUrl,
+        executionId: newId(),
+        stage: 'prepare',
+        input: { repo: 'another/project' },
+        retention: { completedDays: 1, unfinishedDays: 1 },
+        run: async () => {
+          submissions++;
+          return {};
+        },
+      }),
+    ).rejects.toThrow('differs from the database policy');
+    await expect(
+      cleanupReviewExecutions({
+        databaseUrl,
+        apply: true,
+        policy: { completedDays: 1, unfinishedDays: 1 },
+      }),
+    ).rejects.toThrow('differs from the database policy');
+    expect(submissions).toBe(0);
+    expect(await queues(existing)).toHaveLength(2);
+    expect(await stage(existing)).toEqual({ taskId: 'original-task' });
+  });
+
+  it('uses an explicit database-owner policy change and rejects stale callers', async () => {
+    const id = newId();
+    await stage(id, true);
+    await age(id, 40);
+    // Administrative change, not a stage/cleanup input override.
+    await client.query(
+      'UPDATE public.adaptive_review_retention_policy SET completed_days = 60 WHERE singleton',
+    );
+    try {
+      await expect(
+        cleanupReviewExecutions({ databaseUrl, apply: true }),
+      ).rejects.toThrow('differs from the database policy');
+      expect(
+        await cleanupReviewExecutions({
+          databaseUrl,
+          apply: true,
+          policy: { completedDays: 60, unfinishedDays: 90 },
+        }),
+      ).toEqual([]);
+      expect(await queues(id)).toHaveLength(2);
+    } finally {
+      await client.query(
+        'UPDATE public.adaptive_review_retention_policy SET completed_days = 30 WHERE singleton',
+      );
+    }
   });
 
   it('preparation automatically sweeps expired executions', async () => {

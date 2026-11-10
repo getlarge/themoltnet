@@ -169,8 +169,8 @@ describe('adaptive review workflow trust gates', () => {
   });
 
   it('gates every downstream job that can reach credentials', () => {
-    expect(job('prepare').if).toBe(
-      "github.event_name == 'issue_comment' || github.event.pull_request.draft == false",
+    expect(job('prepare').if).toContain(
+      "github.event_name == 'pull_request' && github.event.pull_request.draft == false",
     );
     expect(job('route').if).toContain("needs.prepare.outputs.skip == 'false'");
     expect(job('review').if).toBe("needs.route.result == 'success'");
@@ -232,8 +232,10 @@ describe('adaptive review workflow trust gates', () => {
       "github.event.comment.body == '/review'",
       "github.event.comment.user.type == 'User'",
       'contains(fromJSON(\'["OWNER","MEMBER","COLLABORATOR"]\'), github.event.comment.author_association)',
-    ])
+    ]) {
       expect(condition).toContain(guard);
+      expect(job('prepare').if).toContain(guard);
+    }
     expect(caller.jobs.review.with.mode).toBe(
       "${{ github.event_name == 'issue_comment' && 'shadow' || vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'active' }}",
     );

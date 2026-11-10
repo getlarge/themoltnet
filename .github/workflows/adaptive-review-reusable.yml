@@ -112,8 +112,15 @@ concurrency:
 
 jobs:
   prepare:
-    # A comment event is the caller's on-demand request; it has no draft flag.
-    if: github.event_name == 'issue_comment' || github.event.pull_request.draft == false
+    # Enforce comment authorization here as well as in the caller.
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        github.event.issue.state == 'open' &&
+        github.event.comment.body == '/review' &&
+        github.event.comment.user.type == 'User' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     services:
       absurd:
         image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}

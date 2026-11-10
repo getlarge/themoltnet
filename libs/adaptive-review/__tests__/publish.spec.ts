@@ -524,7 +524,7 @@ describe('publishAdaptiveReport inline threads', () => {
     const [first] = reviewComments(recorded.reviews[0]);
     expect(
       first.body.startsWith(
-        `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} run=${OPTIONS.runUrl} correlation=test -->`,
+        `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} run=${OPTIONS.runUrl} correlation=test base=${BASE} head=${HEAD} -->`,
       ),
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
@@ -537,7 +537,7 @@ describe('publishAdaptiveReport inline threads', () => {
     expect(recorded.summaries[0]).toContain(
       'Findings: 3 (3 posted as new review threads, 0 already open from an earlier run)',
     );
-    expect(recorded.summaries[0]).toContain('blast_radius: wide');
+    expect(recorded.summaries[0]).toContain('blast\\_radius: wide');
     expect(recorded.summaries[0]).not.toContain('src/a.ts:7');
   });
 
@@ -1094,7 +1094,7 @@ describe('publication replay after an ambiguous GitHub write', () => {
     const value = report();
     const removed: string[] = [];
     const writes: string[] = [];
-    const ownFinding = `${ADAPTIVE_FINDING_MARKER}tests:new:1:example.ts correlation=test -->\nold`;
+    const ownFinding = `${ADAPTIVE_FINDING_MARKER}tests:new:1:example.ts correlation=test base=${BASE} head=${HEAD} -->\nold`;
     const otherFinding = `${ADAPTIVE_FINDING_MARKER}tests:new:2:example.ts correlation=newer -->\nnew`;
     const request = async (url: string, method = 'GET'): Promise<unknown> => {
       if (url === PR_PATH)
@@ -1103,6 +1103,22 @@ describe('publication replay after an ambiguous GitHub write', () => {
         return [
           comment(10, OPTIONS.appLogin, ownFinding),
           comment(11, OPTIONS.appLogin, otherFinding),
+          comment(
+            12,
+            OPTIONS.appLogin,
+            ownFinding.replace(HEAD, 'e'.repeat(40)),
+          ),
+          comment(
+            13,
+            OPTIONS.appLogin,
+            ownFinding.replace(BASE, 'f'.repeat(40)),
+          ),
+          comment(14, 'another-app[bot]', ownFinding),
+          comment(
+            15,
+            OPTIONS.appLogin,
+            ownFinding.replace(` base=${BASE} head=${HEAD}`, ''),
+          ),
         ];
       if (url.startsWith(COMMENTS_PATH) && method === 'GET')
         return [

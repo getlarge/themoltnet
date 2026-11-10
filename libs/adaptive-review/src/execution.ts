@@ -76,18 +76,21 @@ export async function executeAdaptiveStage<T, R>(
 ): Promise<R> {
   if (!args.databaseUrl) throw new Error('ADAPTIVE_DATABASE_URL is required');
   if (!args.executionId) throw new Error('review execution ID is required');
-  if (args.stage === 'prepare') {
-    await cleanupReviewExecutions({
-      databaseUrl: args.databaseUrl,
-      policy: args.retention,
-      apply: true,
-    });
-  }
   return withReviewExecution(
     args.databaseUrl,
     executionQueue(args.executionId),
     args.stage === 'publish',
-    (connection) => executeBoundStage(args, connection),
+    async (connection) => {
+      if (args.stage === 'prepare') {
+        await cleanupReviewExecutions({
+          databaseUrl: args.databaseUrl,
+          policy: args.retention,
+          apply: true,
+        });
+      }
+      return executeBoundStage(args, connection);
+    },
+    args.stage === 'prepare' ? args.retention : undefined,
   );
 }
 

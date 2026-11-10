@@ -246,7 +246,12 @@ async function publishFindingThreads(
     ),
   });
   if (!fresh.length) return { summary: summary(0) };
-  const source = { runUrl, correlationId: report.correlationId };
+  const source = {
+    runUrl,
+    correlationId: report.correlationId,
+    base: report.base,
+    head: report.head,
+  };
   let created: { id?: number };
   try {
     created = (await request(
@@ -319,9 +324,12 @@ async function reconcileStalePublication(
     `/repos/${report.repo}/pulls/${report.pr}/comments`,
   );
   for (const comment of comments) {
+    const marker = parseFindingMarker(comment.body);
     if (
       comment.user.login === appLogin &&
-      parseFindingMarker(comment.body)?.correlationId === report.correlationId
+      marker?.correlationId === report.correlationId &&
+      marker.base === report.base &&
+      marker.head === report.head
     ) {
       await request(
         `/repos/${report.repo}/pulls/comments/${comment.id}`,

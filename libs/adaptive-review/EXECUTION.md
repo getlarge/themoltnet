@@ -450,8 +450,11 @@ successfully recorded activity. A live, connected coordinator holds a database
 session lock, so cleanup skips it even if its last-use time is old. A MoltNet
 daemon running on its own does not hold that lock.
 
-Every `prepare` invocation automatically applies an oldest-first cleanup batch
-of at most 25 eligible executions before preparing or resuming its own execution.
+Every `prepare` invocation initializes retention, locks its execution identity,
+checks that it has not expired, and refreshes its last-use time. It then applies
+an oldest-first cleanup batch of at most 25 eligible executions before running
+the preparation stage. This protects the execution being resumed from its own
+cleanup sweep.
 The deadline makes an execution eligible; it does not schedule deletion at an
 exact time. If the database is idle, use an operator-managed daily scheduler
 to run the cleanup command below. Increase the retention windows before their
@@ -478,7 +481,14 @@ refreshed the execution. Each command considers at most 25 candidates; repeat
 for a backlog, and retry active executions on a later scheduled run. An empty
 array means no registered execution is currently eligible.
 
-Configure the same policy for preparation and scheduled cleanup:
+The database stores one retention policy in
+`public.adaptive_review_retention_policy`. The first stage host initializes it;
+on a fresh database, the first `prepare` can set custom values. A database with
+an existing retention registry but no policy record adopts the documented
+30/90-day defaults. Run a stage with those defaults before trying cleanup on
+such a database. Cleanup does not initialize or change the policy.
+
+Configure preparation and scheduled cleanup to match the stored policy:
 
 ```bash
 export ADAPTIVE_RETENTION_COMPLETED_DAYS=30
@@ -499,10 +509,42 @@ For a scheduled Actions job, the composite action also accepts `step: cleanup`
 with the same database, retention, and apply environment variables. Pin a
 release containing this implementation, as described
 [above](#launch-through-github-actions); no daily cleanup workflow is installed
-automatically. All callers and schedulers sharing a database must use one
-retention policy: a sweep covers every registered execution in that database,
-not just the calling repository. The policy is evaluated at cleanup time, so
-shortening it can immediately make existing executions eligible.
+automatically. All callers and schedulers sharing a database must match its
+policy: a sweep covers every registered execution in that database, not just
+the calling repository. Preparation and cleanup fail closed on a mismatch.
+Once the database policy is initialized, changing environment variables or
+workflow inputs cannot change it.
+
+To change an initialized policy, the database owner must coordinate the new
+values across all callers and cleanup schedulers. Pause new preparations and
+scheduled cleanup during the change, update their configuration, then use the
+following transaction to inspect the current values and set a 60/180-day policy:
+
+```bash
+psql "$ADAPTIVE_DATABASE_URL" --set=ON_ERROR_STOP=1 <<'SQL'
+BEGIN;
+SELECT completed_days, unfinished_days
+FROM public.adaptive_review_retention_policy
+WHERE singleton
+FOR UPDATE;
+
+UPDATE public.adaptive_review_retention_policy
+SET completed_days = 60, unfinished_days = 180
+WHERE singleton;
+
+SELECT completed_days, unfinished_days
+FROM public.adaptive_review_retention_policy
+WHERE singleton;
+COMMIT;
+SQL
+```
+
+Set the assignments to `30` and `90` to restore the defaults. Confirm the result
+contains the single policy row and the expected values, then resume callers and
+preview cleanup. Cleanup holds a shared lock on that row for each deletion
+transaction, so the update waits for any deletion already in progress. Lowering
+either window can immediately make existing executions eligible for deletion
+on the next sweep; it does not restore data already removed under an older policy.
 
 Cleanup atomically drops the execution queue and its `-input` companion,
 including their tasks, checkpoints, bound inputs, and stored results. It retains
@@ -517,9 +559,10 @@ The shared advisory session lock and Absurd queries use the same `pg.Client`
 connection; PgBouncer transaction or statement pooling cannot preserve that
 session-lock contract and is unsupported.
 
-Stage hosts create the retention table and index on first use; their database
-role must be able to create and update them, and cleanup must be able to drop
-the Absurd queues. Cleanup only touches registered executions. Older queues
+Stage hosts create the retention and policy tables and the retention index on
+first use; their database role must be able to create and update them, and
+cleanup must be able to drop the Absurd queues. Cleanup only touches registered
+executions. Older queues
 that have never run under this implementation remain untouched until a stage
 registers them. Do not run independent Absurd task cleanup on these execution
 queues: removing individual records breaks the recovery and input-binding
@@ -540,9 +583,12 @@ in the summary. Execution markers identify this run's output for stale cleanup.
 If GitHub accepted a write before the process lost its response, rerunning
 `publish.js` reconciles that external state. If the PR is now stale, recovery
 removes this execution's marked inline comments and replaces its own summary
-with a stale notice, then fails. It does not overwrite a newer execution's
-marked summary during stale recovery. GitHub rejecting inline anchors with
-HTTP 422 falls back to summary-only findings.
+with a stale notice, then fails. Inline deletion requires an App-owned comment
+whose parsed marker matches the correlation ID and both pinned base and head
+revisions. Legacy markers remain readable for finding deduplication, but stale
+recovery deliberately leaves comments without both revisions in place. It does
+not overwrite a newer execution's marked summary during stale recovery. GitHub
+rejecting inline anchors with HTTP 422 falls back to summary-only findings.
 
 This is reconciliation, not a transaction spanning GitHub and Postgres. The
 implementation does not promise exactly-once GitHub writes under arbitrary
@@ -563,9 +609,12 @@ review after every host and daemon has exited.
 
 Actions remains responsible for event authorization, protected-path eligibility,
 trusted runtime checkout and digest validation, worker provisioning, artifacts,
-and publication tokens. Preparation alone does not authorize an `issue_comment`
-request: the caller workflow enforces the `/review` text and commenter checks.
-An external supervisor must decide who may launch a review and publish it.
+and publication tokens. The reusable workflow enforces the same comment gate
+as the caller: an exact `/review` comment on an open pull request, posted by a
+human GitHub user with `OWNER`, `MEMBER`, or `COLLABORATOR` association. For
+`pull_request` events it requires a non-draft PR. The Node `prepare` command
+alone does not enforce that comment authorization; an external supervisor must
+decide who may launch a review and publish it.
 
 [Recovery unit tests](__tests__/recovery.spec.ts) simulate checkpoints, lost
 responses, completed parallel branches, and repair replay. Publication tests
@@ -599,6 +648,7 @@ the separately invoked publication command.
 | Resume budgets and spend inputs                | Saved classifier deadline, same task requests and repair cap, restored task-ID ledger, and all five priced attempts counted once | Task ID/request counts passed; live usage unverified       |
 | Intentional new review                         | Distinct executions produce distinct tasks; durable Actions attempts preserve identity                                           | New stage execution case passed                            |
 | Incompatible inputs                            | Rejects changed repository, head, profiles/revisions, budgets, runtime                                                           | Binding case passed                                        |
+| Explicit retry of a failed stage               | Retry requires an explicit opt-in and reuses completed checkpoints                                                               | Same stage ID, child ID, spend, and repair count passed    |
 | Ephemeral stage handoffs                       | Prepared and route files carry inputs across jobs; later Actions attempts must prepare anew                                      | Local stage flow passed with queues removed between stages |
 | Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                               |
 
@@ -613,12 +663,23 @@ route-to-review handoff. The ephemeral local-stage case removed the execution
 queues between prepare, route, and review, and completed using the handoff files
 with three simulated task submissions.
 
+The failed-stage case verified that leaving retry unset or setting it to false
+does not retry a failed Absurd stage. Explicitly enabling retry preserves the
+same Absurd task ID, checkpointed child task ID, spend, and repair count without
+submitting another child task. Replaying the completed result preserves those
+values as well.
+
 The [retention integration suite](__tests__/retention.integration.spec.ts) also
 passed against real Postgres. It covers dry runs, the published and unfinished
 cutoffs, retained-result replay, rejection of expired IDs, running-host
-protection, atomic rollback of queue deletion, bounded batches, policy
-overrides, and automatic cleanup during preparation. These checks use local
-database state; they do not validate an operator's deployed cleanup schedule.
+protection, lock release after process death, concurrent cleanup and resume,
+atomic rollback of queue deletion, bounded batches, and automatic cleanup
+during preparation. The cleanup CLI case runs without GitHub or model
+credentials and verifies its default dry run. Conflicting preparation and
+cleanup policies are rejected before work or deletion; an explicit database
+owner policy change takes effect and causes callers with stale settings to
+fail. These checks use local database state; they do not validate an operator's
+deployed cleanup schedule.
 
 Local validation also passed unit tests and setup/workflow tests. The
 actual database setup helper successfully initialized a fresh isolated Postgres
