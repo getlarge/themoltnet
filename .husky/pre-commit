@@ -31,3 +31,6 @@ lint_staged_bin="$(resolve_bin lint-staged)"
 
 cd "$top_level"
 "$lint_staged_bin" --cwd "$top_level"
+
+# Hash the formatted index, preserving any unstaged edits restored by lint-staged.
+node tools/src/release/action-runtime-lock.ts --stage

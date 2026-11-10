@@ -128,13 +128,23 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
   baked into the served script before unpacking, and the bundle carries its
   own Node runtime — so the daemon does not depend on the runner's Node.
   `daemon-version` therefore names a release (or `latest`), not an npm
-  semver range.
-- **Release lookup authentication** — `daemon-version: latest` uses
+  semver range. Downloads of the public installer retry transient failures
+  up to six times before the action tries the GitHub API fallback below.
+- **Release authentication** — `daemon-version: latest` uses
   `github-release-token` (default: `${{ github.token }}`) to resolve a published
-  stable release before creating tasks. The token is used only for that
-  GitHub.com API lookup through `actions/github-script`; the signed installer
-  receives the exact version.
-  An exact `daemon-version` or `workspace` needs no release lookup or token.
+  stable release before creating tasks. An exact `daemon-version` skips that
+  lookup; `workspace` skips both release lookup and installation.
+  If the public installer download or installation fails, the action uses
+  the same token to download the release assets through the GitHub API.
+  The token is scoped to the authenticated download command and is not
+  exported to the installer processes.
+- **GitHub API download fallback** — requires `gh` on the runner's `PATH`
+  and supports Linux x64 and macOS arm64 (including Rosetta shells).
+  It uses an exact daemon version,
+  either supplied directly or resolved from `latest` before installation.
+  Each download attempt has a two-minute limit, with up to three attempts
+  and 15- then 30-second waits between them. Downloaded archives undergo the
+  same signature verification as the public download path.
 - **Node.js >= 23.6** — gondolin's engine constraint, and the version the
   action's own steps run on (task composition, dispatch). The action
   defaults `node-version` to `'24'` (the LTS sibling). Override via
