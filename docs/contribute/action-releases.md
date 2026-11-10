@@ -183,7 +183,21 @@ bump. CI checks every lock on the merged tree; publication checks only the
 component being released. Never repair a historical source tag's unrelated lock
 by rewriting the tag.
 
-To refresh and check one component's lock before committing:
+With the repository's Git hooks installed, each commit refreshes and stages
+runtime locks after lint-staged formats the source files. The `--stage` mode
+hashes the Git index, so unstaged source edits stay out of the lock. If a lock
+needs refreshing and has unstaged edits of its own, the hook stops; stage or
+stash those edits before retrying.
+
+To refresh from staged content manually:
+
+```bash
+node tools/src/release/action-runtime-lock.ts --stage
+```
+
+For release preparation or environments without the hooks, `--write` hashes the
+working-tree contents of indexed files. Stage new source files first, then
+refresh and check the lock and include it in the commit:
 
 ```bash
 node tools/src/release/action-runtime-lock.ts --write --project-root packages/adaptive-review-action

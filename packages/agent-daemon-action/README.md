@@ -128,7 +128,8 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
   baked into the served script before unpacking, and the bundle carries its
   own Node runtime — so the daemon does not depend on the runner's Node.
   `daemon-version` therefore names a release (or `latest`), not an npm
-  semver range.
+  semver range. Downloads of the public installer retry transient failures
+  up to six times before the action tries the GitHub API fallback below.
 - **Release authentication** — `daemon-version: latest` uses
   `github-release-token` (default: `${{ github.token }}`) to resolve a published
   stable release before creating tasks. An exact `daemon-version` skips that
