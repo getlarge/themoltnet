@@ -139,6 +139,7 @@ describe('adaptive review workflow trust gates', () => {
     expect(workflow.on.workflow_call.inputs['execution-mode'].default).toBe(
       'durable',
     );
+    expect(caller.jobs.review.with['execution-mode']).toBe('ephemeral');
     expect(
       workflow.on.workflow_call.secrets.ADAPTIVE_DATABASE_URL.required,
     ).toBe(false);
