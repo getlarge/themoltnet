@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.5](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.4...agent-desktop-v0.12.5) (2026-11-10)
+
+
+### Bug Fixes
+
+* **agent-desktop:** repair Cargo lock dependency references ([293d714](https://github.com/getlarge/themoltnet/commit/293d7142151bf3c83a5ff7e85b2cffee3d28a352))
+* **agent-desktop:** repair Cargo lock dependency references ([f722110](https://github.com/getlarge/themoltnet/commit/f722110b842e72cd4691c8414383851673112a9a))
+
 ## [0.12.4](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.3...agent-desktop-v0.12.4) (2026-11-05)
 
 

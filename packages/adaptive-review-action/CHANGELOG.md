@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.2...adaptive-review-action-v0.4.0) (2026-11-10)
+
+
+### Features
+
+* **adaptive-review:** persist coordinator recovery with Absurd ([0d3f359](https://github.com/getlarge/themoltnet/commit/0d3f359db0c6e8c6461525b135f6a0f55d98c170))
+
+
+### Bug Fixes
+
+* **adaptive-review:** enforce review recovery boundaries ([f536c39](https://github.com/getlarge/themoltnet/commit/f536c398027afaf2d6e6c93a5038e3d3e8e7275b))
+* **adaptive-review:** expire inactive durable executions ([e002763](https://github.com/getlarge/themoltnet/commit/e002763149f7f9f69d9b100cfd5c87d1f4a16ff6))
+* **adaptive-review:** refresh action runtime lock ([d62dbae](https://github.com/getlarge/themoltnet/commit/d62dbae51501af5f30d9613ade2669e3ba863515))
+* **adaptive-review:** resolve Knip findings ([89192f8](https://github.com/getlarge/themoltnet/commit/89192f869d17a47467a9214a5f5e3a1535c302d2))
+* **agent-daemon-action:** retry the bundle install and fall back to the GitHub API ([42b8a9c](https://github.com/getlarge/themoltnet/commit/42b8a9cbabb479236a515a5a6ea3c13900c9792a))
+* **agent-daemon-action:** scope and bound release downloads ([feaa04f](https://github.com/getlarge/themoltnet/commit/feaa04f17d25b30d16afcb4726747f14e07dfe21))
+* **ci:** refresh action runtime locks from staged sources ([b21ba86](https://github.com/getlarge/themoltnet/commit/b21ba864e542326394623493fb14dbc7c1d1329a))
+* **deps:** update digest updates ([c65c077](https://github.com/getlarge/themoltnet/commit/c65c077a1599abea95b9ef45654d569dc0a96dc1))
+* **deps:** update digest updates ([bd07640](https://github.com/getlarge/themoltnet/commit/bd07640029c4dedfc0705ee6fc124da232e31785))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.74.5
+    * @themoltnet/pi-runtime bumped to 0.29.3
+
 ## [0.3.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.1...adaptive-review-action-v0.3.2) (2026-11-06)
 
 

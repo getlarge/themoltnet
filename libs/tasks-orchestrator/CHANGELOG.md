@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.4...tasks-orchestrator-v0.7.0) (2026-11-10)
+
+
+### Features
+
+* **adaptive-review:** checkpoint coordinator and lane recovery ([a70aa30](https://github.com/getlarge/themoltnet/commit/a70aa305586670844b16a0c70f6fa8ecfce49a3c))
+* **adaptive-review:** persist coordinator recovery with Absurd ([0d3f359](https://github.com/getlarge/themoltnet/commit/0d3f359db0c6e8c6461525b135f6a0f55d98c170))
+
 ## [0.6.4](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.3...tasks-orchestrator-v0.6.4) (2026-11-05)
 
 

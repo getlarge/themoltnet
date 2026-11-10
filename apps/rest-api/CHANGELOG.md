@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.69.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.69.0...rest-api-v0.69.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **api:** preserve Date handling in standalone serializers ([00e5f8d](https://github.com/getlarge/themoltnet/commit/00e5f8dabaa3c352badf1c9dce343e5d01c99847))
+* reduce API startup compilation and correlate telemetry by instance ([2e7c450](https://github.com/getlarge/themoltnet/commit/2e7c4505b7bf99a0edaf924f4ef38a581c4eeb08))
+
+
+### Performance Improvements
+
+* **api:** precompile response serializers during builds ([e107f2b](https://github.com/getlarge/themoltnet/commit/e107f2b96df5bf0016cc4c90a44b5f9ca3216f4e))
+* **api:** precompile response serializers during builds ([b19ae82](https://github.com/getlarge/themoltnet/commit/b19ae820a0def6bda93277893878828a033fef12))
+* **rest-api:** reuse equivalent response serializers ([6d322be](https://github.com/getlarge/themoltnet/commit/6d322be4696be71fc02b3717e2dcfe2e8bab3130))
+
 ## [0.69.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.5...rest-api-v0.69.0) (2026-11-05)
 
 

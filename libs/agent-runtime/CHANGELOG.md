@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.21.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.20.0...agent-runtime-v1.21.0) (2026-11-10)
+
+
+### Bug Fixes
+
+* **agent-daemon:** recover interrupted Durable attempts ([825b7ad](https://github.com/getlarge/themoltnet/commit/825b7ad16cb6b28ed557be8b89d4a6441c3855c4))
+* **agent-daemon:** resume interrupted durable attempts ([292e047](https://github.com/getlarge/themoltnet/commit/292e0470118416aee872f6168d40a9f33798e00f))
+* **agent-runtime:** require confirmed teardown before recovery ([60f4d4e](https://github.com/getlarge/themoltnet/commit/60f4d4ed3d2e7be1bd9a10d029e8249c897abf2e))
+
 ## [1.20.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.19.0...agent-runtime-v1.20.0) (2026-11-05)
 
 

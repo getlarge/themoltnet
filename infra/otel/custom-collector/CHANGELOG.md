@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.1...otel-collector-v0.2.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **deps:** update digest updates ([c65c077](https://github.com/getlarge/themoltnet/commit/c65c077a1599abea95b9ef45654d569dc0a96dc1))
+* **deps:** update digest updates ([bd07640](https://github.com/getlarge/themoltnet/commit/bd07640029c4dedfc0705ee6fc124da232e31785))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.0...otel-collector-v0.2.1) (2026-10-02)
 
 
