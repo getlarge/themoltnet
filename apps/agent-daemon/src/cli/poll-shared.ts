@@ -60,6 +60,7 @@ import {
   prepareRuntimeProfile,
 } from '../lib/prepare-runtime-profile.js';
 import { createProjectPollingSource } from '../lib/project-task-source.js';
+import { resumeInterruptedTask } from '../lib/resume-interrupted-task.js';
 import {
   applyProjectWorkspacePolicy,
   projectRunOptionDefs,
@@ -567,6 +568,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   try {
     runtime = new AgentRuntime({
       logger: rootLogger,
+      resumeInterruptedTask: (claimed) => {
+        const { preparedRuntime } = runtimeForClaimedTask(runtimes, claimed);
+        return resumeInterruptedTask({
+          agent: ctx.agent,
+          claimed,
+          manifest: preparedRuntime.manifest,
+          executorFingerprint: preparedRuntime.attestor.fingerprint,
+          signal: abort.signal,
+        });
+      },
       source: createProjectPollingSource(selection, {
         agent: ctx.agent,
         teamId,
