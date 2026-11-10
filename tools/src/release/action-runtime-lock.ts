@@ -11,8 +11,9 @@
  *
  * Plain Node (erasable TypeScript, built-ins only), so CI runs it without an
  * install: `node tools/src/release/action-runtime-lock.ts --check|--write`.
+ * The commit hook uses --stage to refresh locks from the formatted Git index.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -78,12 +79,56 @@ function listFiles(root: string, pathspecs: string[]): string[] {
     .filter(Boolean);
 }
 
-export function computeLock(root: string, spec: RuntimeLock): string {
+export function computeLock(
+  root: string,
+  spec: RuntimeLock,
+  staged = false,
+): string {
   const files = new Map<string, Buffer>();
   for (const path of listFiles(root, spec.pathspecs)) {
-    files.set(path, readFileSync(join(root, path)));
+    files.set(
+      path,
+      staged
+        ? execFileSync('git', ['show', `:${path}`], { cwd: root })
+        : readFileSync(join(root, path)),
+    );
   }
   return renderLock(files);
+}
+
+/** Refresh from the index after lint-staged has restored unstaged edits. */
+export function stageLocks(root: string, locks = RUNTIME_LOCKS): string[] {
+  const updates = locks.flatMap((spec) => {
+    const content = computeLock(root, spec, true);
+    const current = spawnSync('git', ['show', `:${spec.lock}`], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    return current.status === 0 && current.stdout === content
+      ? []
+      : [{ path: spec.lock, content, current }];
+  });
+
+  // Preflight every lock before writing any: never overwrite local lock edits.
+  for (const { path, current } of updates) {
+    let local: string | undefined;
+    try {
+      local = readFileSync(join(root, path), 'utf8');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+    const indexed = current.status === 0 ? current.stdout : undefined;
+    if (local !== indexed) {
+      throw new Error(
+        `${path} has unstaged changes. Stage or stash them before refreshing runtime locks.`,
+      );
+    }
+  }
+  for (const { path, content } of updates) {
+    writeFileSync(join(root, path), content);
+    execFileSync('git', ['add', '--', path], { cwd: root });
+  }
+  return updates.map(({ path }) => path);
 }
 
 /** The locks that belong to the action project at `projectRoot`. */
@@ -120,6 +165,12 @@ function main(argv: string[]): number {
     throw new Error('--project-root requires a package path');
   }
   const locks = projectRoot ? locksForProject(projectRoot) : RUNTIME_LOCKS;
+  if (argv.includes('--stage')) {
+    for (const lock of stageLocks(root, locks)) {
+      process.stdout.write(`Refreshed and staged ${lock}\n`);
+    }
+    return 0;
+  }
   if (argv.includes('--write')) {
     for (const spec of locks) {
       writeFileSync(join(root, spec.lock), computeLock(root, spec));
@@ -136,7 +187,7 @@ function main(argv: string[]): number {
     return stale.length > 0 ? 1 : 0;
   }
   process.stderr.write(
-    'Usage: node tools/src/release/action-runtime-lock.ts --check|--write\n',
+    'Usage: node tools/src/release/action-runtime-lock.ts --check|--write|--stage\n',
   );
   return 2;
 }
