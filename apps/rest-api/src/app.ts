@@ -248,6 +248,9 @@ export interface AppOptions {
    * output (e.g. asserting rate-limit onExceeded warns).
    */
   logger?: FastifyServerOptions['logger'];
+  serializerCompilerFactory?: ReturnType<
+    typeof createSerializerCompilerFactory
+  >;
 }
 
 /**
@@ -261,7 +264,10 @@ export async function registerApiRoutes(
   options: Omit<AppOptions, 'logger'>,
 ): Promise<void> {
   app.setSchemaController({
-    compilersFactory: { buildSerializer: createSerializerCompilerFactory() },
+    compilersFactory: {
+      buildSerializer:
+        options.serializerCompilerFactory ?? createSerializerCompilerFactory(),
+    },
   });
   // Register security plugins first (order matters)
   // 1. Security headers (helmet)

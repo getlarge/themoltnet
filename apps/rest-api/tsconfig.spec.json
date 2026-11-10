@@ -11,6 +11,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "__tests__/**/*.ts",
+    "scripts/serializer-artifact-builder.ts",
     "package.json"
   ],
   "references": [

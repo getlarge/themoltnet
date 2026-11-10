@@ -113,6 +113,7 @@ import {
   resolveRedisConfig,
 } from './config.js';
 import dbosPlugin from './plugins/dbos.js';
+import { loadSerializerArtifact } from './serializer-artifact.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
 import {
   createTaskService,
@@ -188,7 +189,23 @@ function assertTransactionalDbosCoLocated(
   );
 }
 
+// Vite replaces this for built servers, including e2e's NODE_ENV=test.
+// Source-based development keeps Fastify's cached runtime compiler.
+declare const __MOLTNET_PRECOMPILED_SERIALIZERS__: boolean;
+
 export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
+  // Load before opening connections: production must never silently recompile
+  // stale/missing build artifacts on the request-serving event loop.
+  const serializerCompilerFactory =
+    typeof __MOLTNET_PRECOMPILED_SERIALIZERS__ !== 'undefined' &&
+    __MOLTNET_PRECOMPILED_SERIALIZERS__
+      ? loadSerializerArtifact(
+          new URL(
+            /* @vite-ignore */ './response-serializers.cjs',
+            import.meta.url,
+          ),
+        )
+      : undefined;
   // ── Observability ──────────────────────────────────────────────
   let observability: ObservabilityContext | null = null;
 
@@ -823,6 +840,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     'signing_request.pending_cap_configured',
   );
   await registerApiRoutes(app, {
+    serializerCompilerFactory,
     diaryService,
     diaryEntryRepository,
     contextPackRepository,
