@@ -29,6 +29,17 @@ To add or revise queries and create your own local Potato tasks, follow
 [Try your own queries locally](../../potato/LOCAL.md). It covers query drafts,
 retrieval, exploration, grouped relevance review, and importing your judgments.
 
+## Execution verification
+
+On November 10, 2026, a fresh macOS run completed all 56 searches with zero
+ordered-result differences between repeats. It used Node 24.14.1, the local
+E5-small-v2 q8 model, and disposable PostgreSQL 16.15 with production migrations.
+Run `4a7f110c-e8f4-4e3f-87a1-eb112580d55a` records source revision
+`d1c87924f984cf296d9c7e402e1140e483626896` with uncommitted test/README changes;
+retrieval source and dataset were unchanged. Its dataset hash is
+`8ad499a86dc54e42b8a7f9d313609ede778c441a79d005ed1565751b232e7ac1`.
+This verifies execution and repeatability, not retrieval quality.
+
 ## Files and current readiness
 
 - `dataset.json` is the runner's versioned dataset contract, including entry and

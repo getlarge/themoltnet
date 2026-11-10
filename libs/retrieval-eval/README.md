@@ -154,8 +154,10 @@ Storage layout:
 | `reports/`    | New reports from compatible label revisions                                             |
 | `embeddings/` | Disposable text/preparation/model-keyed cache                                           |
 
-Files use mode 0600 and created directories mode 0700. Revision publication is
-atomic and refuses to overwrite a concurrent winner; reloading resolves a stale
+On POSIX systems, files use mode 0600 and created directories mode 0700. On
+Windows, these mode bits do not establish owner-only access; choose a workspace
+directory protected by your Windows account's filesystem permissions. Revision
+publication is atomic and refuses to overwrite a concurrent winner; reloading resolves a stale
 revision without silently merging decisions. Previous revisions remain available
 for recovery. A new checkout using the same workspace path reopens these files.
 
