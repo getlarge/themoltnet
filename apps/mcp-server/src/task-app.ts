@@ -12,15 +12,14 @@ import {
   TASK_MCP_APP_NAME,
   TASK_MCP_APP_RESOURCE_URI,
 } from '@moltnet/task-mcp-app';
-import type { FastifyInstance } from 'fastify';
 
 import {
   createMcpAppResourceMeta,
   createMcpAppToolMeta,
   MCP_APP_RESOURCE_MIME_TYPE,
-  type McpAppResourceMetaOptions,
   resolveInstalledMcpAppHtmlPath,
 } from './mcp-app-ui.js';
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   TaskAppOpenInput,
   TaskAppOpenOutput,
@@ -119,17 +118,15 @@ export async function handleTasksAppResource(): Promise<ReadResourceResult> {
 }
 
 export function registerTaskApp(
-  fastify: FastifyInstance,
+  registry: McpRegistry,
   deps: Pick<McpDeps, 'consoleBaseUrl'>,
 ): void {
-  // Get MCP app config from fastify instance (injected by app.ts)
-  const mcpAppConfig = (
-    fastify as FastifyInstance & { mcpAppConfig?: McpAppResourceMetaOptions }
-  ).mcpAppConfig;
+  // MCP Apps sandbox configuration, resolved in app.ts.
+  const mcpAppConfig = registry.mcpAppConfig;
 
   const taskAppResourceMeta = createMcpAppResourceMeta(mcpAppConfig ?? {});
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_app_open',
       title: 'Open Tasks App',
@@ -145,7 +142,7 @@ export function registerTaskApp(
     (args: TaskAppOpenInput) => handleTasksAppOpen(args, deps),
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'tasks-app',
       title: 'MoltNet Tasks',

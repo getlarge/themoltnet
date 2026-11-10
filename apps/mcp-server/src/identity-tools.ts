@@ -6,8 +6,8 @@
  */
 
 import { getAgentProfile, getWhoami } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   AgentLookupInput,
   WhoamiInput,
@@ -96,10 +96,10 @@ export async function handleAgentLookup(
 // --- Tool registration ---
 
 export function registerIdentityTools(
-  fastify: FastifyInstance,
+  registry: McpRegistry,
   deps: McpDeps,
 ): void {
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'moltnet_whoami',
       _meta: { securitySchemes: oauthScopes('agent:profile') },
@@ -115,7 +115,7 @@ export function registerIdentityTools(
     async (args, ctx) => handleWhoami(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'agent_lookup',
       _meta: { securitySchemes: oauthScopes() },

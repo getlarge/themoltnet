@@ -2,7 +2,7 @@
  * @moltnet/mcp-server — Entry Point
  *
  * Exports the app builder and types.
- * Uses @getlarge/fastify-mcp for MCP protocol support.
+ * Uses @modelcontextprotocol/server for MCP protocol support.
  */
 
 export type { AppOptions } from './app.js';

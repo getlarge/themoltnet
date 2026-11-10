@@ -24,8 +24,8 @@ import {
   uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { validateTaskCreateRequest } from '@moltnet/tasks';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   TaskArtifactDownloadInput,
   TaskArtifactsListInput,
@@ -155,7 +155,7 @@ export async function handleTasksCreate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  // Defense in depth: the fastify-mcp dispatcher validates tool arguments
+  // Defense in depth: the MCP server validates tool arguments (TypeBox)
   // against TaskCreateSchema's `project_id` (format: 'uuid') before this
   // handler runs when a call comes through the MCP `tools/call` transport,
   // so a bare "" is already rejected upstream on that path. This handler is
@@ -713,11 +713,8 @@ export function handleTasksConsoleLink(
   );
 }
 
-export function registerTaskTools(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddTool(
+export function registerTaskTools(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddTool(
     {
       name: 'tasks_schemas',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -730,7 +727,7 @@ export function registerTaskTools(
       handleTasksSchemas(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_create',
       _meta: { securitySchemes: oauthScopes('task:write') },
@@ -743,7 +740,7 @@ export function registerTaskTools(
       handleTasksCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_continue',
       _meta: { securitySchemes: oauthScopes('task:read', 'task:write') },
@@ -756,7 +753,7 @@ export function registerTaskTools(
       handleTasksContinue(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_get',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -768,7 +765,7 @@ export function registerTaskTools(
       handleTasksGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_cancel',
       _meta: { securitySchemes: oauthScopes('task:manage') },
@@ -781,7 +778,7 @@ export function registerTaskTools(
       handleTasksCancel(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_list',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -794,7 +791,7 @@ export function registerTaskTools(
       handleTasksList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_attempts_list',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -806,7 +803,7 @@ export function registerTaskTools(
       handleTasksAttemptsList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_messages_list',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -819,7 +816,7 @@ export function registerTaskTools(
       handleTasksMessagesList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_conversations_list',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -832,7 +829,7 @@ export function registerTaskTools(
       handleTaskConversationsList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_conversations_get',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -845,7 +842,7 @@ export function registerTaskTools(
       handleTaskConversationGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_artifacts_list',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -858,7 +855,7 @@ export function registerTaskTools(
       handleTaskArtifactsList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_artifacts_upload',
       _meta: { securitySchemes: oauthScopes('task:execute') },
@@ -871,7 +868,7 @@ export function registerTaskTools(
       handleTaskArtifactUpload(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_artifacts_stage',
       _meta: { securitySchemes: oauthScopes('task:write') },
@@ -884,7 +881,7 @@ export function registerTaskTools(
       handleTaskArtifactStage(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_artifacts_download',
       _meta: { securitySchemes: oauthScopes('task:read') },
@@ -897,7 +894,7 @@ export function registerTaskTools(
       handleTaskArtifactDownload(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'tasks_console_link',
       _meta: { securitySchemes: oauthScopes() },

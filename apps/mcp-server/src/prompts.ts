@@ -6,8 +6,7 @@
  * resources (which expose data), prompts shape conversation.
  */
 
-import type { FastifyInstance } from 'fastify';
-
+import type { McpRegistry } from './mcp-registry.js';
 import type { GetPromptResult, McpDeps } from './types.js';
 
 // --- Handler functions (testable without MCP transport) ---
@@ -41,11 +40,8 @@ export async function handleSignMessage(args: {
 
 // --- Prompt registration ---
 
-export function registerPrompts(
-  fastify: FastifyInstance,
-  _deps: McpDeps,
-): void {
-  fastify.mcpAddPrompt(
+export function registerPrompts(registry: McpRegistry, _deps: McpDeps): void {
+  registry.mcpAddPrompt(
     {
       name: 'sign_message',
       description:

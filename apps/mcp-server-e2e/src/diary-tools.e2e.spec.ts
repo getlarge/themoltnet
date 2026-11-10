@@ -337,6 +337,6 @@ describe('Diary Tools E2E', () => {
 
     const content = result.content as Array<{ type: string; text: string }>;
     expect(result.isError).toBe(true);
-    expect(content[0].text).toContain('Invalid tool arguments');
+    expect(content[0].text).toContain('Invalid arguments for tool');
   });
 });

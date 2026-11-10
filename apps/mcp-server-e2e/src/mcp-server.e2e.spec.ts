@@ -352,9 +352,9 @@ describe('MCP Server E2E', () => {
 
   // ── Session lifecycle ────────────────────────────────────────
 
-  describe('Session lifecycle', () => {
-    it('creates a session and lists tools', async () => {
-      const transport = new StreamableHTTPClientTransport(
+  describe('Stateless transport', () => {
+    function transportFor() {
+      return new StreamableHTTPClientTransport(
         new URL(`${harness.mcpBaseUrl}/mcp`),
         {
           requestInit: {
@@ -365,105 +365,54 @@ describe('MCP Server E2E', () => {
           },
         },
       );
-      const client = new Client({
-        name: 'e2e-session-test',
-        version: '1.0.0',
-      });
+    }
+
+    it('connects and lists tools without issuing a session id', async () => {
+      const transport = transportFor();
+      const client = new Client({ name: 'e2e-stateless', version: '1.0.0' });
 
       await client.connect(transport);
-      expect(transport.sessionId).toBeDefined();
-
       const { tools } = await client.listTools();
+
+      expect(transport.sessionId).toBeUndefined();
       expect(tools.length).toBeGreaterThan(0);
 
       await client.close();
     });
 
-    it('supports multiple concurrent sessions', async () => {
-      const transports = Array.from(
+    it('serves concurrent clients independently', async () => {
+      const clients = Array.from(
         { length: 3 },
-        () =>
-          new StreamableHTTPClientTransport(
-            new URL(`${harness.mcpBaseUrl}/mcp`),
-            {
-              requestInit: {
-                headers: {
-                  'X-Client-Id': harness.agent.clientId,
-                  'X-Client-Secret': harness.agent.clientSecret,
-                },
-              },
-            },
-          ),
+        (_, i) => new Client({ name: `e2e-concurrent-${i}`, version: '1.0.0' }),
       );
-      const clients = transports.map(
-        (_, i) =>
-          new Client({
-            name: `e2e-concurrent-${i}`,
-            version: '1.0.0',
-          }),
+      await Promise.all(
+        clients.map((client) => client.connect(transportFor())),
       );
 
-      // Connect all
-      await Promise.all(clients.map((c, i) => c.connect(transports[i])));
+      const results = await Promise.all(
+        clients.map((client) => client.listTools()),
+      );
 
-      // All should have different session IDs
-      const sessionIds = transports.map((t) => t.sessionId);
-      const unique = new Set(sessionIds);
-      expect(unique.size).toBe(3);
-
-      // All can list tools independently
-      const results = await Promise.all(clients.map((c) => c.listTools()));
       for (const { tools } of results) {
         expect(tools.length).toBeGreaterThan(0);
       }
-
-      // Clean up
-      await Promise.all(clients.map((c) => c.close()));
+      await Promise.all(clients.map((client) => client.close()));
     });
 
-    it('terminates a session via DELETE /mcp', async () => {
-      const transport = new StreamableHTTPClientTransport(
-        new URL(`${harness.mcpBaseUrl}/mcp`),
-        {
-          requestInit: {
-            headers: {
-              'X-Client-Id': harness.agent.clientId,
-              'X-Client-Secret': harness.agent.clientSecret,
-            },
+    it.each(['GET', 'DELETE'])(
+      'answers %s /mcp with 405: there is no session to stream or end',
+      async (method) => {
+        const response = await fetch(`${harness.mcpBaseUrl}/mcp`, {
+          method,
+          headers: {
+            Accept: 'application/json, text/event-stream',
+            'X-Client-Id': harness.agent.clientId,
+            'X-Client-Secret': harness.agent.clientSecret,
           },
-        },
-      );
-      const client = new Client({
-        name: 'e2e-delete-session',
-        version: '1.0.0',
-      });
+        });
 
-      await client.connect(transport);
-      expect(transport.sessionId).toBeDefined();
-
-      const response = await fetch(`${harness.mcpBaseUrl}/mcp`, {
-        method: 'DELETE',
-        headers: {
-          'Mcp-Session-Id': transport.sessionId!,
-          'X-Client-Id': harness.agent.clientId,
-          'X-Client-Secret': harness.agent.clientSecret,
-        },
-      });
-
-      expect(response.status).toBe(204);
-
-      const secondDelete = await fetch(`${harness.mcpBaseUrl}/mcp`, {
-        method: 'DELETE',
-        headers: {
-          'Mcp-Session-Id': transport.sessionId!,
-          'X-Client-Id': harness.agent.clientId,
-          'X-Client-Secret': harness.agent.clientSecret,
-        },
-      });
-
-      expect(secondDelete.status).toBe(404);
-
-      await client.close().catch(() => undefined);
-    });
+        expect(response.status).toBe(405);
+      },
+    );
   });
 });

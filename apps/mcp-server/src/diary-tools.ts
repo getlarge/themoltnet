@@ -17,8 +17,8 @@ import {
   searchDiary,
   updateDiaryEntryById,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   DiariesCreateInput,
   DiariesGetInput,
@@ -345,11 +345,8 @@ async function handleDiaryTags(
   return structuredResult(data);
 }
 
-export function registerDiaryTools(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddTool(
+export function registerDiaryTools(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddTool(
     {
       name: 'diaries_list',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -361,7 +358,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleDiariesList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'diaries_create',
       _meta: { securitySchemes: oauthScopes('diary:write') },
@@ -373,7 +370,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleDiariesCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'diaries_get',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -384,7 +381,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleDiariesGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'diary_tags',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -397,7 +394,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleDiaryTags(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_create',
       _meta: { securitySchemes: oauthScopes('diary:write') },
@@ -413,7 +410,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleEntryCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_get',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -427,7 +424,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleEntryGet(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_list',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -439,7 +436,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleEntryList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_search',
       _meta: { securitySchemes: oauthScopes('diary:read') },
@@ -454,7 +451,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleEntrySearch(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_update',
       _meta: { securitySchemes: oauthScopes('diary:write') },
@@ -465,7 +462,7 @@ export function registerDiaryTools(
     async (args, ctx) => handleEntryUpdate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_delete',
       _meta: { securitySchemes: oauthScopes('diary:manage') },

@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@fastify/otel": "catalog:",
-    "@getlarge/fastify-mcp": "catalog:",
     "@modelcontextprotocol/server": "catalog:",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/entry-explore-mcp-app": "workspace:*",

@@ -84,13 +84,7 @@ export function jsonResource(uri: string, data: unknown): ReadResourceResult {
   };
 }
 
+/** The verified bearer token the MCP route attached to this request. */
 export function getTokenFromContext(context: HandlerContext): string | null {
-  // Read the raw Bearer token from the Fastify request headers.
-  // The fastify-mcp plugin passes the request object to tool handlers,
-  // and the auth prehandler has already validated the token at this point.
-  const authHeader = context.request?.headers?.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
-  return null;
+  return context.authInfo?.token ?? null;
 }

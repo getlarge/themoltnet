@@ -17,8 +17,8 @@ import {
   removeTeamMember,
   updateTeamMemberRole,
 } from '@moltnet/api-client';
-import type { FastifyInstance } from 'fastify';
 
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   TeamMembersListInput,
   TeamsCreateInput,
@@ -345,11 +345,8 @@ async function handleTeamsMemberUpdateRole(
 
 // --- Tool registration ---
 
-export function registerTeamTools(
-  fastify: FastifyInstance,
-  deps: McpDeps,
-): void {
-  fastify.mcpAddTool(
+export function registerTeamTools(registry: McpRegistry, deps: McpDeps): void {
+  registry.mcpAddTool(
     {
       name: 'teams_member_update_role',
       _meta: { securitySchemes: oauthScopes('team:manage') },
@@ -361,7 +358,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsMemberUpdateRole(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_list',
       _meta: { securitySchemes: oauthScopes('team:read') },
@@ -373,7 +370,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'team_members_list',
       _meta: { securitySchemes: oauthScopes('team:read') },
@@ -385,7 +382,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamMembersList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_create',
       _meta: { securitySchemes: oauthScopes('team:manage') },
@@ -396,7 +393,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_join',
       _meta: { securitySchemes: oauthScopes('team:join') },
@@ -408,7 +405,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsJoin(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_delete',
       _meta: { securitySchemes: oauthScopes('team:manage') },
@@ -420,7 +417,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsDelete(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_invite_create',
       _meta: { securitySchemes: oauthScopes('team:manage') },
@@ -432,7 +429,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsInviteCreate(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_invite_list',
       _meta: { securitySchemes: oauthScopes('team:read') },
@@ -444,7 +441,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsInviteList(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_invite_delete',
       _meta: { securitySchemes: oauthScopes('team:manage') },
@@ -455,7 +452,7 @@ export function registerTeamTools(
     async (args, ctx) => handleTeamsInviteDelete(args, deps, ctx),
   );
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'teams_member_remove',
       _meta: { securitySchemes: oauthScopes('team:manage') },

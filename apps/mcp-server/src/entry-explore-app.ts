@@ -20,15 +20,13 @@ import fs from 'node:fs/promises';
  * a source import. These two literals MUST stay in sync with the app's
  * `src/metadata.ts`; a build-time assertion in that lib's tests guards the URI.
  */
-import type { FastifyInstance } from 'fastify';
-
 import {
   createMcpAppResourceMeta,
   createMcpAppToolMeta,
   MCP_APP_RESOURCE_MIME_TYPE,
-  type McpAppResourceMetaOptions,
   resolveInstalledMcpAppHtmlPath,
 } from './mcp-app-ui.js';
+import type { McpRegistry } from './mcp-registry.js';
 import type {
   EntryMapOpenInput,
   EntryMapOpenOutput,
@@ -113,15 +111,13 @@ export async function handleEntriesMapResource(): Promise<ReadResourceResult> {
   };
 }
 
-export function registerEntryExploreApp(fastify: FastifyInstance): void {
-  // Get MCP app config from fastify instance (injected by app.ts)
-  const mcpAppConfig = (
-    fastify as FastifyInstance & { mcpAppConfig?: McpAppResourceMetaOptions }
-  ).mcpAppConfig;
+export function registerEntryExploreApp(registry: McpRegistry): void {
+  // MCP Apps sandbox configuration, resolved in app.ts.
+  const mcpAppConfig = registry.mcpAppConfig;
 
   const entryMapAppResourceMeta = createMcpAppResourceMeta(mcpAppConfig ?? {});
 
-  fastify.mcpAddTool(
+  registry.mcpAddTool(
     {
       name: 'entries_map_open',
       title: 'Open Diary Map',
@@ -146,7 +142,7 @@ export function registerEntryExploreApp(fastify: FastifyInstance): void {
     (args: EntryMapOpenInput) => handleEntriesMapOpen(args),
   );
 
-  fastify.mcpAddResource(
+  registry.mcpAddResource(
     {
       name: 'entry-explore-app',
       title: 'MoltNet Diary Map',
