@@ -3,7 +3,7 @@ description: Run or publish the classifier-first advisory PR review.
 author: getlarge
 inputs:
   step:
-    description: prepare, plan, route, review, publish, or outcomes
+    description: prepare, plan, route, review, publish, outcomes, or cleanup
     required: true
 outputs:
   skip:
@@ -73,6 +73,13 @@ runs:
       env:
         DIST: ${{ github.action_path }}/dist
       run: node "$DIST/publish.js"
+    - name: Clean up expired review executions
+      if: inputs.step == 'cleanup'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        ADAPTIVE_STAGE: cleanup
+      run: node "$DIST/review.js"
     - name: Record review outcomes
       if: inputs.step == 'outcomes'
       shell: bash

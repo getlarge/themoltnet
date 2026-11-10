@@ -22,6 +22,7 @@ import { reviewCheckpoint } from './context.js';
 import type { Lane } from './core.js';
 import { executeAdaptiveStage } from './execution.js';
 import { hasIncompleteCoverage } from './report.js';
+import { cleanupReviewExecutions, reviewRetentionPolicy } from './retention.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import { previousFindings, type ReviewThread } from './threads.js';
 import { type SpecialistPool, workerPool } from './workers.js';
@@ -215,6 +216,7 @@ async function prepare(deps: CliDeps): Promise<number> {
     databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
     executionId: correlationId,
     stage: 'prepare',
+    retention: reviewRetentionPolicy(env),
     input: {
       repo,
       pr: prNumber,
@@ -488,9 +490,25 @@ export async function runAdaptiveStage(
 ): Promise<number> {
   const { env } = deps;
   parseReviewExecutionMode(env.ADAPTIVE_EXECUTION_MODE);
+  if (stage === 'cleanup') {
+    if (
+      env.ADAPTIVE_CLEANUP_APPLY !== undefined &&
+      !['true', 'false'].includes(env.ADAPTIVE_CLEANUP_APPLY)
+    )
+      throw new Error('ADAPTIVE_CLEANUP_APPLY must be true or false');
+    const result = await cleanupReviewExecutions({
+      databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
+      policy: reviewRetentionPolicy(env),
+      apply: env.ADAPTIVE_CLEANUP_APPLY === 'true',
+    });
+    deps.stdout(`${JSON.stringify(result)}\n`);
+    return 0;
+  }
   if (stage === 'prepare') return prepare(deps);
   if (stage !== 'plan' && stage !== 'route' && stage !== 'review')
-    throw new Error('ADAPTIVE_STAGE must be prepare, plan, route, or review');
+    throw new Error(
+      'ADAPTIVE_STAGE must be prepare, plan, route, review, or cleanup',
+    );
   const prepared = JSON.parse(
     readFileSync(required('ADAPTIVE_PREPARED', env), 'utf8'),
   ) as Prepared;

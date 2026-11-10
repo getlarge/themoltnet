@@ -54,6 +54,14 @@ on:
         description: durable requires persistent Postgres; ephemeral provisions disposable Postgres per coordinator job and cannot resume lost jobs.
         type: string
         default: durable
+      retention-completed-days:
+        description: Days without coordinator use before published executions are eligible for cleanup. Use one policy for every caller sharing a database.
+        type: number
+        default: 30
+      retention-unfinished-days:
+        description: Days without coordinator use before unfinished executions are eligible for cleanup. Active coordinators are always retained.
+        type: number
+        default: 90
       inline-findings:
         description: Post each cited finding as a review thread on its line ('true' or 'false').
         type: string
@@ -122,6 +130,8 @@ jobs:
     timeout-minutes: 15
     environment: ${{ inputs.environment }}
     env:
+      ADAPTIVE_RETENTION_COMPLETED_DAYS: ${{ inputs.retention-completed-days }}
+      ADAPTIVE_RETENTION_UNFINISHED_DAYS: ${{ inputs.retention-unfinished-days }}
       ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
       ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
       ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}

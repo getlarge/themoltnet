@@ -2,15 +2,15 @@
 # Files this action runs from outside its package; a change here must
 # ship as a fix or feat commit so release-please releases the action.
 f10e406ffa6d57b09c77b3d7ae9d71470aeffa969d7fe072fbf162c5d5faa5bd  .github/workflows/adaptive-review-outcomes-reusable.yml
-442a5e534015c678a13e67e27fe0df1d93886c5a916339a2fb90a6c4517d495e  .github/workflows/adaptive-review-reusable.yml
+57619f4c735b4a999b11f334193b4aeb6a81bd388982009b6c8837f23144b2c0  .github/workflows/adaptive-review-reusable.yml
 bdc926c40feef70990896b68d3cac7bb8cc0c9561b175a84ea480bb71ad7e331  infra/absurd/Dockerfile
-8a438764fcec86f08cdffc3b622b8264c1907893843408f8816c7e12d318ca6c  libs/adaptive-review/src/cli.ts
+492763572238cfbf63d64981504dae8037b324c6a36a75367e6a4e6067ea85e0  libs/adaptive-review/src/cli.ts
 dbc5ad9dacc03f49f6520dc484f5f704c428bd88b4a9b7440046f071c952a156  libs/adaptive-review/src/complexity-lane.ts
 796079ed8038856157cd2252b7cd45360dd21f80c6dadb30081c8ae998530290  libs/adaptive-review/src/config.ts
 f951a1e9252583d02c9d84bfb04c8df846a5036797c9062dcdd21ac603b5b8de  libs/adaptive-review/src/context.ts
 77c2d3deea2cf4433ab75acc8656319cb05723db5891c9bd77783af972d78309  libs/adaptive-review/src/core.ts
 0ffa5a4e680aaeb5a1d64de762056b36b46e9088cb82a877a00c6e53a9f0e9d1  libs/adaptive-review/src/docs-lane.ts
-b6d56955a430467345bc5a1de5ed71cda814007783d30b348f3f516e3f0d4643  libs/adaptive-review/src/execution.ts
+ccf5341ff7a90e110ecf809d7007ec4c656cd23d03e83eff6838f6341efeb30f  libs/adaptive-review/src/execution.ts
 749282e3f1ccd4a9b6b9d5dc80efcf980065b16ff0636d0f470e9943ebbe7b6e  libs/adaptive-review/src/focused-lane.ts
 e83cf7d364d3bfe2fab0e18fb27fbd414da363db50723582aca2a183ce8b3096  libs/adaptive-review/src/guidance-tasks.ts
 d9552c640f10aea9df5f5a840e3f3ba266310e5ab0bde0dfdd5ac95b352437cf  libs/adaptive-review/src/guidance.ts
@@ -22,6 +22,7 @@ d9552c640f10aea9df5f5a840e3f3ba266310e5ab0bde0dfdd5ac95b352437cf  libs/adaptive-
 36a48b6bcec37bfcab1653bbf93fddb8e50dbcd97763f7aadb61300ba35de229  libs/adaptive-review/src/prior-findings.ts
 787ef01807b29de1d48802bf7ccddb2f0038d77c460f99213db427bb0bb9f2ed  libs/adaptive-review/src/publish.ts
 acb44c4feffb84e5d115d6a521d70c9bbb1ac2c4dd91969bd95a865622746dd8  libs/adaptive-review/src/report.ts
+3e60fbc7443403c074a12391ab8a669d36ffedf9f5db63c036d678a520f85f41  libs/adaptive-review/src/retention.ts
 90a2db663bda2b4661f73b31977e56d5f09c966b619f8babe0b25117800c16de  libs/adaptive-review/src/review-assets.ts
 27163e2080e65636a2d6d3d05109be6a039b6be88f1a1503cff48c962c15addc  libs/adaptive-review/src/security-lane.ts
 60772f48d7520c8090f3cfc4bff00aae854ff618e45a29445889b5009686f12e  libs/adaptive-review/src/snapshot.ts

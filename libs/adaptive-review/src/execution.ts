@@ -4,8 +4,14 @@ import {
   createOrchestrationAbsurdApp,
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
+import type { Client } from 'pg';
 
 import { reviewContext } from './context.js';
+import {
+  cleanupReviewExecutions,
+  type ReviewRetentionPolicy,
+  withReviewExecution,
+} from './retention.js';
 
 export const ADAPTIVE_STAGE_TASK = 'adaptive_review_stage_v1';
 
@@ -55,25 +61,51 @@ export function createAdaptiveStageApp<T, R>(args: {
  * another repository's work with this process's checkout or credentials.
  * The bind task is an immutable input record, checked BEFORE claiming run work.
  */
-export async function executeAdaptiveStage<T, R>(args: {
+interface ExecuteStageArgs<T, R> {
   databaseUrl: string;
   executionId: string;
   stage: 'prepare' | 'route' | 'review' | 'publish';
   input: T;
   retryFailed?: boolean;
+  retention?: ReviewRetentionPolicy;
   run: (input: T, ctx: WorkflowContext) => Promise<R>;
-}): Promise<R> {
+}
+
+export async function executeAdaptiveStage<T, R>(
+  args: ExecuteStageArgs<T, R>,
+): Promise<R> {
   if (!args.databaseUrl) throw new Error('ADAPTIVE_DATABASE_URL is required');
   if (!args.executionId) throw new Error('review execution ID is required');
+  if (args.stage === 'prepare') {
+    await cleanupReviewExecutions({
+      databaseUrl: args.databaseUrl,
+      policy: args.retention,
+      apply: true,
+    });
+  }
+  return withReviewExecution(
+    args.databaseUrl,
+    executionQueue(args.executionId),
+    args.stage === 'publish',
+    (connection) => executeBoundStage(args, connection),
+  );
+}
+
+async function executeBoundStage<T, R>(
+  args: ExecuteStageArgs<T, R>,
+  connection: Client,
+): Promise<R> {
   const queueName = executionQueue(args.executionId);
   // Binding has its own queue, so validation cannot accidentally execute work.
-  const binding = createAdaptiveStageApp<T, never>({
+  const bindingFactory = createAdaptiveStageApp<T, never>({
     databaseUrl: args.databaseUrl,
     queueName: `${queueName}-input`,
     run: () => {
       throw new Error('input queue cannot execute review work');
     },
   });
+  const binding = bindingFactory.bindToConnection(connection);
+  await bindingFactory.close();
   let bindingWorker:
     | Awaited<ReturnType<typeof binding.startWorker>>
     | undefined;
@@ -100,12 +132,14 @@ export async function executeAdaptiveStage<T, R>(args: {
     await bindingWorker?.close();
     await binding.close();
   }
-  const app = createAdaptiveStageApp({
+  const appFactory = createAdaptiveStageApp({
     databaseUrl: args.databaseUrl,
     queueName,
     stage: args.stage,
     run: args.run,
   });
+  const app = appFactory.bindToConnection(connection);
+  await appFactory.close();
   let worker: Awaited<ReturnType<typeof app.startWorker>> | undefined;
   try {
     await app.createQueue();

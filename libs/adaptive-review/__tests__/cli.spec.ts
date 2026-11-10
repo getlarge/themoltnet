@@ -819,7 +819,7 @@ describe('stage dispatch', () => {
     const { deps: cli } = deps();
 
     await expect(runAdaptiveStage(stage, cli)).rejects.toThrow(
-      'ADAPTIVE_STAGE must be prepare, plan, route, or review',
+      'ADAPTIVE_STAGE must be prepare, plan, route, review, or cleanup',
     );
   });
 

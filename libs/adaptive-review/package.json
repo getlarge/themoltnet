@@ -32,7 +32,6 @@
     "typescript": "catalog:",
     "vitest": "catalog:",
     "@types/pg": "catalog:",
-    "pg": "catalog:",
     "tsx": "catalog:"
   },
   "nx": {
@@ -92,6 +91,7 @@
     "re2js": "catalog:",
     "typebox": "catalog:",
     "yaml": "catalog:",
-    "absurd-sdk": "catalog:"
+    "absurd-sdk": "catalog:",
+    "pg": "catalog:"
   }
 }

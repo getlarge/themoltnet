@@ -436,9 +436,98 @@ discard an ephemeral database, choose a new execution ID and new state files
 before preparing again. Mode changes also require a new review; later stages
 reject a mode different from the prepared input.
 
-Keep both execution queues and their task/checkpoint records for as long as
-resume is required. There are two queues per execution, so database retention
-must account for that growth. No automatic queue cleanup is added here.
+### Retention and cleanup
+
+Durable recovery lasts until the execution's coordinator data is cleaned up.
+By default, an execution becomes eligible after **30 days without coordinator
+use if publication succeeded**, or **90 days otherwise**. Published means the
+`publish` stage returned successfully; finishing `review` alone does not qualify.
+Until publication succeeds, failed, interrupted, and otherwise unfinished
+executions use the 90-day window.
+Each stage host refreshes the last-use time on entry and exit. A crash or lost
+connection can prevent the exit update; retention then uses the last
+successfully recorded activity. A live, connected coordinator holds a database
+session lock, so cleanup skips it even if its last-use time is old. A MoltNet
+daemon running on its own does not hold that lock.
+
+Every `prepare` invocation automatically applies an oldest-first cleanup batch
+of at most 25 eligible executions before preparing or resuming its own execution.
+The deadline makes an execution eligible; it does not schedule deletion at an
+exact time. If the database is idle, use an operator-managed daily scheduler
+to run the cleanup command below. Increase the retention windows before their
+deadlines if you need a longer recovery period.
+
+Using the trusted runtime bundle built [above](#launch-from-a-trusted-runtime-checkout),
+preview a batch, then apply it:
+
+```bash
+: "${ADAPTIVE_DATABASE_URL:?set the coordinator database URL}"
+: "${REVIEW_DIST:?set the trusted action bundle directory}"
+ADAPTIVE_STAGE=cleanup ADAPTIVE_CLEANUP_APPLY=false \
+  node "$REVIEW_DIST/review.js"
+ADAPTIVE_STAGE=cleanup ADAPTIVE_CLEANUP_APPLY=true \
+  node "$REVIEW_DIST/review.js"
+```
+
+Cleanup defaults to a dry run when `ADAPTIVE_CLEANUP_APPLY` is unset. It needs
+database access, but no PR checkout, handoff files, GitHub token, MoltNet
+credentials, or daemon workers. It prints a JSON array with the hashed queue
+name and outcome: `would-expire` in a preview, `expired` after deletion,
+`active` when a lock prevents cleanup, or `retained` if a concurrent resume
+refreshed the execution. Each command considers at most 25 candidates; repeat
+for a backlog, and retry active executions on a later scheduled run. An empty
+array means no registered execution is currently eligible.
+
+Configure the same policy for preparation and scheduled cleanup:
+
+```bash
+export ADAPTIVE_RETENTION_COMPLETED_DAYS=30
+export ADAPTIVE_RETENTION_UNFINISHED_DAYS=90
+```
+
+Both accept whole numbers from 1 to 36500. Reusable-workflow callers set the
+equivalent `with` inputs:
+
+```yaml
+with:
+  retention-completed-days: 30
+  retention-unfinished-days: 90
+  # Keep the remaining inputs from your caller.
+```
+
+For a scheduled Actions job, the composite action also accepts `step: cleanup`
+with the same database, retention, and apply environment variables. Pin a
+release containing this implementation, as described
+[above](#launch-through-github-actions); no daily cleanup workflow is installed
+automatically. All callers and schedulers sharing a database must use one
+retention policy: a sweep covers every registered execution in that database,
+not just the calling repository. The policy is evaluated at cleanup time, so
+shortening it can immediately make existing executions eligible.
+
+Cleanup atomically drops the execution queue and its `-input` companion,
+including their tasks, checkpoints, bound inputs, and stored results. It retains
+a small **tombstone** in `public.adaptive_review_retention` indefinitely: the
+hashed queue name, last-use and expiry timestamps, and publication flag, without
+review content. A later attempt to use that execution ID fails with an expiry
+error; start a new review with a new ID and new state files. Do not purge these
+tombstones while old execution IDs can still be retried.
+
+Use a direct Postgres connection or a session pool for `ADAPTIVE_DATABASE_URL`.
+The shared advisory session lock and Absurd queries use the same `pg.Client`
+connection; PgBouncer transaction or statement pooling cannot preserve that
+session-lock contract and is unsupported.
+
+Stage hosts create the retention table and index on first use; their database
+role must be able to create and update them, and cleanup must be able to drop
+the Absurd queues. Cleanup only touches registered executions. Older queues
+that have never run under this implementation remain untouched until a stage
+registers them. Do not run independent Absurd task cleanup on these execution
+queues: removing individual records breaks the recovery and input-binding
+contract before the execution expires.
+
+This policy covers coordinator Postgres data only. It does not delete MoltNet
+tasks, GitHub reports, local JSON files, or Actions artifacts. Ephemeral databases
+still disappear with their host job regardless of these windows.
 
 ## Publication recovery
 
@@ -513,7 +602,7 @@ the separately invoked publication command.
 | Ephemeral stage handoffs                       | Prepared and route files carry inputs across jobs; later Actions attempts must prepare anew                                      | Local stage flow passed with queues removed between stages |
 | Publication interruption or moved revision     | Mock GitHub tests cover lost summary/thread responses and own-output stale cleanup                                               | No live GitHub recovery test                               |
 
-All seven real-Absurd integration cases passed locally against isolated
+The real-Absurd recovery integration cases passed locally against isolated
 Postgres with Absurd schema `0.4.0`. The process tests killed and replaced
 coordinators and verified preserved task IDs and submission counts. The durable
 local-stage case ran `prepare`, `plan`, `route`, and `review` for a separate
@@ -524,7 +613,14 @@ route-to-review handoff. The ephemeral local-stage case removed the execution
 queues between prepare, route, and review, and completed using the handoff files
 with three simulated task submissions.
 
-Local validation also passed 329 unit tests and 49 setup/workflow tests. The
+The [retention integration suite](__tests__/retention.integration.spec.ts) also
+passed against real Postgres. It covers dry runs, the published and unfinished
+cutoffs, retained-result replay, rejection of expired IDs, running-host
+protection, atomic rollback of queue deletion, bounded batches, policy
+overrides, and automatic cleanup during preparation. These checks use local
+database state; they do not validate an operator's deployed cleanup schedule.
+
+Local validation also passed unit tests and setup/workflow tests. The
 actual database setup helper successfully initialized a fresh isolated Postgres
 database with Absurd schema `0.4.0`. These checks do not exercise GitHub-hosted
 service creation or job handoffs. GitHub responses and MoltNet task execution
