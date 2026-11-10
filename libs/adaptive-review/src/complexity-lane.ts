@@ -51,7 +51,13 @@ export async function runComplexityLane(ctx: LaneContext): Promise<LaneResult> {
       tags: ['review:adaptive', 'lane:complexity'],
     },
     ctx.evidence,
-    { serialDomainDispatch: true },
+    {
+      serialDomainDispatch: true,
+      ctx: ctx.ctx,
+      onTask: (id) => {
+        if (ctx.taskIds && !ctx.taskIds.includes(id)) ctx.taskIds.push(id);
+      },
+    },
   );
   const failed = result.output.scores.filter(
     (score) => score.status === 'fail',

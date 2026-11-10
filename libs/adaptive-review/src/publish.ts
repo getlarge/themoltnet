@@ -8,17 +8,24 @@ import {
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-import { env } from './config.js';
+import {
+  assertPreparedExecution,
+  env,
+  type ReviewExecutionMode,
+} from './config.js';
+import { executeAdaptiveStage } from './execution.js';
 import { PriorFindingReviewSchema } from './prior-findings.js';
 import {
   ADAPTIVE_REVIEW_MARKER,
   findingKey,
   type InlineFinding,
   inlineFindings,
+  parseFindingMarker,
   postedFindingKey,
   renderAdaptiveComment,
   renderAdaptiveStale,
   renderFindingComment,
+  reviewExecutionMarker,
   type ThreadSummary,
 } from './report.js';
 import {
@@ -37,6 +44,8 @@ type Request = (
 ) => Promise<unknown>;
 
 interface PublishOptions {
+  /** Reconcile an interrupted publication before refusing an obsolete revision. */
+  recoverStale?: boolean;
   request: Request;
   /** Reads thread state; required unless inline findings are off. */
   graphql?: GraphQL;
@@ -237,7 +246,12 @@ async function publishFindingThreads(
     ),
   });
   if (!fresh.length) return { summary: summary(0) };
-  const source = { runUrl, correlationId: report.correlationId };
+  const source = {
+    runUrl,
+    correlationId: report.correlationId,
+    base: report.base,
+    head: report.head,
+  };
   let created: { id?: number };
   try {
     created = (await request(
@@ -290,6 +304,67 @@ async function withdrawThreads(
     );
 }
 
+/** Remove only this execution's output; never overwrite a newer summary. */
+async function reconcileStalePublication(
+  request: Request,
+  report: AdaptiveReport,
+  current: { head: { sha: string }; base: { sha: string } },
+  appLogin: string,
+  runUrl: string,
+): Promise<void> {
+  const comments = await listPaginated<{
+    id: number;
+    body: string;
+    user: { login: string };
+  }>(
+    (path) =>
+      request(path) as Promise<
+        Array<{ id: number; body: string; user: { login: string } }>
+      >,
+    `/repos/${report.repo}/pulls/${report.pr}/comments`,
+  );
+  for (const comment of comments) {
+    const marker = parseFindingMarker(comment.body);
+    if (
+      comment.user.login === appLogin &&
+      marker?.correlationId === report.correlationId &&
+      marker.base === report.base &&
+      marker.head === report.head
+    ) {
+      await request(
+        `/repos/${report.repo}/pulls/comments/${comment.id}`,
+        'DELETE',
+      );
+    }
+  }
+  const previous = await findPaginated<{
+    id: number;
+    body: string;
+    user: { login: string };
+  }>(
+    (path) =>
+      request(path) as Promise<
+        Array<{ id: number; body: string; user: { login: string } }>
+      >,
+    `/repos/${report.repo}/issues/${report.pr}/comments`,
+    (comment) =>
+      comment.user.login === appLogin &&
+      comment.body.includes(reviewExecutionMarker(report)),
+  );
+  if (previous)
+    await request(
+      `/repos/${report.repo}/issues/comments/${previous.id}`,
+      'PATCH',
+      {
+        body: renderAdaptiveStale(
+          report,
+          { head: current.head.sha, base: current.base.sha },
+          runUrl,
+        ),
+      },
+    );
+}
+
 export async function publishAdaptiveReport(
   report: AdaptiveReport,
   {
@@ -299,6 +374,7 @@ export async function publishAdaptiveReport(
     appLogin,
     expected,
     inlineFindings: inline,
+    recoverStale,
   }: PublishOptions,
 ): Promise<void> {
   assertReport(report);
@@ -307,6 +383,12 @@ export async function publishAdaptiveReport(
   const current = (await request(
     `/repos/${expected.repo}/pulls/${expected.pr}`,
   )) as { head: { sha: string }; base: { sha: string } };
+  if (
+    recoverStale &&
+    (current.head.sha !== report.head || current.base.sha !== report.base)
+  ) {
+    await reconcileStalePublication(request, report, current, appLogin, runUrl);
+  }
   if (current.head.sha !== report.head)
     throw new Error('PR head changed; refusing to publish stale review');
   if (current.base.sha !== report.base)
@@ -402,7 +484,10 @@ export async function publishAdaptiveReportFromEnv(): Promise<void> {
     base: string;
     head: string;
     correlationId: string;
+    executionMode?: ReviewExecutionMode;
+    executionAttempt?: string;
   };
+  assertPreparedExecution(prepared, env());
   const route = JSON.parse(
     readFileSync(env().ADAPTIVE_ROUTE ?? '', 'utf8'),
   ) as {
@@ -417,12 +502,24 @@ export async function publishAdaptiveReportFromEnv(): Promise<void> {
       method,
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-  await publishAdaptiveReport(report, {
-    request,
-    graphql: createGraphQL(token, env().GITHUB_GRAPHQL_URL || undefined),
-    runUrl,
-    appLogin,
-    expected,
-    inlineFindings: env().ADAPTIVE_INLINE_FINDINGS !== 'false',
+  const inlineFindings = env().ADAPTIVE_INLINE_FINDINGS !== 'false';
+  await executeAdaptiveStage({
+    databaseUrl: env().ADAPTIVE_DATABASE_URL ?? '',
+    executionId: report.correlationId,
+    stage: 'publish',
+    input: { report, expected, runUrl, appLogin, inlineFindings },
+    retryFailed: env().ADAPTIVE_RETRY_FAILED === 'true',
+    run: async () => {
+      await publishAdaptiveReport(report, {
+        request,
+        graphql: createGraphQL(token, env().GITHUB_GRAPHQL_URL || undefined),
+        runUrl,
+        appLogin,
+        expected,
+        inlineFindings,
+        recoverStale: true,
+      });
+      return { published: true };
+    },
   });
 }

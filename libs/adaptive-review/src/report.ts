@@ -6,6 +6,12 @@ import type { AdaptiveReport, LaneResult } from './workflow.js';
 
 export const ADAPTIVE_REVIEW_MARKER = '<!-- moltnet:adaptive-review -->';
 /** Prefix of the hidden marker that identifies a finding's review thread. */
+export function reviewExecutionMarker(
+  report: Pick<AdaptiveReport, 'correlationId' | 'head' | 'base'>,
+): string {
+  return `<!-- moltnet:adaptive-execution ${encodeURIComponent(report.correlationId)} ${report.base} ${report.head} -->`;
+}
+
 export const ADAPTIVE_FINDING_MARKER = '<!-- moltnet:adaptive-finding ';
 
 /** A finding a review thread can anchor to: a cited line on a known side. */
@@ -40,6 +46,8 @@ export interface ThreadSummary {
 export interface FindingSource {
   runUrl: string;
   correlationId: string;
+  base?: string;
+  head?: string;
 }
 
 /** Ordinary summary limit; explicit references remain visible for comparison. */
@@ -109,10 +117,14 @@ export function parseFindingMarker(
   };
   const runUrl = value('run', decodeURI);
   const correlationId = value('correlation', decodeURIComponent);
+  const base = value('base', decodeURIComponent);
+  const head = value('head', decodeURIComponent);
   return {
     key,
     ...(runUrl ? { runUrl } : {}),
     ...(correlationId ? { correlationId } : {}),
+    ...(base && /^[a-f0-9]{40}$/.test(base) ? { base } : {}),
+    ...(head && /^[a-f0-9]{40}$/.test(head) ? { head } : {}),
   };
 }
 
@@ -126,16 +138,20 @@ export function renderFindingComment(
   finding: InlineFinding,
   source?: FindingSource,
 ): string {
+  const revision =
+    source?.base && source.head
+      ? ` base=${encodeURIComponent(source.base)} head=${encodeURIComponent(source.head)}`
+      : '';
   const origin = source
-    ? ` run=${encodeURI(source.runUrl)} correlation=${encodeURIComponent(source.correlationId)}`
+    ? ` run=${encodeURI(source.runUrl)} correlation=${encodeURIComponent(source.correlationId)}${revision}`
     : '';
   return [
     `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)}${origin} -->`,
     `**Adaptive review · ${finding.lane}**`,
     '',
-    shorten(finding.concern, 2000),
+    reviewText(finding.concern, 2000),
     ...(finding.action
-      ? ['', `Suggested action: ${shorten(finding.action, 2000)}`]
+      ? ['', `Suggested action: ${reviewText(finding.action, 2000)}`]
       : []),
     '',
     '_Assess this finding; fix confirmed problems or explain why no change is needed._',
@@ -186,7 +202,8 @@ export function hasIncompleteCoverage(report: AdaptiveReport): boolean {
 
 /** Replaces a result whose pull request moved while it was being published. */
 export function renderAdaptiveStale(
-  report: Pick<AdaptiveReport, 'head' | 'base'>,
+  report: Pick<AdaptiveReport, 'head' | 'base'> &
+    Partial<Pick<AdaptiveReport, 'correlationId'>>,
   current: { head: string; base: string },
   runUrl: string,
 ): string {
@@ -196,6 +213,14 @@ export function renderAdaptiveStale(
       : `head now points at \`${current.head.slice(0, 7)}\``;
   return [
     ADAPTIVE_REVIEW_MARKER,
+    ...(report.correlationId
+      ? [
+          reviewExecutionMarker({
+            ...report,
+            correlationId: report.correlationId,
+          }),
+        ]
+      : []),
     '## Adaptive review: stale',
     '',
     `Reviewed head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
@@ -211,6 +236,14 @@ export function renderAdaptiveComment(
 ): string {
   const lines = [
     ADAPTIVE_REVIEW_MARKER,
+    ...(report.correlationId
+      ? [
+          reviewExecutionMarker({
+            ...report,
+            correlationId: report.correlationId,
+          }),
+        ]
+      : []),
     hasIncompleteCoverage(report)
       ? '## Adaptive review: incomplete coverage'
       : '## Adaptive review',
@@ -227,7 +260,9 @@ export function renderAdaptiveComment(
         ? 'unavailable'
         : `${Math.round(route.probability * 100)}%`;
     const routing =
-      route.reason === 'screened' ? 'screened, not investigated' : route.reason;
+      route.reason === 'screened'
+        ? 'screened, not investigated'
+        : reviewText(route.reason, 240);
     lines.push(
       `| ${route.lane} | ${probability} (${routing}) | ${result?.status ?? 'failed'} |`,
     );
@@ -261,7 +296,7 @@ export function renderAdaptiveComment(
   if (concerns.length) {
     lines.push('', 'Investigated concerns:');
     for (const result of concerns) {
-      lines.push(`- **${result.lane}**: ${shorten(result.summary, 240)}`);
+      lines.push(`- **${result.lane}**: ${reviewText(result.summary, 240)}`);
       for (const finding of result.findings) {
         const key =
           finding.path && finding.side && finding.line
@@ -286,7 +321,7 @@ export function renderAdaptiveComment(
           finding.existingFindingKey &&
           threads?.links?.get(finding.existingFindingKey);
         lines.push(
-          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? (finding.existingFindingKey ? ' _(the referenced earlier thread was resolved)_' : ' _(an earlier thread on this line was resolved)_') : ''}${threadUrl ? ` · [Referenced earlier thread](${threadUrl})` : ''}`,
+          `  - ${reviewText(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${reviewText(finding.concern, 240)}${key && threads?.resolved.has(key) ? (finding.existingFindingKey ? ' _(the referenced earlier thread was resolved)_' : ' _(an earlier thread on this line was resolved)_') : ''}${threadUrl ? ` · [Referenced earlier thread](${threadUrl})` : ''}`,
         );
       }
     }
@@ -306,7 +341,7 @@ export function renderAdaptiveComment(
       '### Complexity assessment',
       '',
       'Rubric assessment, not counted as actionable findings.',
-      shorten(
+      reviewText(
         [
           complexityAssessment.summary,
           // Older reports stored rubric rationales as pathless findings.
@@ -333,7 +368,7 @@ export function renderAdaptiveComment(
   ];
   if (gaps.length) {
     lines.push('', 'Not fully assessed:');
-    for (const gap of gaps.slice(0, 8)) lines.push(`- ${shorten(gap, 240)}`);
+    for (const gap of gaps.slice(0, 8)) lines.push(`- ${reviewText(gap, 240)}`);
     if (gaps.length > 8)
       lines.push(`- …and ${gaps.length - 8} more in the workflow report.`);
   }
@@ -347,14 +382,16 @@ export function renderAdaptiveComment(
   return lines.join('\n');
 }
 
-function priorText(value: string, limit: number): string {
-  return shorten(value, limit)
-    .replace(/\r?\n/g, ' ')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/@/g, '&#64;')
-    .replace(/[\\`*_[\]~]/g, '\\$&');
+/** Keep model/PR text literal, including table cells and standalone paragraphs. */
+function reviewText(value: string, limit: number): string {
+  return shorten(
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/[\\`*_~|]/g, '\\$&')
+      .replace(/#(?!\d)/g, '\\#')
+      .replace(/^\s*([-+=]|\d+[.)])(?=\s)/, '\\$1'),
+    limit,
+  );
 }
 
 function renderPriorFindings(report: AdaptiveReport): string[] {
@@ -385,7 +422,7 @@ function renderPriorFindings(report: AdaptiveReport): string[] {
       ? item.url.replace(/\(/g, '%28').replace(/\)/g, '%29')
       : undefined;
     lines.push(
-      `- **${labels[item.status]}** · ${item.lane} · ${priorText(item.path, 120)}${url ? ` · [Earlier thread](${url})` : ''}: ${priorText(item.explanation, 600)}`,
+      `- **${labels[item.status]}** · ${item.lane} · ${reviewText(item.path, 120)}${url ? ` · [Earlier thread](${url})` : ''}: ${reviewText(item.explanation, 600)}`,
     );
   }
   if (outcomes.length > 40)

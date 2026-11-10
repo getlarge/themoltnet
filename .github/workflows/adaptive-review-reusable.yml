@@ -50,6 +50,18 @@ on:
       mode:
         type: string
         default: shadow
+      execution-mode:
+        description: durable requires persistent Postgres; ephemeral provisions disposable Postgres per coordinator job and cannot resume lost jobs.
+        type: string
+        default: durable
+      retention-completed-days:
+        description: Days without coordinator use before published executions are eligible for cleanup. Use one policy for every caller sharing a database.
+        type: number
+        default: 30
+      retention-unfinished-days:
+        description: Days without coordinator use before unfinished executions are eligible for cleanup. Active coordinators are always retained.
+        type: number
+        default: 90
       inline-findings:
         description: Post each cited finding as a review thread on its line ('true' or 'false').
         type: string
@@ -72,6 +84,9 @@ on:
       correlation-id:
         value: ${{ jobs.prepare.outputs.correlation }}
     secrets:
+      ADAPTIVE_DATABASE_URL:
+        description: Required in durable mode; initialized persistent Absurd Postgres accessible to the coordinator. Unused in ephemeral mode.
+        required: false
       MOLTNET_AGENT_KEY:
         required: false
       MOLTNET_PRIVATE_KEY:
@@ -97,10 +112,36 @@ concurrency:
 
 jobs:
   prepare:
-    # A comment event is the caller's on-demand request; it has no draft flag.
-    if: github.event_name == 'issue_comment' || github.event.pull_request.draft == false
+    # Enforce comment authorization here as well as in the caller.
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        github.event.issue.state == 'open' &&
+        github.event.comment.body == '/review' &&
+        github.event.comment.user.type == 'User' &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    services:
+      absurd:
+        image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
+        env:
+          POSTGRES_USER: issue_lifecycle
+          POSTGRES_PASSWORD: issue_lifecycle_secret
+          POSTGRES_DB: issue_lifecycle
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
+          --health-interval 5s --health-timeout 3s --health-retries 10
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      ADAPTIVE_RETENTION_COMPLETED_DAYS: ${{ inputs.retention-completed-days }}
+      ADAPTIVE_RETENTION_UNFINISHED_DAYS: ${{ inputs.retention-unfinished-days }}
+      ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
+      ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
+      ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
     permissions:
       contents: read
       pull-requests: read
@@ -127,6 +168,11 @@ jobs:
           PROVIDERS: ${{ inputs.providers }}
         run: |
           set -euo pipefail
+          case "$ADAPTIVE_EXECUTION_MODE" in
+            durable) : "${ADAPTIVE_DATABASE_URL:?ADAPTIVE_DATABASE_URL is required in durable mode}" ;;
+            ephemeral) ;;
+            *) echo '::error::execution-mode must be durable or ephemeral' >&2; exit 1 ;;
+          esac
           if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
             echo '::error::providers needs at least one provider definition' >&2
             exit 1
@@ -192,6 +238,12 @@ jobs:
         if: steps.screen.outputs.eligible == 'true'
         with:
           with-worker-action: ${{ inputs.focused-diary-ids != '[]' }}
+      - name: Configure review database
+        if: steps.screen.outputs.eligible == 'true'
+        env:
+          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
+          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
+        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
       - name: Pin reviewed PR and protect the runtime
         id: pin
         if: steps.screen.outputs.eligible == 'true'
@@ -242,12 +294,22 @@ jobs:
   route:
     needs: prepare
     if: needs.prepare.outputs.skip == 'false' && needs.prepare.outputs.review-enabled == 'true'
+    services:
+      absurd:
+        image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
+        env:
+          POSTGRES_USER: issue_lifecycle
+          POSTGRES_PASSWORD: issue_lifecycle_secret
+          POSTGRES_DB: issue_lifecycle
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
+          --health-interval 5s --health-timeout 3s --health-retries 10
     runs-on: ubuntu-latest
     timeout-minutes: 55
     environment: ${{ inputs.environment }}
     permissions:
-      # Reads this run's worker jobs to stop waiting once they have exited.
-      actions: read
       contents: read
       pull-requests: read
     outputs:
@@ -255,6 +317,9 @@ jobs:
       has-specialists: ${{ steps.route.outputs.has-specialists }}
       route-artifact-id: ${{ steps.route-artifact.outputs.artifact-id }}
     env:
+      ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
+      ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
+      ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
       ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
@@ -308,6 +373,11 @@ jobs:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
         run: |
           node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
+      - name: Configure review database
+        env:
+          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
+          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
+        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
       - name: Classify and route the review
         id: route
         uses: ./.adaptive-review-runtime/packages/adaptive-review-action
@@ -326,15 +396,28 @@ jobs:
   review:
     needs: [prepare, route]
     if: needs.route.result == 'success'
+    services:
+      absurd:
+        image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
+        env:
+          POSTGRES_USER: issue_lifecycle
+          POSTGRES_PASSWORD: issue_lifecycle_secret
+          POSTGRES_DB: issue_lifecycle
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
+          --health-interval 5s --health-timeout 3s --health-retries 10
     runs-on: ubuntu-latest
     timeout-minutes: 55
     environment: ${{ inputs.environment }}
     permissions:
-      # Reads this run's worker jobs to stop waiting once they have exited.
-      actions: read
       contents: read
       pull-requests: read
     env:
+      ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
+      ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
+      ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
       ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
@@ -404,6 +487,11 @@ jobs:
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
           permission-pull-requests: read
+      - name: Configure review database
+        env:
+          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
+          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
+        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
       - name: Run selected review lanes
         id: review
         uses: ./.adaptive-review-runtime/packages/adaptive-review-action

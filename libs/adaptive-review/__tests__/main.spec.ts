@@ -19,7 +19,6 @@ vi.mock('../src/config.js', () => ({
 }));
 vi.mock('../src/cli.js', () => ({
   jsonLines: vi.fn(),
-  PROFILE_ENV: {},
   pullRequestFiles: vi.fn(),
   reportStageFailure: vi.fn(),
   runAdaptiveStage: mocks.runAdaptiveStage,

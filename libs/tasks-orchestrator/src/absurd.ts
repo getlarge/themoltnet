@@ -11,6 +11,7 @@ import type { Logger, WorkflowContext } from './types.js';
 export function asWorkflowContext(ctx: TaskContext): WorkflowContext {
   return {
     executionId: ctx.taskID,
+    suspendsOnSleep: true,
     step(name, fn) {
       return ctx.step(name, fn);
     },

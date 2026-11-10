@@ -39,6 +39,8 @@ export const RUNTIME_LOCKS: RuntimeLock[] = [
       'tools/adaptive-review-action-digest.sh',
       'tools/fetch-adaptive-review-head.sh',
       'tools/setup-adaptive-review-diary-runtime.sh',
+      'tools/setup-adaptive-review-database.sh',
+      'infra/absurd/Dockerfile',
       'packages/agent-daemon-action/action.yml',
       'packages/agent-daemon-action/src',
       'packages/agent-daemon-action/package.json',

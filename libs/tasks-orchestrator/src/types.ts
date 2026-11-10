@@ -40,6 +40,8 @@ export interface TaskMessage {
  *   suspend on an event, absent inline (callers fall back to `sleepFor`).
  */
 export interface WorkflowContext {
+  /** sleepFor may suspend the entire handler; parallel branches must yield before sleeping. */
+  suspendsOnSleep?: boolean;
   /** Stable durable-execution identity used to derive external idempotency keys. */
   executionId?: string;
   step<T>(name: string, fn: () => Promise<T>): Promise<T>;

@@ -1,6 +1,8 @@
+import { createSleepingContext } from '@moltnet/docs-impact-review';
 import { changedLines } from '@moltnet/security-review/review';
 import { toOutputContractSchema } from '@moltnet/task-schemas';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+import { createTaskStep } from '@themoltnet/tasks-orchestrator';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
@@ -163,70 +165,83 @@ export async function runFocusedLane(
   ctx: LaneContext,
 ): Promise<LaneResult> {
   const { identity, evidence, tasks } = ctx;
+  const workflow = ctx.ctx ?? createSleepingContext();
   const body = createFocusedBody(lane, ctx);
-  const taskIds: string[] = [];
-  const task = await tasks.createTask(body, {
-    idempotencyKey: taskKey(identity, lane),
-  });
+  const taskIds = ctx.taskIds ?? [];
+  const task = await createTaskStep(
+    workflow,
+    `${lane}.create`,
+    ({ idempotencyKey }) =>
+      tasks.createTask(body, {
+        idempotencyKey: idempotencyKey ?? taskKey(identity, lane),
+      }),
+  );
   const changed = changedLines(
     evidence.files.map((file) => file.patch).join('\n'),
   );
   const prior = focusedHistory(ctx.previousFindings ?? [], lane).filter(
     (finding) => !finding.isResolved,
   );
-  const result = await acceptedReview(tasks, task, body, taskIds, (raw) => {
-    const value = unwrap(raw);
-    if (!Value.Check(FocusedOutput, value))
-      throw new Error(`invalid ${lane} result`);
-    const outcomes = value.priorFindingOutcomes ?? [];
-    if (
-      outcomes.length !== prior.length ||
-      new Set(outcomes.map((item) => item.key)).size !== outcomes.length ||
-      outcomes.some(
-        (item) =>
-          !prior.some((finding) => finding.key === item.key) ||
-          !item.explanation.trim(),
-      )
-    ) {
-      throw new Error(
-        `invalid ${lane} prior finding outcomes: expected exactly these open finding keys, once each: ${JSON.stringify(prior.map((finding) => finding.key))}; received: ${JSON.stringify(outcomes.map((item) => item.key))}. Exclude resolved and unknown keys, include every open key, and provide a nonblank explanation.`,
-      );
-    }
-    for (const finding of value.findings) {
+  const result = await acceptedReview(
+    tasks,
+    task,
+    body,
+    taskIds,
+    (raw) => {
+      const value = unwrap(raw);
+      if (!Value.Check(FocusedOutput, value))
+        throw new Error(`invalid ${lane} result`);
+      const outcomes = value.priorFindingOutcomes ?? [];
       if (
-        finding.existingFindingKey &&
-        !outcomes.some(
+        outcomes.length !== prior.length ||
+        new Set(outcomes.map((item) => item.key)).size !== outcomes.length ||
+        outcomes.some(
           (item) =>
-            item.key === finding.existingFindingKey &&
-            item.status === 'still_present',
+            !prior.some((finding) => finding.key === item.key) ||
+            !item.explanation.trim(),
         )
       ) {
         throw new Error(
-          `invalid ${lane} prior finding outcomes: continuing findings must remain still_present`,
+          `invalid ${lane} prior finding outcomes: expected exactly these open finding keys, once each: ${JSON.stringify(prior.map((finding) => finding.key))}; received: ${JSON.stringify(outcomes.map((item) => item.key))}. Exclude resolved and unknown keys, include every open key, and provide a nonblank explanation.`,
         );
       }
-      if (
-        finding.existingFindingKey &&
-        !(ctx.previousFindings ?? []).some(
-          (previous) =>
-            previous.key === finding.existingFindingKey &&
-            previous.lane === lane &&
-            previous.path === finding.path &&
-            !previous.isResolved,
+      for (const finding of value.findings) {
+        if (
+          finding.existingFindingKey &&
+          !outcomes.some(
+            (item) =>
+              item.key === finding.existingFindingKey &&
+              item.status === 'still_present',
+          )
+        ) {
+          throw new Error(
+            `invalid ${lane} prior finding outcomes: continuing findings must remain still_present`,
+          );
+        }
+        if (
+          finding.existingFindingKey &&
+          !(ctx.previousFindings ?? []).some(
+            (previous) =>
+              previous.key === finding.existingFindingKey &&
+              previous.lane === lane &&
+              previous.path === finding.path &&
+              !previous.isResolved,
+          )
         )
-      )
-        throw new Error(
-          `${lane} finding references an unavailable open prior finding`,
-        );
+          throw new Error(
+            `${lane} finding references an unavailable open prior finding`,
+          );
 
-      if (!changed.get(finding.path)?.[finding.side].has(finding.line)) {
-        throw new Error(
-          `${lane} ${JSON.stringify({ path: finding.path, side: finding.side, line: finding.line })} finding does not cite a changed line`,
-        );
+        if (!changed.get(finding.path)?.[finding.side].has(finding.line)) {
+          throw new Error(
+            `${lane} ${JSON.stringify({ path: finding.path, side: finding.side, line: finding.line })} finding does not cite a changed line`,
+          );
+        }
       }
-    }
-    return value;
-  });
+      return value;
+    },
+    workflow,
+  );
   return {
     lane,
     status:

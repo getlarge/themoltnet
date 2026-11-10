@@ -30,6 +30,7 @@ interface Job {
   needs?: string | string[];
   permissions?: Record<string, string>;
   outputs?: Record<string, string>;
+  services?: Record<string, { image: string; ports: Array<string | number> }>;
   steps: Step[];
 }
 
@@ -39,7 +40,15 @@ function read(path: string): string {
 
 const workflow = parse(
   read('../../.github/workflows/adaptive-review-reusable.yml'),
-) as { jobs: Record<string, Job> };
+) as {
+  jobs: Record<string, Job>;
+  on: {
+    workflow_call: {
+      inputs: Record<string, { default?: string }>;
+      secrets: Record<string, { required: boolean }>;
+    };
+  };
+};
 const caller = parse(read('../../.github/workflows/adaptive-review.yml')) as {
   on: Record<string, unknown>;
   jobs: Record<string, Job & { uses: string; with: Record<string, string> }>;
@@ -126,9 +135,42 @@ function workerAction(name: string): Step {
 }
 
 describe('adaptive review workflow trust gates', () => {
+  it('defaults to durable and confines ephemeral services to the coordinator jobs', () => {
+    expect(workflow.on.workflow_call.inputs['execution-mode'].default).toBe(
+      'durable',
+    );
+    expect(
+      workflow.on.workflow_call.secrets.ADAPTIVE_DATABASE_URL.required,
+    ).toBe(false);
+    for (const name of ['prepare', 'route', 'review']) {
+      expect(job(name).env).toMatchObject({
+        ADAPTIVE_EXECUTION_MODE: '${{ inputs.execution-mode }}',
+        ADAPTIVE_DATABASE_URL:
+          "${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}",
+        ADAPTIVE_RETRY_FAILED:
+          "${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}",
+      });
+      expect(job(name).services?.absurd.image).toContain(
+        "inputs.execution-mode == 'ephemeral'",
+      );
+      expect(job(name).services?.absurd.ports).toEqual([5432]);
+      const setup = step(
+        name,
+        (item) => item.name === 'Configure review database',
+      );
+      expect(setup.env).toEqual({
+        ADAPTIVE_POSTGRES_PORT: "${{ job.services.absurd.ports['5432'] }}",
+        ADAPTIVE_POSTGRES_CONTAINER: '${{ job.services.absurd.id }}',
+      });
+      const stage = stepIndex(name, (item) => item.with?.step === name);
+      expect(stepIndex(name, (item) => item === setup)).toBeLessThan(stage);
+    }
+    for (const name of WORKERS) expect(job(name).services).toBeUndefined();
+  });
+
   it('gates every downstream job that can reach credentials', () => {
-    expect(job('prepare').if).toBe(
-      "github.event_name == 'issue_comment' || github.event.pull_request.draft == false",
+    expect(job('prepare').if).toContain(
+      "github.event_name == 'pull_request' && github.event.pull_request.draft == false",
     );
     expect(job('route').if).toContain("needs.prepare.outputs.skip == 'false'");
     expect(job('review').if).toBe("needs.route.result == 'success'");
@@ -190,8 +232,10 @@ describe('adaptive review workflow trust gates', () => {
       "github.event.comment.body == '/review'",
       "github.event.comment.user.type == 'User'",
       'contains(fromJSON(\'["OWNER","MEMBER","COLLABORATOR"]\'), github.event.comment.author_association)',
-    ])
+    ]) {
       expect(condition).toContain(guard);
+      expect(job('prepare').if).toContain(guard);
+    }
     expect(caller.jobs.review.with.mode).toBe(
       "${{ github.event_name == 'issue_comment' && 'shadow' || vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'active' }}",
     );
@@ -280,10 +324,9 @@ describe('adaptive review workflow trust gates', () => {
       ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
   });
 
-  it('lets the stage jobs read worker liveness', () => {
+  it('keeps coordinator recovery independent of Actions job liveness', () => {
     for (const name of ['route', 'review'])
       expect(job(name).permissions).toEqual({
-        actions: 'read',
         contents: 'read',
         'pull-requests': 'read',
       });
@@ -629,6 +672,8 @@ describe('adaptive review inline step scripts', () => {
   const runtimeStep = () => step('prepare', (item) => item.id === 'runtime');
   const sha = 'c'.repeat(40);
   const runtimeEnv = {
+    ADAPTIVE_EXECUTION_MODE: 'durable',
+    ADAPTIVE_DATABASE_URL: 'postgresql://external/review',
     WORKFLOW_REPOSITORY: 'getlarge/themoltnet',
     WORKFLOW_SHA: sha,
     RUNTIME_REF: '',
@@ -647,7 +692,19 @@ describe('adaptive review inline step scripts', () => {
     ).toBe(ref);
   });
 
+  it('accepts ephemeral execution without a database secret', () => {
+    expect(
+      runStep(runtimeStep().run, {
+        ...runtimeEnv,
+        ADAPTIVE_EXECUTION_MODE: 'ephemeral',
+        ADAPTIVE_DATABASE_URL: '',
+      }).status,
+    ).toBe(0);
+  });
+
   it.each([
+    [{ ADAPTIVE_EXECUTION_MODE: 'automatic' }, 'execution-mode must be'],
+    [{ ADAPTIVE_DATABASE_URL: '' }, 'ADAPTIVE_DATABASE_URL is required'],
     [{ PROVIDERS: '  # only a comment' }, 'providers needs at least one'],
     [{ WORKFLOW_REPOSITORY: '' }, 'job.workflow_repository is required'],
     [{ RUNTIME_REF: 'main' }, 'must be a full commit SHA'],

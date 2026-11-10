@@ -1944,6 +1944,12 @@ importers:
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../tasks-orchestrator
+      absurd-sdk:
+        specifier: 'catalog:'
+        version: 0.4.0(pg@8.18.0)
+      pg:
+        specifier: 'catalog:'
+        version: 8.18.0
       re2js:
         specifier: 'catalog:'
         version: 2.8.8
@@ -1957,6 +1963,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.16.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

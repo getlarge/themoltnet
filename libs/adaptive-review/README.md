@@ -1,5 +1,11 @@
 # Adaptive review policy
 
+For caller workflow examples, local stage commands, and recovery, see
+[Run and resume an adaptive review](EXECUTION.md). The caller's `execution-mode`
+chooses persistent (`durable`, the default) or disposable (`ephemeral`) Postgres.
+This is separate from `mode: active` / `shadow`, which selects review coverage;
+`.github/adaptive-review.json` does not control execution infrastructure.
+
 Adaptive review reads `.github/adaptive-review.json` from the pull request's
 **base commit**. A repository opts in by adding a version 1 JSON file on its
 base branch. A PR adding or changing the policy is reviewed under the old base
@@ -261,11 +267,12 @@ A binary patch hides what changed, so it routes every enabled lane as
 incomplete. Lockfile summaries and generated paths are deliberate and do not;
 the report still lists them as not reviewed.
 
-The route and review jobs watch the run's worker jobs. Once every worker that
-could claim a task has exited, for example because it failed to start, the
-waiting packet or lane fails with `worker-unavailable` instead of holding the
-job until its timeout. If the job list cannot be read, the review waits on the
-task budgets as before.
+The durable route and review stages wait on MoltNet task deadlines rather than
+the current Actions attempt's worker-job status. Replacement workers can claim
+remaining eligible tasks under the same review correlation ID; restarting the
+coordinator does not start workers or reset task expiry. See
+[workers and lifetime](EXECUTION.md#workers-and-lifetime) for the host and worker
+recovery responsibilities.
 
 When a lane's review is incomplete, the comment lists what it could not assess
 under "Not fully assessed". For the docs lane, these are the documents, hunks,

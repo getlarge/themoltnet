@@ -33,6 +33,7 @@ export function replayContext(
     return count === 1 ? name : `${name}#${count}`;
   };
   const ctx: ReplayWorkflowContext = {
+    suspendsOnSleep: true,
     executionId,
     get checkpointNames() {
       return [...checkpoints.keys()];

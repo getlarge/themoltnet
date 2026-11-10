@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { createGit } from '@moltnet/docs-impact-review';
@@ -11,19 +11,21 @@ import { collectWorkflowSpend, formatWorkflowSpend } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
+  assertPreparedExecution,
   formatReviewTaskBudgets,
+  parseReviewExecutionMode,
   parseReviewTaskBudgets,
   required,
+  type ReviewExecutionMode,
 } from './config.js';
+import { reviewCheckpoint } from './context.js';
 import type { Lane } from './core.js';
+import { executeAdaptiveStage } from './execution.js';
 import { hasIncompleteCoverage } from './report.js';
+import { cleanupReviewExecutions, reviewRetentionPolicy } from './retention.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import { previousFindings, type ReviewThread } from './threads.js';
-import {
-  type SpecialistPool,
-  type WorkerLiveness,
-  workerPool,
-} from './workers.js';
+import { type SpecialistPool, workerPool } from './workers.js';
 import {
   type AdaptivePreparation,
   classifierTaskPossible,
@@ -41,6 +43,9 @@ export interface Prepared {
   base: string;
   head: string;
   correlationId: string;
+  /** Older durable handoffs omit this field. */
+  executionMode?: ReviewExecutionMode;
+  executionAttempt?: string;
 }
 
 /** Process boundaries of the adaptive review CLI, injectable for tests. */
@@ -61,15 +66,16 @@ export interface CliDeps {
     teamId: string,
     signal?: AbortSignal,
   ): Promise<{
-    profiles(teamId: string): Promise<Array<{ id: string; name: string }>>;
+    profiles(
+      teamId: string,
+    ): Promise<Array<{ id: string; name: string; revision: number }>>;
     tasks: TaskClient;
   }>;
-  workers(): WorkerLiveness | undefined;
   stdout(text: string): void;
 }
 
 /** The pull request a `pull_request` or `issue_comment` event is about. */
-export function pullNumberFromEvent(eventName: string, event: unknown): number {
+function pullNumberFromEvent(eventName: string, event: unknown): number {
   const payload = event as {
     pull_request?: { number?: number };
     issue?: { number?: number; pull_request?: unknown };
@@ -99,7 +105,7 @@ export interface PullRequest {
 }
 
 /** The environment variable naming each specialist pool's runtime profile. */
-export const PROFILE_ENV: Record<SpecialistPool, string> = {
+const PROFILE_ENV: Record<SpecialistPool, string> = {
   docs: 'ADAPTIVE_DOCS_PROFILE',
   complexity: 'ADAPTIVE_COMPLEXITY_PROFILE',
   security: 'ADAPTIVE_SECURITY_PROFILE',
@@ -181,46 +187,87 @@ function writeOutputs(
       throw new Error(`output ${key} must be a single line`);
     return `${key}=${String(value)}\n`;
   });
-  appendFileSync(required('GITHUB_OUTPUT', env), lines.join(''));
+  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, lines.join(''));
+  else process.stdout.write(lines.join(''));
 }
 
 async function prepare(deps: CliDeps): Promise<number> {
   const { env } = deps;
+  const executionMode = parseReviewExecutionMode(env.ADAPTIVE_EXECUTION_MODE);
+  const executionAttempt =
+    executionMode === 'ephemeral' && env.GITHUB_RUN_ID
+      ? (env.GITHUB_RUN_ATTEMPT ?? '1')
+      : undefined;
   const repo = required('GITHUB_REPOSITORY', env);
   const event = JSON.parse(
     readFileSync(required('GITHUB_EVENT_PATH', env), 'utf8'),
   ) as { pull_request?: PullRequest };
-  // An on-demand comment carries only the number; read the rest from the API.
-  const pr =
-    event.pull_request ??
-    (await deps.github.pullRequest(
+  const prNumber =
+    event.pull_request?.number ??
+    pullNumberFromEvent(required('GITHUB_EVENT_NAME', env), event);
+  const correlationId =
+    env.ADAPTIVE_EXECUTION_ID ||
+    (env.GITHUB_RUN_ID
+      ? executionCorrelation(
+          `${repo}:${env.GITHUB_RUN_ID}${executionMode === 'ephemeral' ? `:attempt:${executionAttempt}` : ''}`,
+        )
+      : randomUUID());
+  const pinned = await executeAdaptiveStage({
+    databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
+    executionId: correlationId,
+    stage: 'prepare',
+    retention: reviewRetentionPolicy(env),
+    input: {
       repo,
-      pullNumberFromEvent(required('GITHUB_EVENT_NAME', env), event),
-    ));
-  const eligibility = checkEligibility({
-    headRepo: pr.head.repo?.full_name ?? null,
-    baseRepo: repo,
-    author: pr.user.login,
-    files: await deps.github.files(repo, pr.number),
-    changedFiles: pr.changed_files,
-    protectedPaths: (env.PROTECTED_PATHS ?? '').split('\n'),
+      pr: prNumber,
+      protectedPaths: env.PROTECTED_PATHS ?? '',
+      executionMode,
+      ...(executionAttempt ? { executionAttempt } : {}),
+    },
+    retryFailed: env.ADAPTIVE_RETRY_FAILED === 'true',
+    run: async () => {
+      const pr =
+        event.pull_request ?? (await deps.github.pullRequest(repo, prNumber));
+      const eligibility = checkEligibility({
+        headRepo: pr.head.repo?.full_name ?? null,
+        baseRepo: repo,
+        author: pr.user.login,
+        files: await deps.github.files(repo, pr.number),
+        changedFiles: pr.changed_files,
+        protectedPaths: (env.PROTECTED_PATHS ?? '').split('\n'),
+      });
+      if (!eligibility.eligible)
+        return { skip: true as const, reason: eligibility.reason };
+      return {
+        skip: false as const,
+        prepared: {
+          repo,
+          pr: pr.number,
+          title: pr.title.slice(0, 500),
+          body: (pr.body ?? '').slice(0, 4000),
+          base: pr.base.sha,
+          head: pr.head.sha,
+          correlationId,
+          executionMode,
+          ...(executionAttempt ? { executionAttempt } : {}),
+        },
+      };
+    },
   });
-  if (!eligibility.eligible) {
+  if (pinned.skip) {
     writeOutputs(env, { skip: true });
     deps.stdout(
-      `::notice::Adaptive review skipped: ${workflowCommandValue(eligibility.reason)}\n`,
+      `::notice::Adaptive review skipped: ${workflowCommandValue(pinned.reason)}\n`,
     );
     return 0;
   }
-  const prepared: Prepared = {
-    repo,
-    pr: pr.number,
-    title: pr.title.slice(0, 500),
-    body: (pr.body ?? '').slice(0, 4000),
-    base: pr.base.sha,
-    head: pr.head.sha,
-    correlationId: randomUUID(),
-  };
+  const prepared = pinned.prepared;
+  if (env.ADAPTIVE_PREPARED)
+    writeFileSync(
+      env.ADAPTIVE_PREPARED,
+      `${JSON.stringify(prepared, null, 2)}\n`,
+      { mode: 0o600 },
+    );
   writeOutputs(env, {
     skip: false,
     prepared: JSON.stringify(prepared),
@@ -249,11 +296,15 @@ async function runOptions(
   const teamId = required('MOLTNET_TEAM_ID', env);
   const client = await deps.connect(teamId);
   const items = await client.profiles(teamId);
+  const profileRevisions: Record<string, number> = {};
   const resolve = (name: string): string => {
     const profile = items.find(
       (item) => item.id === name || item.name === name,
     );
     if (!profile) throw new Error(`runtime profile ${name} not found`);
+    if (!Number.isSafeInteger(profile.revision) || profile.revision < 1)
+      throw new Error(`runtime profile ${name} has no valid revision`);
+    profileRevisions[profile.id] = profile.revision;
     return profile.id;
   };
   return {
@@ -276,8 +327,10 @@ async function runOptions(
         resolve(required(PROFILE_ENV[pool], env)),
       ]),
     ),
+    profileRevisions,
     projectId: env.MOLTNET_PROJECT_ID || undefined,
-    workers: deps.workers(),
+    // Task deadlines remain authoritative across replacement Actions attempts.
+    workers: undefined,
   };
 }
 
@@ -294,9 +347,46 @@ function plan(deps: CliDeps, prepared: Prepared, enabled: boolean): number {
   return 0;
 }
 
+function executionCorrelation(key: string): string {
+  const hex = createHash('sha256').update(key).digest('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
+async function assertCurrentRevision(
+  deps: CliDeps,
+  prepared: Prepared,
+): Promise<void> {
+  const current = await deps.github.revisions(prepared.repo, prepared.pr);
+  if (current.head !== prepared.head || current.base !== prepared.base)
+    throw new Error(
+      `PR revisions changed after preparation: head ${prepared.head} -> ${current.head}, base ${prepared.base} -> ${current.base}`,
+    );
+}
+
+function pinnedOptions(options: RunOptions) {
+  const {
+    tasks: _tasks,
+    cwd: _cwd,
+    workers: _workers,
+    ctx: _ctx,
+    ...input
+  } = options;
+  return input;
+}
+
 async function route(deps: CliDeps, options: RunOptions): Promise<number> {
   const { env } = deps;
-  const preparation = await prepareAdaptiveReview(options);
+  const preparation = await executeAdaptiveStage({
+    databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
+    executionId: options.identity.correlationId,
+    stage: 'route',
+    input: pinnedOptions(options),
+    retryFailed: env.ADAPTIVE_RETRY_FAILED === 'true',
+    run: async (_input, ctx) => {
+      await assertCurrentRevision(deps, options.identity);
+      return prepareAdaptiveReview({ ...options, ctx });
+    },
+  });
   writeFileSync(
     required('ADAPTIVE_ROUTE', env),
     `${JSON.stringify(preparation, null, 2)}\n`,
@@ -321,26 +411,53 @@ async function review(deps: CliDeps, options: RunOptions): Promise<number> {
   const preparation = JSON.parse(
     readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
   ) as AdaptivePreparation;
-  const report = await runRoutedAdaptiveReview(options, preparation);
-  const spendTasks = report.taskIds?.length
-    ? await deps
-        .connect(options.identity.teamId, AbortSignal.timeout(30_000))
-        .then((client) => client.tasks)
-        .catch(() => undefined)
-    : undefined;
-  report.spend = await collectWorkflowSpend(
-    (report.taskIds ?? []).map((taskId) => ({
-      taskId,
-      stage:
-        report.results.find((result) => result.taskIds?.includes(taskId))
-          ?.lane ?? 'classifier',
-    })),
-    (id) => {
-      if (!spendTasks) throw new Error('Spend connection unavailable');
-      return spendTasks.listAttempts(id);
+  const report = await executeAdaptiveStage({
+    databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
+    executionId: options.identity.correlationId,
+    stage: 'review',
+    input: { options: pinnedOptions(options), preparation },
+    retryFailed: env.ADAPTIVE_RETRY_FAILED === 'true',
+    run: async (_input, ctx) => {
+      const prior = await ctx.step('previous-findings', async () =>
+        previousFindings(
+          await deps.github.reviewThreads(
+            options.identity.repo,
+            options.identity.pr,
+          ),
+          required('ADAPTIVE_APP_LOGIN', env),
+        ),
+      );
+      const report = await reviewCheckpoint(ctx, 'report', async () => {
+        await assertCurrentRevision(deps, options.identity);
+        return runRoutedAdaptiveReview(
+          { ...options, previousFindings: prior, ctx },
+          preparation,
+        );
+      });
+      return ctx.step('spend', async () => {
+        const spendTasks = report.taskIds?.length
+          ? await deps
+              .connect(options.identity.teamId, AbortSignal.timeout(30_000))
+              .then((client) => client.tasks)
+              .catch(() => undefined)
+          : undefined;
+        report.spend = await collectWorkflowSpend(
+          (report.taskIds ?? []).map((taskId) => ({
+            taskId,
+            stage:
+              report.results.find((result) => result.taskIds?.includes(taskId))
+                ?.lane ?? 'classifier',
+          })),
+          (id) => {
+            if (!spendTasks) throw new Error('Spend connection unavailable');
+            return spendTasks.listAttempts(id);
+          },
+        );
+        return report;
+      });
     },
-  );
-  if (env.GITHUB_STEP_SUMMARY)
+  });
+  if (env.GITHUB_STEP_SUMMARY && report.spend)
     appendFileSync(env.GITHUB_STEP_SUMMARY, formatWorkflowSpend(report.spend));
   writeFileSync(
     required('ADAPTIVE_REPORT', env),
@@ -372,27 +489,34 @@ export async function runAdaptiveStage(
   deps: CliDeps,
 ): Promise<number> {
   const { env } = deps;
+  parseReviewExecutionMode(env.ADAPTIVE_EXECUTION_MODE);
+  if (stage === 'cleanup') {
+    if (
+      env.ADAPTIVE_CLEANUP_APPLY !== undefined &&
+      !['true', 'false'].includes(env.ADAPTIVE_CLEANUP_APPLY)
+    )
+      throw new Error('ADAPTIVE_CLEANUP_APPLY must be true or false');
+    const result = await cleanupReviewExecutions({
+      databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
+      policy: reviewRetentionPolicy(env),
+      apply: env.ADAPTIVE_CLEANUP_APPLY === 'true',
+    });
+    deps.stdout(`${JSON.stringify(result)}\n`);
+    return 0;
+  }
   if (stage === 'prepare') return prepare(deps);
   if (stage !== 'plan' && stage !== 'route' && stage !== 'review')
-    throw new Error('ADAPTIVE_STAGE must be prepare, plan, route, or review');
+    throw new Error(
+      'ADAPTIVE_STAGE must be prepare, plan, route, review, or cleanup',
+    );
   const prepared = JSON.parse(
     readFileSync(required('ADAPTIVE_PREPARED', env), 'utf8'),
   ) as Prepared;
-  const current = await deps.github.revisions(prepared.repo, prepared.pr);
-  if (current.head !== prepared.head || current.base !== prepared.base)
-    throw new Error(
-      `PR revisions changed after preparation: head ${prepared.head} -> ${current.head}, base ${prepared.base} -> ${current.base}`,
-    );
+  assertPreparedExecution(prepared, env);
   const snapshot = loadAdaptivePolicy(createGit(deps.cwd), prepared.base);
   if (stage === 'plan') return plan(deps, prepared, snapshot !== null);
   if (!snapshot)
     throw new Error('adaptive review policy is absent on the base');
   const options = await runOptions(deps, prepared, snapshot.policy.lanes);
-  if (stage === 'review') {
-    options.previousFindings = previousFindings(
-      await deps.github.reviewThreads(prepared.repo, prepared.pr),
-      required('ADAPTIVE_APP_LOGIN', env),
-    );
-  }
   return stage === 'route' ? route(deps, options) : review(deps, options);
 }
