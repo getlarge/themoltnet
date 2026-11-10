@@ -353,13 +353,10 @@ Pi Durable commits conversation state incrementally through the API. Each task
 attempt has a persisted identity; sharing a correlation ID does not implicitly
 reuse conversation history. Use `continueFrom` to extend or fork a source attempt.
 
-In `poll` and `drain`, an interrupted Durable executor can reattach to the same
-attempt up to twice. Recovery waits 30 seconds for the stopped writer's lease,
-then verifies the active attempt's owner, project, profile, executor and claim
-authority. Transient lookup failures receive two bounded retries. Recovery
-reuses persisted conversation state and the original running deadline; expired,
-cancelled or superseded attempts cannot resume. Other runtime adapters must
-explicitly declare the same Durable recovery contract to opt in.
+`poll` and `drain` can recover an interrupted Durable attempt after confirmed
+cleanup, preserving its conversation and deadline. For adapter opt-in, limits
+and failure behavior, see
+[Interrupted execution](../../docs/contribute/agent-executors.md#interrupted-execution).
 
 Slots record retained workspaces for cleanup. Completed workspaces expire after
 the configured retention period; an interrupted, nonterminal attempt retains its
