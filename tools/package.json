@@ -85,6 +85,7 @@
         "inputs": [
           "default",
           "^production",
+          "{workspaceRoot}/.husky/pre-commit",
           "{workspaceRoot}/.github/workflows/**/*",
           "{workspaceRoot}/docker-compose*.yaml"
         ]
