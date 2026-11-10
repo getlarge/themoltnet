@@ -167,6 +167,11 @@ const config: KnipConfig = {
     },
 
     // ── Libs ──
+    'libs/adaptive-review': {
+      // Integration tests spawn these workers with node --import tsx.
+      entry: ['__tests__/fixtures/{recovery-worker,retention-worker}.ts'],
+      ignoreDependencies: ['tsx'],
+    },
     'libs/agent-runtime': {
       // External runtime imports of bundled private libraries; also documented
       // in eslint.config.mjs and checked against the emitted package.

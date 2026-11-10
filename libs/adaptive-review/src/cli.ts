@@ -75,7 +75,7 @@ export interface CliDeps {
 }
 
 /** The pull request a `pull_request` or `issue_comment` event is about. */
-export function pullNumberFromEvent(eventName: string, event: unknown): number {
+function pullNumberFromEvent(eventName: string, event: unknown): number {
   const payload = event as {
     pull_request?: { number?: number };
     issue?: { number?: number; pull_request?: unknown };
@@ -105,7 +105,7 @@ export interface PullRequest {
 }
 
 /** The environment variable naming each specialist pool's runtime profile. */
-export const PROFILE_ENV: Record<SpecialistPool, string> = {
+const PROFILE_ENV: Record<SpecialistPool, string> = {
   docs: 'ADAPTIVE_DOCS_PROFILE',
   complexity: 'ADAPTIVE_COMPLEXITY_PROFILE',
   security: 'ADAPTIVE_SECURITY_PROFILE',
@@ -347,7 +347,7 @@ function plan(deps: CliDeps, prepared: Prepared, enabled: boolean): number {
   return 0;
 }
 
-export function executionCorrelation(key: string): string {
+function executionCorrelation(key: string): string {
   const hex = createHash('sha256').update(key).digest('hex');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }

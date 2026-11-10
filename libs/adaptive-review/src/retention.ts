@@ -5,7 +5,7 @@ export interface ReviewRetentionPolicy {
   unfinishedDays: number;
 }
 
-export const DEFAULT_REVIEW_RETENTION: ReviewRetentionPolicy = {
+const DEFAULT_REVIEW_RETENTION: ReviewRetentionPolicy = {
   completedDays: 30,
   unfinishedDays: 90,
 };
