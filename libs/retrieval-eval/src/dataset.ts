@@ -46,6 +46,8 @@ export function entryHash(
   return hash([e.content, e.title ?? '', e.tags, e.importance, e.createdAt]);
 }
 export function validateDataset(d: Dataset): void {
+  if (!Number.isSafeInteger(d.labelRevision) || d.labelRevision < 0)
+    throw new Error('Invalid label revision');
   if (
     d.schemaVersion !== 1 ||
     !['historical-fixture-v1', 'relative-capture-v1'].includes(d.timePolicy) ||
