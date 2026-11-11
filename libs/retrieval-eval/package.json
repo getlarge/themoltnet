@@ -42,7 +42,7 @@
     "tags": [
       "type:app",
       "scope:server",
-      "platform:node"
+      "platform:server"
     ]
   }
 }

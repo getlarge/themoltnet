@@ -7,6 +7,7 @@ import { createEmbeddingService } from '@moltnet/embedding-service';
 
 import { environment, modelIdentity } from './config.js';
 import type { Dataset } from './dataset.js';
+import { embeddingSources, fingerprintSources } from './fingerprint.js';
 import { hash } from './hash.js';
 import { readJson, saveJson } from './storage.js';
 export async function prepareEmbeddings(dataset: Dataset, workspace: string) {
@@ -25,10 +26,7 @@ export async function prepareEmbeddings(dataset: Dataset, workspace: string) {
       hash(await readFile(join(cacheDir, modelIdentity.modelId, file))),
     ]),
   );
-  const preparationHash = hash([
-    buildEmbeddingText.toString(),
-    await readFile(new URL('./embeddings.ts', import.meta.url), 'utf8'),
-  ]);
+  const preparationHash = await fingerprintSources(embeddingSources);
   const model = createEmbeddingService({
     ...modelIdentity,
     allowRemoteModels: false,
@@ -59,20 +57,24 @@ export async function prepareEmbeddings(dataset: Dataset, workspace: string) {
     assert(Math.abs(Math.hypot(...vector) - 1) < 1e-5);
     return vector;
   }
-  const entryVectors: number[][] = [],
-    queryVectors: number[][] = [];
-  for (const e of dataset.entries)
-    entryVectors.push(
-      await embed(buildEmbeddingText(e.content, e.tags, e.title), 'passage'),
-    );
-  for (const q of dataset.queries)
-    queryVectors.push(await embed(q.text, 'query'));
-  return {
-    entryVectors,
-    queryVectors,
-    modelHashes,
-    preparationHash,
-    vectorHash: hash({ entryVectors, queryVectors }),
-    modelIdentity,
-  };
+  try {
+    const entryVectors: number[][] = [],
+      queryVectors: number[][] = [];
+    for (const e of dataset.entries)
+      entryVectors.push(
+        await embed(buildEmbeddingText(e.content, e.tags, e.title), 'passage'),
+      );
+    for (const q of dataset.queries)
+      queryVectors.push(await embed(q.text, 'query'));
+    return {
+      entryVectors,
+      queryVectors,
+      modelHashes,
+      preparationHash,
+      vectorHash: hash({ entryVectors, queryVectors }),
+      modelIdentity,
+    };
+  } finally {
+    await model.close?.();
+  }
 }

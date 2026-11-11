@@ -1,12 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { weights } from './config.js';
 import { executeTrials } from './database.js';
 import { type Dataset, validateDataset } from './dataset.js';
 import { prepareEmbeddings } from './embeddings.js';
+import { evaluationSources, fingerprintSources } from './fingerprint.js';
 import { hash } from './hash.js';
 import { type Ranking, score } from './metrics.js';
 import { saveJson } from './storage.js';
@@ -66,17 +66,7 @@ async function run(
   const cwd = new URL('../../../', import.meta.url);
   const git = (args: string[]) =>
     execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
-  const sourceFiles = (await readdir(new URL('./', import.meta.url)))
-    .filter((f) => f.endsWith('.ts'))
-    .sort();
-  const codeHash = hash(
-    await Promise.all(
-      sourceFiles.map(async (f) => [
-        f,
-        await readFile(new URL(f, import.meta.url), 'utf8'),
-      ]),
-    ),
-  );
+  const codeHash = await fingerprintSources(evaluationSources);
   const run: Run = {
     schemaVersion: 1,
     id: randomUUID(),
