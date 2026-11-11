@@ -42,7 +42,7 @@ export function score(d: Dataset, r: Ranking) {
         : null,
     verifiedNoMatch: corpusComplete ? labels.every((j) => j.grade === 0) : null,
     binary:
-      d.timePolicy === 'historical-fixture-v1'
+      d.timePolicy === 'historical-fixture-v1' && corpusComplete
         ? calculateRetrievalMetrics({
             retrievedIds: r.retrievedIds,
             relevantIds: labels

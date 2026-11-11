@@ -52,6 +52,56 @@ describe('frozen fixture', () => {
   });
 });
 describe('graded metrics', () => {
+  it('scores historical binary relevance from every positive grade', () => {
+    const d = baselineDataset();
+    d.judgments.find(
+      (j) => j.queryId === 'protocols' && j.entryId === 'weather',
+    )!.grade = 1;
+    expect(score(d, ranking).binary).toMatchObject({
+      precisionAtK: 2 / 3,
+      recallAtK: 1,
+      falsePositives: 1,
+      missedRelevantIds: [],
+      unexpectedIds: ['ed25519'],
+    });
+    d.timePolicy = 'relative-capture-v1';
+    expect(score(d, ranking).binary).toBeNull();
+  });
+  it('withholds historical binary metrics until corpus labels are complete', () => {
+    const d = baselineDataset();
+    d.judgments = d.judgments.filter(
+      (j) => j.queryId !== 'protocols' || j.entryId !== 'key-exchange',
+    );
+    expect(
+      score(d, { ...ranking, k: 1, retrievedIds: ['key-exchange'] }),
+    ).toMatchObject({
+      binary: null,
+      unreviewed: ['key-exchange'],
+      answerPrecision: null,
+      recall: null,
+      verifiedNoMatch: null,
+    });
+    expect(
+      score(d, { ...ranking, k: 1, retrievedIds: ['weather'] }),
+    ).toMatchObject({
+      binary: null,
+      complete: true,
+      corpusComplete: false,
+    });
+  });
+  it('verifies no-match only with complete all-zero corpus judgments', () => {
+    const d = baselineDataset();
+    const noMatch = { ...ranking, queryId: 'no-match' };
+    expect(score(d, noMatch)).toMatchObject({
+      verifiedNoMatch: true,
+      binary: { falsePositives: 3, recallAtK: null },
+    });
+    d.judgments = d.judgments.filter(
+      (j) => j.queryId !== 'no-match' || j.entryId !== 'fishing',
+    );
+    expect(score(d, noMatch).verifiedNoMatch).toBeNull();
+  });
+
   it('does not confuse unknown with irrelevant or supports with answers', () => {
     const d = baselineDataset();
     d.timePolicy = 'relative-capture-v1';
@@ -84,8 +134,11 @@ describe('graded metrics', () => {
     expect(
       rescore(original, updated, [ranking])[0].metrics.answerPrecision,
     ).toBe(0);
-    updated.queries[0].text = 'new';
-    expect(() => rescore(original, updated, [ranking])).toThrow();
+    updated.capturedAt = '2026-10-20T00:00:00.000Z';
+    validateDataset(updated);
+    expect(() => rescore(original, updated, [ranking])).toThrow(
+      'Rankings are incompatible with changed inputs',
+    );
   });
   it('builds the deduplicated union while preserving rank order', () => {
     expect(
