@@ -198,5 +198,10 @@ harder to keep deterministic.
 ## Reproducible retrieval evaluation
 
 The private [retrieval evaluation library](../../libs/retrieval-eval/README.md)
-owns the frozen fixture baseline, corpus review workflow and Nx reproduction
-commands. It measures the production search repository without changing ranking.
+provides a runnable local fixture baseline and Nx reproduction commands. It
+measures the production search repository in disposable PostgreSQL/pgvector with
+locally cached embeddings, without changing production ranking defaults. The
+twelve-entry, six-query fixture is development evidence, not a held-out
+benchmark. The library also accepts frozen datasets and can rescore saved
+rankings after label changes; corpus collection and annotation interfaces are
+separate work.
