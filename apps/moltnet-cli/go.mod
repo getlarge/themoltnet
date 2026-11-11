@@ -25,7 +25,7 @@ require github.com/zalando/go-keyring v0.2.8
 require (
 	github.com/danieljoos/wincred v1.2.3
 	github.com/godbus/dbus/v5 v5.2.4
-	github.com/gofrs/flock v0.13.1
+	github.com/gofrs/flock v0.13.2
 	github.com/natefinch/atomic v1.0.1
 )
 
