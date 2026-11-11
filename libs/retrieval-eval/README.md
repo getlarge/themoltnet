@@ -3,11 +3,21 @@
 Private evaluation library for measuring production diary-entry repository
 search against a frozen, labeled dataset. The fixture baseline runs locally;
 corpus preparation and annotation interchange are available locally. Potato
-annotation interfaces are supplied by the next layer of the stack. This
+annotation tasks and local operator tooling are included; see the
+[local walkthrough](potato/LOCAL.md). This
 package does not tune production defaults or require deployed API credentials.
 
 Run commands from the repository root with Node and pnpm versions from
 `.tool-versions` and workspace dependencies installed (`pnpm install`).
+
+## Real diary corpus
+
+The [approved diary corpus](datasets/approved-diary-v1/README.md) is checked into
+this repository: 276 approved entries and seven selected development queries.
+Run it with `pnpm exec nx run @moltnet/retrieval-eval:eval:corpus` after configuring
+Docker and the local model cache below. No Potato account or private dataset
+transfer is required. Relevance judgments are pending, so this currently provides
+retrieval results and repeatability evidence rather than quality scores.
 
 ## Fixture baseline
 
@@ -99,7 +109,7 @@ binary fixture metrics also require complete corpus judgments; they treat grades
 The exported `rescore()` function can score saved rankings against revised labels
 without another search. It rejects changes to entry IDs/content hashes, query IDs/text hashes/families/
 splits, time policy or capture time. CLI rescoring is described below; the
-annotation UI is supplied by the next layer. Reuse is
+annotation task setup is covered in the [local walkthrough](potato/LOCAL.md). Reuse is
 for label changes to the same run: changes to search code, configuration, model,
 embedding preparation or dependencies require a new evaluation. The function
 does not verify those runtime inputs. Original run reports retain their original
@@ -109,9 +119,10 @@ snapshots; callers must save rescored results separately.
 
 Potato is the annotation UI. The library retains private workspace revisions,
 sanitization, local screening, approval checks and dataset freezing without a
-browser server. Task templates and operator tooling are supplied by the next
-layer of the PR stack; this library exposes the corpus-decision and
-relevance-judgment interchange contracts below.
+browser server. See [shared Potato operations](../../tools/potato/README.md) for hosting,
+collaborators and MCP access, the [reviewer walkthrough](potato/README.md#reviewer-walkthrough)
+and [pilot lessons](potato/README.md#pilot-journey-and-lessons), and
+the separate corpus-decision and relevance-judgment roundtrips below.
 
 ```bash
 pnpm exec nx run @moltnet/retrieval-eval:workspace -- --init --workspace /private/workspace
@@ -144,8 +155,10 @@ Storage layout:
 | `reports/`    | New reports from compatible label revisions                                             |
 | `embeddings/` | Disposable text/preparation/model-keyed cache                                           |
 
-Files use mode 0600 and created directories mode 0700. Revision publication is
-atomic and refuses to overwrite a concurrent winner; reloading resolves a stale
+On POSIX systems, files use mode 0600 and created directories mode 0700. On
+Windows, these mode bits do not establish owner-only access; choose a workspace
+directory protected by your Windows account's filesystem permissions. Revision
+publication is atomic and refuses to overwrite a concurrent winner; reloading resolves a stale
 revision without silently merging decisions. Previous revisions remain available
 for recovery. A new checkout using the same workspace path reopens these files.
 
@@ -153,7 +166,8 @@ The original temporary UI and 300-entry diary capture were not recovered. The
 starter is explicitly synthetic, with a fresh capture version; it does not claim
 to reproduce that missing sample. Imported datasets should record capture time,
 sampling strategy, population/sample sizes and capture version in provenance.
-No private diary data is committed by this library.
+Only the explicitly approved public corpus is committed; working captures and
+private review metadata remain outside the repository.
 
 `test-ci` uses the repository’s Nx Cloud atomized-test convention. Run `test`
 locally; CI selects unit files and excludes integration suites.

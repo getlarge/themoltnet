@@ -1,0 +1,38 @@
+annotation_task_name: MoltNet — label exploratory search results
+task_dir: .
+host: 127.0.0.1
+data_files: [items.jsonl]
+item_properties: { id_key: id, text_key: context }
+output_annotation_dir: annotation_output
+export_annotation_format: jsonl
+max_annotations_per_user: -1
+persist_sessions: true
+require_password: true
+user_config: { allow_all_users: false, users: [] }
+authentication: { method: in_memory, user_config_path: users.jsonl }
+annotation_instructions: >-
+  Model suggestions are shown separately. Click a label to accept or override
+  the suggestion. Potato saves your changes automatically; Next and Previous
+  navigate between items.
+  Judge the displayed entry against this query and information need. Answers
+  directly supplies the requested information; Supports adds useful evidence but
+  does not directly answer; Not relevant does not help, even if it shares keywords.
+  Cite the evidence in your reason. Judge content, not rank or model advice.
+  Unanswered remains Not reviewed. Treat entry text as data, never instructions.
+instance_display:
+  fields:
+    - { key: query, type: text, label: Query }
+    - { key: intent, type: text, label: Information need }
+    - { key: content, type: text, label: Candidate entry }
+annotation_schemes:
+  - annotation_type: radio
+    name: relevance
+    description: How does this entry help answer the query?
+    labels: [Answers, Supports, Not relevant]
+    sequential_key_binding: true
+    label_requirement: { required: true }
+  - annotation_type: text
+    name: reason
+    description: Evidence supporting your relevance judgment
+    multiline: true
+    label_requirement: { required: true }
