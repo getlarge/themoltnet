@@ -76,8 +76,9 @@ on:
         type: string
         default: ''
       daemon-version:
+        description: Optional exact daemon version override; defaults to the version packaged with this review release.
         type: string
-        default: '0.74.5'
+        default: ''
     outputs:
       skip:
         value: ${{ jobs.prepare.outputs.skip }}
@@ -154,6 +155,7 @@ jobs:
       correlation: ${{ steps.pin.outputs.correlation }}
       classifier-needed: ${{ steps.plan.outputs.classifier-needed }}
       review-enabled: ${{ steps.plan.outputs.review-enabled }}
+      daemon-version: ${{ steps.worker.outputs.daemon-version }}
       runtime-repository: ${{ steps.runtime.outputs.repository }}
       runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
       action-digest: ${{ steps.bundle.outputs.digest }}
@@ -236,8 +238,22 @@ jobs:
           fi
       - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
         if: steps.screen.outputs.eligible == 'true'
-        with:
-          with-worker-action: ${{ inputs.focused-diary-ids != '[]' }}
+      - name: Resolve packaged worker version
+        id: worker
+        if: steps.screen.outputs.eligible == 'true'
+        env:
+          REQUESTED_DAEMON_VERSION: ${{ inputs.daemon-version }}
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const release = JSON.parse(readFileSync('.adaptive-review-runtime/packages/adaptive-review-action/dist/release-dependencies.json', 'utf8'));
+          if (release.schemaVersion !== 1 || !/^\d+\.\d+\.\d+$/.test(release.daemonVersion)) {
+            throw new Error('Invalid packaged review dependency manifest');
+          }
+          const version = process.env.REQUESTED_DAEMON_VERSION || release.daemonVersion;
+          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error('daemon-version must be an exact version');
+          appendFileSync(process.env.GITHUB_OUTPUT, `daemon-version=${version}\n`);
+          JS
       - name: Configure review database
         if: steps.screen.outputs.eligible == 'true'
         env:
@@ -561,8 +577,25 @@ jobs:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Download review and worker bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
+          merge-multiple: true
+          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Verify review and worker bundle
+        env:
+          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
+        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Restore bundled worker action
+        run: |
+          mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
+          cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
       - name: Drain this review's tasks
-        uses: getlarge/themoltnet/packages/agent-daemon-action@4a068714cc9f582cecb6e28e7d7fc2e51225233e # v0.8.2
+        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
@@ -581,7 +614,7 @@ jobs:
           correlation-id: ${{ needs.prepare.outputs.correlation }}
           project-id: ${{ inputs.project-id }}
           profile: ${{ inputs.classifier-profile }}
-          daemon-version: ${{ inputs.daemon-version }}
+          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
           wait-for-first-task-sec: '900'
           wait-after-task-sec: '120'
           max-poll-interval-ms: '3000'
@@ -619,31 +652,32 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
         with:
           node-version: '24'
-      - name: Download optional review runtime bundle
-        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+      - name: Download review and worker bundle
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
           merge-multiple: true
           path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Verify optional review runtime bundle
-        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+      - name: Verify review and worker bundle
         env:
           EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
         run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Restore bundled worker action
+        run: |
+          mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
+          cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
       - name: Install optional review runtime
         id: diary-runtime
         if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
         env:
-          DAEMON_VERSION: ${{ inputs.daemon-version }}
+          DAEMON_VERSION: ${{ needs.prepare.outputs.daemon-version }}
           ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
         run: bash .adaptive-review-runtime/tools/setup-adaptive-review-diary-runtime.sh .adaptive-review-runtime
       - name: Drain selected review tasks
         if: inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile
-        uses: getlarge/themoltnet/packages/agent-daemon-action@4a068714cc9f582cecb6e28e7d7fc2e51225233e # v0.8.2
+        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
@@ -662,7 +696,7 @@ jobs:
           correlation-id: ${{ needs.prepare.outputs.correlation }}
           project-id: ${{ inputs.project-id }}
           profile: ${{ matrix.profile }}
-          daemon-version: ${{ inputs.daemon-version }}
+          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
           wait-for-first-task-sec: '900'
           wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
           max-poll-interval-ms: '3000'
@@ -690,7 +724,7 @@ jobs:
           correlation-id: ${{ needs.prepare.outputs.correlation }}
           project-id: ${{ inputs.project-id }}
           profile: ${{ matrix.profile }}
-          daemon-version: ${{ inputs.daemon-version }}
+          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
           wait-for-first-task-sec: '900'
           wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
           max-poll-interval-ms: '3000'

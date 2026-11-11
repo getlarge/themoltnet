@@ -61,9 +61,14 @@ base-commit JSON files for their enabled lanes. They do not select runtime
 code, commands, credentials, providers, or worker profiles. The caller workflow
 owns those capabilities.
 
-The reusable workflow lives in the MoltNet runtime repository. A caller
-supplies its review profiles, model provider, and protected paths. Its own PR
-base supplies this policy and any referenced docs or complexity JSON. The
+The reusable workflow lives in the MoltNet runtime repository. Pin it to a
+released bundle SHA and leave `runtime-ref` unset. New bundles include the worker
+action and record the exact daemon version used by default; publishing a newer
+daemon does not change an existing caller. See the
+[action release guide](../../docs/contribute/action-releases.md) for publication
+and consumer updates. A caller supplies its review profiles, model provider, and
+protected paths. Its own PR base supplies this policy and any referenced docs
+or complexity JSON. The
 reviewer fetches the pinned head as Git data and reads `git diff base...head`;
 it never runs code from the head. The full name/status manifest includes
 deletions and both sides of renames even when patch evidence is summarized.

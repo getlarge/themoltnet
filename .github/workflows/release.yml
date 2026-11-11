@@ -757,9 +757,11 @@ jobs:
 
   # See docs/contribute/action-releases.md for the publication state machine.
   # Source tags stay on main; immutable bundle tags identify executable commits.
+  # Reviews co-package their worker action. Wait for a same-run daemon release;
+  # the per-source gate below also handles old dependencies and failed retries.
   publish-actions:
     name: Release ${{ matrix.project }}
-    needs: reconcile-actions
+    needs: [reconcile-actions, finalize-agent-daemon-release]
     if: ${{ always() && needs.reconcile-actions.result == 'success' && needs.reconcile-actions.outputs.actions-matrix != '' && needs.reconcile-actions.outputs.actions-matrix != '[]' && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -778,6 +780,7 @@ jobs:
       - name: Preserve current release controller
         run: |
           cp -R tools/src/release "$RUNNER_TEMP/action-release-control"
+          cp tools/release/*.mjs "$RUNNER_TEMP/action-release-control/"
           printf '{"type":"module"}\n' > "$RUNNER_TEMP/action-release-control/package.json"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -804,6 +807,12 @@ jobs:
         env:
           COMPONENT: ${{ matrix.component }}
         run: node "$RUNNER_TEMP/action-release-control/action-runtime-lock.ts" --check --project-root "packages/$COMPONENT"
+      - name: Verify exact review daemon is published
+        id: review-dependencies
+        if: matrix.component == 'adaptive-review-action'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node "$RUNNER_TEMP/action-release-control/adaptive-review-release.mjs"
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
@@ -819,6 +828,9 @@ jobs:
           PREFIX: ${{ matrix.prefix }}
           GITHUB_ACTION_RELEASE_SKIP_PUSH: 'true'
         run: node --import tsx "$RUNNER_TEMP/action-release-control/github-action-publisher.ts" --project "$PROJECT" --entries "$ENTRIES" --stable-major-tag-prefix "$PREFIX"
+      - name: Verify packaged review dependencies
+        if: matrix.component == 'adaptive-review-action'
+        run: node "$RUNNER_TEMP/action-release-control/adaptive-review-release.mjs" --check-bundle
       - name: Create action publishing token
         id: action-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -846,10 +858,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ matrix.tag }}
           BUILT_COMMIT: ${{ steps.bundle.outputs.built-commit }}
+          REVIEW_DAEMON: ${{ steps.review-dependencies.outputs.daemon-version }}
+          REVIEW_WORKER_ACTION: ${{ steps.review-dependencies.outputs.worker-action-version }}
         run: |
           gh release view "$TAG" --json body --jq .body > "$RUNNER_TEMP/action-notes.md"
           sed -i '/^Action bundle commit: `/d' "$RUNNER_TEMP/action-notes.md"
           printf '\nAction bundle commit: `%s` (use this SHA for an exact action or reusable workflow pin).\n' "$BUILT_COMMIT" >> "$RUNNER_TEMP/action-notes.md"
+          if [ -n "$REVIEW_DAEMON" ]; then
+            sed -i '/^Review worker: /d' "$RUNNER_TEMP/action-notes.md"
+            printf '\nReview worker: agent-daemon %s; bundled agent-daemon-action %s.\n' "$REVIEW_DAEMON" "$REVIEW_WORKER_ACTION" >> "$RUNNER_TEMP/action-notes.md"
+          fi
           gh release edit "$TAG" --notes-file "$RUNNER_TEMP/action-notes.md"
       # Finalization is last, just as for npm, Docker and binary releases.
       - name: Publish the release
@@ -886,91 +904,111 @@ jobs:
           permission-contents: write
           # Consumer pins include .github/workflows files.
           permission-workflows: write
-          permission-pull-requests: read
-      - name: Find the open release PR
+          permission-pull-requests: write
+      - name: Select consumer update branch
         id: pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head release-please--branches--main --state open --json number --jq '.[0].number // empty')
+          branch=release-please--branches--main
+          if [ -z "$number" ]; then
+            existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --state open --json number,headRefName --jq '[.[] | select(.headRefName | startswith("automation/published-consumer-pins-"))][0] // empty')
+            branch="automation/published-consumer-pins-$GITHUB_RUN_ID"
+            if [ -n "$existing" ]; then
+              number=$(jq -r .number <<< "$existing")
+              branch=$(jq -r .headRefName <<< "$existing")
+            fi
+          fi
           echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          if [ -n "$number" ]; then
+            echo "checkout=$branch" >> "$GITHUB_OUTPUT"
+          else
+            refs=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/$branch" --jq '.[].ref')
+            if printf '%s\n' "$refs" | grep -Fxq "refs/heads/$branch"; then
+              # Recover a push that succeeded before PR creation was interrupted.
+              echo "checkout=$branch" >> "$GITHUB_OUTPUT"
+            else
+              echo "checkout=main" >> "$GITHUB_OUTPUT"
+            fi
+          fi
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        if: steps.pr.outputs.number != ''
         with:
           persist-credentials: false
       - name: Preserve current pin controller
-        if: steps.pr.outputs.number != ''
         run: |
           mkdir -p "$RUNNER_TEMP/pin-control"
           cp tools/release/*.mjs tools/src/release/action-runtime-lock.ts "$RUNNER_TEMP/pin-control/"
           printf '{"type":"module"}\n' > "$RUNNER_TEMP/pin-control/package.json"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        if: steps.pr.outputs.number != ''
         with:
-          ref: release-please--branches--main
+          ref: ${{ steps.pr.outputs.checkout }}
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: steps.pr.outputs.number != ''
         with:
           node-version-file: .tool-versions
       - name: Sync CLI pins
         id: cli
-        if: steps.pr.outputs.number != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: node "$RUNNER_TEMP/pin-control/sync-cli-consumer-pins.mjs"
-      - name: Sync daemon and action pair
-        id: daemon
-        if: steps.pr.outputs.number != ''
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: node "$RUNNER_TEMP/pin-control/sync-daemon-consumer-pins.mjs"
       - name: Sync adaptive review callers
         id: review
-        if: steps.pr.outputs.number != ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: node "$RUNNER_TEMP/pin-control/sync-adaptive-review-consumer-pins.mjs"
       - name: Refresh runtime locks and stage consumer pins
-        if: steps.pr.outputs.number != ''
         run: |
           node "$RUNNER_TEMP/pin-control/action-runtime-lock.ts" --write
           git add -- libs/sandbox-gondolin/src/snapshot.ts \
             .github/workflows/issue-triage.yml \
             .github/workflows/legreffier-security-review.yml \
-            .github/workflows/adaptive-review-reusable.yml \
             .github/workflows/adaptive-review.yml \
             .github/workflows/adaptive-review-outcomes.yml \
             packages/adaptive-review-action/runtime.lock
-      - name: Commit consumer pins to release PR
-        if: steps.pr.outputs.number != ''
+      - name: Commit consumer pins and open a draft if needed
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
-          PR_BRANCH: release-please--branches--main
+          PR_BRANCH: ${{ steps.pr.outputs.branch }}
+          PR_CHECKOUT: ${{ steps.pr.outputs.checkout }}
         run: |
-          if git diff --cached --quiet; then exit 0; fi
-          state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,headRefName,headRefOid)
-          test "$(jq -r .state <<< "$state")" = OPEN
-          test "$(jq -r .headRefName <<< "$state")" = "$PR_BRANCH"
-          test "$(jq -r .headRefOid <<< "$state")" = "$(git rev-parse HEAD)"
-          git config user.name "MoltNet Release[bot]"
-          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
-          # A lock change must produce an action release, including when
-          # Release Please had not selected that component for this PR yet.
-          if git diff --cached --quiet -- packages/adaptive-review-action/runtime.lock; then
-            message='chore(release): sync published consumer pins'
-          else
-            message='fix(adaptive-review-action): sync published runtime pins'
+          if [ -n "$PR_NUMBER" ]; then
+            state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,headRefName,headRefOid)
+            test "$(jq -r .state <<< "$state")" = OPEN
+            test "$(jq -r .headRefName <<< "$state")" = "$PR_BRANCH"
+            test "$(jq -r .headRefOid <<< "$state")" = "$(git rev-parse HEAD)"
           fi
-          git commit -m "$message"
-          gh auth setup-git
-          git push origin "HEAD:refs/heads/$PR_BRANCH"
+          if ! git diff --cached --quiet; then
+            git config user.name "MoltNet Release[bot]"
+            git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+            # A lock change must produce an action release, including when
+            # Release Please had not selected that component for this PR yet.
+            if git diff --cached --quiet -- packages/adaptive-review-action/runtime.lock; then
+              message='chore(release): sync published consumer pins'
+            else
+              message='fix(adaptive-review-action): sync published runtime pins'
+            fi
+            git commit -m "$message"
+            gh auth setup-git
+            git push origin "HEAD:refs/heads/$PR_BRANCH"
+          elif [ -n "$PR_NUMBER" ] || [ "$PR_CHECKOUT" = main ]; then
+            exit 0
+          fi
+          if [ -z "$PR_NUMBER" ]; then
+            cat > "$RUNNER_TEMP/consumer-pins.md" <<'BODY'
+          Adopt published consumer versions and verified immutable action bundles.
+
+          Generated by the release pipeline after publication. This PR updates callers; it does not require another artifact release. Mark ready to run CI before merging.
+          BODY
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$PR_BRANCH" --draft \
+              --title 'chore(release): adopt published consumer versions' --body-file "$RUNNER_TEMP/consumer-pins.md"
+          fi
       - name: Report independent sync failures
-        if: steps.cli.outcome == 'failure' || steps.daemon.outcome == 'failure' || steps.review.outcome == 'failure'
+        if: steps.cli.outcome == 'failure' || steps.review.outcome == 'failure'
         run: |
           echo '::error::A pin family failed; successful independent updates were preserved. See the failing sync step.'
           exit 1
