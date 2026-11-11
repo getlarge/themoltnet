@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.4.0...adaptive-review-action-v0.4.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **adaptive-review-action:** adopt published consumer pins ([bf6c8a5](https://github.com/getlarge/themoltnet/commit/bf6c8a54a3dddfe9568143224912c272c1564e93))
+* **adaptive-review-action:** adopt published consumer pins ([fac7119](https://github.com/getlarge/themoltnet/commit/fac7119edd811f47b8f41b263e29df2d7eb240cf))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.2...adaptive-review-action-v0.4.0) (2026-11-10)
 
 

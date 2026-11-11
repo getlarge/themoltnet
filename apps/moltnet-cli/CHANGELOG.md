@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.24.0](https://github.com/getlarge/themoltnet/compare/cli-v3.23.0...cli-v3.24.0) (2026-11-11)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/gofrs/flock to v0.13.2 ([#3018](https://github.com/getlarge/themoltnet/issues/3018)) ([1607e35](https://github.com/getlarge/themoltnet/commit/1607e350fa8c632c819884627f551e94f1d79940))
+
 ## [3.23.0](https://github.com/getlarge/themoltnet/compare/cli-v3.22.0...cli-v3.23.0) (2026-10-30)
 
 
