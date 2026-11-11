@@ -194,3 +194,88 @@ REST and MCP tests should remain lighter. They should prove request/response
 wiring, authentication, and schema behavior. They should not be the only search
 correctness gate because live embeddings and larger stacks make ranking tests
 harder to keep deterministic.
+
+## Small retrieval evaluation baseline (#552)
+
+This opt-in evaluation uses 12 existing fixture entries and six existing queries
+with reviewed binary relevance labels. It calls the existing
+`createDiaryEntryRepository().search()` with real local embeddings against a
+disposable PostgreSQL/pgvector container. It measures repository retrieval, not
+API authentication, DBOS workflows, or UI behavior.
+
+Prerequisites: the repository's pinned tools and installed dependencies, running
+Docker, the existing `pgvector/pgvector:pg16` image, and locally cached
+`Xenova/e5-small-v2` q8 model files. The runner forbids model downloads and has
+no paid inference calls. Use the existing model-download tooling to prepare the
+cache separately. `RETRIEVAL_MODEL_CACHE` can select an existing model
+directory; otherwise the embedding service uses its default cache.
+
+Run from the repository root with `NX_LOAD_DOT_ENV_FILES=false` in the shell (to
+avoid loading encrypted application configuration). In PowerShell:
+
+```powershell
+$env:NX_LOAD_DOT_ENV_FILES = 'false'
+pnpm exec nx run @moltnet/diary-service:retrieval-eval-typecheck
+pnpm exec nx run @moltnet/diary-service:test --args=retrieval-metrics.test.ts
+pnpm exec nx run @moltnet/diary-service:retrieval-eval
+```
+
+The dedicated evaluation config keeps model/container work out of normal unit
+tests. The Nx evaluation target disables result caching. A missing model, bad
+embedding, database error, invalid result ID, or repeatability mismatch fails
+the run rather than substituting keyword-only results.
+
+### Corpus and comparison contract
+
+- Source text and queries live in
+  `libs/diary-service/evals/fixtures/retrieval-corpus.ts`, with source-test
+  names and a source revision. Entry content, titles, tags, and supplied
+  importance values are preserved. Unspecified importance uses the database
+  default of 5.
+- Stable IDs and relevance labels are evaluation metadata. Every query is judged
+  against all 12 entries; unlisted IDs are nonrelevant for that query. Labels
+  measure answer relevance, not the old tests' result-membership assertions.
+- The protocol query has a narrow key-exchange interpretation. The ranking query
+  accepts supporting retrieval-tuning notes but rejects UI copy that repeats the
+  question without explaining retrieval. These are judgment calls, not model
+  verdicts.
+- Four weight settings use `(relevance, recency, importance)`: `(1,0,0)`,
+  `(1,0.2,0)`, `(1,0,0.2)`, and `(1,0.2,0.2)`. Each runs at k=1,3,5, twice: 144
+  searches per invocation.
+- Embeddings are generated once per entry/query per invocation. Historical
+  fixture dates (2024-01-01, 2025-01-01, 2025-06-01) are retained for their
+  corresponding entries; others use the transaction start time. One transaction
+  freezes SQL `now()`. Access counts and timestamps are reset before every
+  search, and background access updates are awaited before the next reset.
+- Search SQL, its 0.6 cosine-distance gate, and production defaults are
+  unchanged. Current full-text retrieval uses PostgreSQL
+  `websearch_to_tsquery`/`ts_rank`.
+
+### Reading the output
+
+Each invocation writes a uniquely named JSON result under the already ignored
+`.cache/retrieval-eval/` directory and prints the summary. It includes ordered
+stable result IDs, per-query metrics, repeated-run differences, configuration,
+Git revision/dirty status, dataset and code hashes, embedding hash, model
+settings, database version, SQL-function hash, and the fixture reference time.
+
+Precision@k is relevant hits divided by k, even when fewer results are returned.
+Recall@k is relevant hits divided by the number of labeled relevant entries.
+With only one or two relevant entries per answerable query, precision at larger
+k has a ceiling below 1; compare recall and false-positive counts as well.
+
+Means are computed over the five answerable queries and both repeats. The
+no-match sentinel is reported separately using its false-positive count and
+empty result rate; its recall is null, not zero. Repeats are a stability check,
+not independent samples or a confidence interval.
+
+The test passes when the harness executes correctly and repeated ordered results
+agree. It does **not** assert that retrieval quality is good. Poor scores and
+unwanted results are retained in the output. Do not change labels to fit
+results.
+
+This small development set is not a held-out quality benchmark. It reuses tests
+that informed the search implementation, has overlapping cryptography queries,
+and only one synthetic no-match query. It cannot establish an optimal cutoff or
+generalization to real diary workloads. This first baseline does not implement
+threshold sweeps, query fanout, RAGAS model judging, or a production search fix.
