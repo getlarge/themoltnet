@@ -3,7 +3,8 @@
 Private evaluation library for measuring production diary-entry repository
 search against a frozen, labeled dataset. The fixture baseline runs locally;
 corpus preparation and annotation interchange are available locally. Potato
-annotation interfaces are supplied by the next layer of the stack. This
+annotation tasks and local operator tooling are included; see the
+[local walkthrough](potato/LOCAL.md). This
 package does not tune production defaults or require deployed API credentials.
 
 Run commands from the repository root with Node and pnpm versions from
@@ -108,7 +109,7 @@ binary fixture metrics also require complete corpus judgments; they treat grades
 The exported `rescore()` function can score saved rankings against revised labels
 without another search. It rejects changes to entry IDs/content hashes, query IDs/text hashes/families/
 splits, time policy or capture time. CLI rescoring is described below; the
-annotation UI is supplied by the next layer. Reuse is
+annotation task setup is covered in the [local walkthrough](potato/LOCAL.md). Reuse is
 for label changes to the same run: changes to search code, configuration, model,
 embedding preparation or dependencies require a new evaluation. The function
 does not verify those runtime inputs. Original run reports retain their original
