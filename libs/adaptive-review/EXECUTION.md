@@ -71,8 +71,24 @@ jobs:
 ```
 
 Use your caller's actual filename in `protected-paths`. Keep `runtime-ref`
-unset so the runtime comes from the pinned release. Supply profiles for any
-additional enabled lanes and providers matching those profiles. The
+unset so the runtime comes from the pinned release. Obtain the full bundle SHA
+from that release's `Action bundle commit:` line; the source tag has no compiled
+bundle. The [action release guide](../../docs/contribute/action-releases.md)
+explains publication and adoption.
+
+Releases containing the bundled worker action record its daemon version in
+`dist/release-dependencies.json`. Leave `daemon-version` unset to use that exact
+version. An explicit override must be an exact `major.minor.patch` version
+(optionally with a prerelease suffix); the caller then owns compatibility with
+its selected review bundle. Released bundles
+skip workspace installation and compilation. Coordinator and worker jobs verify
+the same artifact digest, and workers restore their action from that artifact.
+Optional diary context still installs its exact external runtime dependencies.
+A deliberate `runtime-ref` override must be a full trusted commit SHA; a source
+checkout without the bundle installs and builds it during preparation.
+
+Supply profiles for any additional enabled lanes and providers matching those
+profiles. The
 [runtime policy guide](../../.github/runtime-policies/README.md) covers profiles
 and optional diary access.
 

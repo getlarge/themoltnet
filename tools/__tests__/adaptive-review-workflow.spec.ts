@@ -98,6 +98,7 @@ function step(name: string, predicate: (step: Step) => boolean): Step {
 function runStep(
   run: string | undefined,
   env: Record<string, string>,
+  cwd?: string,
 ): { status: number | null; stderr: string; outputs: Record<string, string> } {
   const temp = mkdtempSync(join(tmpdir(), 'adaptive-step-'));
   try {
@@ -109,6 +110,7 @@ function runStep(
       'bash',
       ['--noprofile', '--norc', '-eo', 'pipefail', script],
       {
+        cwd,
         env: { PATH: process.env.PATH ?? '', ...env, GITHUB_OUTPUT: output },
         encoding: 'utf8',
       },
@@ -129,8 +131,10 @@ function runStep(
 }
 
 function workerAction(name: string): Step {
-  return step(name, (item) =>
-    Boolean(item.uses?.includes('/packages/agent-daemon-action@')),
+  return step(
+    name,
+    (item) =>
+      item.uses === './.adaptive-review-runtime/packages/agent-daemon-action',
   );
 }
 
@@ -780,7 +784,9 @@ describe('optional focused diary runtime delivery', () => {
       'specialist-workers',
       (item) => item.name === 'Drain diary-enabled focused review tasks',
     );
-    expect(normal.uses).toContain('agent-daemon-action@');
+    expect(normal.uses).toBe(
+      './.adaptive-review-runtime/packages/agent-daemon-action',
+    );
     expect(normal.if).toBe(
       "inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile",
     );
@@ -799,7 +805,7 @@ describe('optional focused diary runtime delivery', () => {
     expect(
       stepIndex(
         'specialist-workers',
-        (item) => item.name === 'Verify optional review runtime bundle',
+        (item) => item.name === 'Verify review and worker bundle',
       ),
     ).toBeLessThan(
       stepIndex('specialist-workers', (item) => item.id === 'diary-runtime'),
@@ -807,7 +813,7 @@ describe('optional focused diary runtime delivery', () => {
     expect(
       step(
         'specialist-workers',
-        (item) => item.name === 'Download optional review runtime bundle',
+        (item) => item.name === 'Download review and worker bundle',
       ).with?.['artifact-ids'],
     ).toBe('${{ needs.prepare.outputs.action-artifact-id }}');
   });
@@ -845,4 +851,104 @@ describe('optional focused diary runtime delivery', () => {
       expect(result.stderr).toMatch(/exact released|1–8 UUIDs/);
     },
   );
+});
+
+describe('packaged review workers', () => {
+  it('verifies and restores the same artifact before every worker can run', () => {
+    for (const name of WORKERS) {
+      const download = step(
+        name,
+        (s) => s.name === 'Download review and worker bundle',
+      );
+      const verify = stepIndex(
+        name,
+        (s) => s.name === 'Verify review and worker bundle',
+      );
+      const restore = stepIndex(
+        name,
+        (s) => s.name === 'Restore bundled worker action',
+      );
+      const run = stepIndex(
+        name,
+        (s) =>
+          s.uses === './.adaptive-review-runtime/packages/agent-daemon-action',
+      );
+      expect(download.if).toBeUndefined();
+      expect(download.with?.['artifact-ids']).toBe(
+        '${{ needs.prepare.outputs.action-artifact-id }}',
+      );
+      expect(verify).toBeLessThan(restore);
+      expect(restore).toBeLessThan(run);
+      expect(workerAction(name).with?.['daemon-version']).toBe(
+        '${{ needs.prepare.outputs.daemon-version }}',
+      );
+    }
+  });
+
+  it('uses the packaged daemon by default, allows exact overrides and rejects floating versions', () => {
+    const root = mkdtempSync(join(tmpdir(), 'packaged-worker-'));
+    try {
+      const dir = join(root, BUNDLE);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, 'release-dependencies.json'),
+        JSON.stringify({
+          schemaVersion: 1,
+          daemonVersion: '0.75.0',
+          workerActionVersion: '0.9.0',
+        }),
+      );
+      const resolve = step('prepare', (s) => s.id === 'worker');
+      const run = (version: string) =>
+        runStep(resolve.run, { REQUESTED_DAEMON_VERSION: version }, root);
+      expect(run('').outputs).toEqual({ 'daemon-version': '0.75.0' });
+      expect(run('0.75.1').outputs).toEqual({ 'daemon-version': '0.75.1' });
+      expect(run('0.75.1-rc.1').outputs).toEqual({
+        'daemon-version': '0.75.1-rc.1',
+      });
+      expect(run('latest').status).not.toBe(0);
+      expect(run('0.75.1\ninjected=value').outputs).toEqual({});
+      writeFileSync(
+        join(dir, 'release-dependencies.json'),
+        JSON.stringify({ schemaVersion: 2, daemonVersion: '0.75.0' }),
+      );
+      expect(run('').status).not.toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('takes the released fast path only when both review and worker entries are tracked', () => {
+    const setup = parse(
+      read('../../packages/adaptive-review-action/setup/action.yml'),
+    ) as { runs: { steps: Step[] } };
+    const detect = setup.runs.steps.find((s) => s.id === 'bundle')!;
+    const root = mkdtempSync(join(tmpdir(), 'packaged-worker-setup-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: root });
+    try {
+      git('init', '-q');
+      const files = [
+        'review.js',
+        'publish.js',
+        'outcomes.js',
+        'diary-runtime.js',
+        'release-dependencies.json',
+        'worker-action/main.js',
+      ];
+      const dir = join(root, 'packages/adaptive-review-action/dist');
+      mkdirSync(join(dir, 'worker-action'), { recursive: true });
+      for (const file of files) writeFileSync(join(dir, file), '{}');
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
+      git('add', 'packages');
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('true');
+      git(
+        'rm',
+        '--cached',
+        'packages/adaptive-review-action/dist/worker-action/main.js',
+      );
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

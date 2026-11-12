@@ -61,7 +61,7 @@ export function latest(releases, component) {
     )[0];
 }
 
-export async function packageVersion(api, component, ref) {
+async function packageMetadata(api, component, ref) {
   const file = await api(
     `contents/packages/${component}/package.json?ref=${ref}`,
   );
@@ -69,7 +69,22 @@ export async function packageVersion(api, component, ref) {
   if (metadata.name !== `@themoltnet/${component}`)
     throw new Error(`Unexpected action package at ${ref}`);
   compareVersions(metadata.version, '0.0.0');
-  return metadata.version;
+  return metadata;
+}
+
+async function packageVersion(api, component, ref) {
+  return (await packageMetadata(api, component, ref)).version;
+}
+
+// Source manifests opt into co-packaging; old immutable releases retain their
+// original entry contract during reconciliation and exact-version retries.
+export function actionEntries(component, metadata) {
+  const entries = actions[component].entries;
+  return component === 'adaptive-review-action' &&
+    metadata.devDependencies?.['@themoltnet/agent-daemon-action'] ===
+      'workspace:*'
+    ? [...entries, 'worker-action/main.js', 'release-dependencies.json']
+    : entries;
 }
 
 /** Absence is recoverable; a present but inconsistent mapping is an error. */
@@ -96,7 +111,8 @@ export async function resolveBundle(
   const sha = ref.object?.sha;
   if (ref.object?.type !== 'commit' || !/^[a-f0-9]{40}$/.test(sha ?? ''))
     throw new Error(`Invalid bundle ref for ${tag}`);
-  if ((await packageVersion(api, component, sha)) !== version)
+  const metadata = await packageMetadata(api, component, sha);
+  if (metadata.version !== version)
     throw new Error(`Bundle version disagrees with ${tag}`);
   const source = await api(`commits/${tag}`);
   const commit = await api(`git/commits/${sha}`);
@@ -105,7 +121,7 @@ export async function resolveBundle(
   const tree = await api(`git/trees/${sha}?recursive=1`);
   const required = [
     'action.yml',
-    ...actions[component].entries.map((p) => `dist/${p}`),
+    ...actionEntries(component, metadata).map((p) => `dist/${p}`),
   ]
     .map((p) => `packages/${component}/${p}`)
     .concat(actions[component].workflows);
@@ -183,7 +199,12 @@ export async function planRepairs(api, { explicitTag = '', force = [] } = {}) {
         project: `@themoltnet/${component}`,
         component,
         tag,
-        entries: actions[component].entries.join(','),
+        entries: actionEntries(
+          component,
+          component === 'adaptive-review-action'
+            ? await packageMetadata(api, component, tag)
+            : {},
+        ).join(','),
         prefix: actions[component].prefix,
       });
     }

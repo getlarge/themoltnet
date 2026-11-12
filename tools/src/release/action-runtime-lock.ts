@@ -44,6 +44,7 @@ export const RUNTIME_LOCKS: RuntimeLock[] = [
       'packages/agent-daemon-action/action.yml',
       'packages/agent-daemon-action/src',
       'packages/agent-daemon-action/package.json',
+      'apps/agent-daemon/package.json',
       'packages/agent-daemon-action/vite.config.ts',
       'libs/adaptive-review/src',
       'libs/complexity-review/src',

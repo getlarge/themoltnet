@@ -111,7 +111,7 @@ describe('action publishing authorization and source validation', () => {
     }
   });
 
-  it('limits consumer maintenance to repository contents, workflow writes and PR reads', () => {
+  it('allows consumer maintenance to open a draft rollout PR', () => {
     const token = workflow('release').jobs['sync-consumer-pins'].steps.find(
       (step) => step.id === 'app-token',
     );
@@ -122,7 +122,7 @@ describe('action publishing authorization and source validation', () => {
       repositories: 'themoltnet',
       'permission-contents': 'write',
       'permission-workflows': 'write',
-      'permission-pull-requests': 'read',
+      'permission-pull-requests': 'write',
     });
   });
 
@@ -283,7 +283,10 @@ describe('action publication transaction', () => {
 
   it('isolates action reconciliation from npm and Docker target resolution', () => {
     const jobs = workflow('release').jobs;
-    expect(jobs['publish-actions'].needs).toBe('reconcile-actions');
+    expect(jobs['publish-actions'].needs).toEqual([
+      'reconcile-actions',
+      'finalize-agent-daemon-release',
+    ]);
     expect(jobs['resolve-publish'].needs).toBe('release-please');
     expect(jobs['reconcile-actions'].needs).toBe('release-please');
   });
@@ -307,15 +310,259 @@ describe('action publication transaction', () => {
     ).toBe(false);
     const sync = jobs['sync-consumer-pins'].steps;
     expect(
-      sync.find((s) => s.name === 'Commit consumer pins to release PR')?.run,
+      sync.find(
+        (s) => s.name === 'Commit consumer pins and open a draft if needed',
+      )?.run,
     ).toContain('fix(adaptive-review-action): sync published runtime pins');
     expect(
       sync.find((s) => s.name === 'Report independent sync failures')?.if,
-    ).toContain("steps.daemon.outcome == 'failure'");
+    ).toContain("steps.review.outcome == 'failure'");
     expect(
       sync.find(
         (s) => s.name === 'Refresh runtime locks and stage consumer pins',
       )?.run,
     ).toContain('action-runtime-lock.ts');
+  });
+});
+
+describe('same-run adaptive release and consumer adoption', () => {
+  const release = workflow('release');
+  const sync = release.jobs['sync-consumer-pins'].steps;
+  const commit = sync.find(
+    (s) => s.name === 'Commit consumer pins and open a draft if needed',
+  )!;
+
+  it('waits for daemon finalization and validates its exact source version before building or publishing', () => {
+    expect(job.needs).toEqual([
+      'reconcile-actions',
+      'finalize-agent-daemon-release',
+    ]);
+    expect(job.if).toContain('always()');
+    const gate = named('Verify exact review daemon is published');
+    expect(gate.if).toBe("matrix.component == 'adaptive-review-action'");
+    expect(steps.indexOf(gate)).toBeLessThan(
+      steps.indexOf(named('Build the action')),
+    );
+    const built = named('Verify packaged review dependencies');
+    expect(built.run).toContain('--check-bundle');
+    expect(steps.indexOf(built)).toBeLessThan(
+      steps.indexOf(named('Create action publishing token')),
+    );
+    expect(sync.some((s) => s.run?.includes('sync-daemon-consumer-pins'))).toBe(
+      false,
+    );
+  });
+
+  it('keeps the daemon and worker as explicit workspace release dependencies', () => {
+    const read = (path: string) =>
+      JSON.parse(
+        readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8'),
+      );
+    const pkg = read('packages/adaptive-review-action/package.json');
+    expect(pkg.dependencies['@themoltnet/agent-daemon']).toBe('workspace:*');
+    expect(pkg.devDependencies['@themoltnet/agent-daemon-action']).toBe(
+      'workspace:*',
+    );
+    const config = read('release-please-config.json');
+    expect(config.plugins).toContainEqual({ type: 'node-workspace' });
+    for (const path of [
+      'apps/agent-daemon',
+      'packages/agent-daemon-action',
+      'packages/adaptive-review-action',
+    ]) {
+      expect(config.packages[path]['release-type']).toBe('node');
+    }
+  });
+
+  function consumerFixture() {
+    const root = mkdtempSync(join(tmpdir(), 'consumer-rollout-'));
+    const checkout = join(root, 'checkout');
+    const remote = join(root, 'remote.git');
+    const bin = join(root, 'bin');
+    mkdirSync(checkout);
+    mkdirSync(bin);
+    const git = (...args: string[]) =>
+      execFileSync('git', args, {
+        cwd: checkout,
+        encoding: 'utf8',
+        stdio: 'pipe',
+      }).trim();
+    execFileSync('git', ['init', '--bare', '-q', remote]);
+    git('init', '-q');
+    git('config', 'user.name', 'test');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'commit.gpgsign', 'false');
+    writeFileSync(join(checkout, 'pin'), 'old');
+    git('add', 'pin');
+    git('commit', '-qm', 'base');
+    git('remote', 'add', 'origin', remote);
+    const base = git('rev-parse', 'HEAD');
+    const log = join(root, 'gh.log');
+    writeFileSync(log, '');
+    const shim = String.raw`#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.GH_LOG, JSON.stringify(args) + '\n');
+if (args[0] === 'pr' && args[1] === 'view') console.log(process.env.PR_STATE);
+if (args[0] === 'pr' && args[1] === 'list') console.log((args.includes('--head') ? process.env.RELEASE_PR : process.env.CONSUMER_PR) || '');
+if (args[0] === 'api') console.log(process.env.BRANCH_REFS || '');
+if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'true') process.exit(1);
+`;
+    writeFileSync(join(bin, 'gh'), shim, { mode: 0o755 });
+    const branch = 'automation/published-consumer-pins-123';
+    const run = (extra: Record<string, string> = {}) =>
+      execFileSync('bash', ['-eo', 'pipefail', '-c', commit.run!], {
+        cwd: checkout,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          GH_LOG: log,
+          RUNNER_TEMP: root,
+          GITHUB_REPOSITORY: 'example/repo',
+          PR_NUMBER: '',
+          PR_BRANCH: branch,
+          PR_CHECKOUT: 'main',
+          ...extra,
+        },
+      });
+    const change = () => {
+      writeFileSync(join(checkout, 'pin'), 'new');
+      git('add', 'pin');
+    };
+    const calls = () =>
+      readFileSync(log, 'utf8')
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as string[]);
+    const select = (extra: Record<string, string> = {}) => {
+      const output = join(root, 'selection');
+      writeFileSync(output, '');
+      execFileSync(
+        'bash',
+        ['-eo', 'pipefail', '-c', sync.find((s) => s.id === 'pr')!.run!],
+        {
+          cwd: checkout,
+          stdio: 'pipe',
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            GH_LOG: log,
+            GITHUB_REPOSITORY: 'example/repo',
+            GITHUB_RUN_ID: '123',
+            GITHUB_OUTPUT: output,
+            ...extra,
+          },
+        },
+      );
+      return Object.fromEntries(
+        readFileSync(output, 'utf8')
+          .trim()
+          .split('\n')
+          .map((line) => line.split('=')),
+      );
+    };
+    return { root, git, remote, base, branch, run, change, calls, select };
+  }
+
+  it('selects an existing PR or recovers a pushed branch before starting a new draft', () => {
+    const f = consumerFixture();
+    try {
+      expect(f.select({ RELEASE_PR: '7' })).toEqual({
+        number: '7',
+        branch: 'release-please--branches--main',
+        checkout: 'release-please--branches--main',
+      });
+      const branch = 'automation/published-consumer-pins-100';
+      expect(
+        f.select({
+          CONSUMER_PR: JSON.stringify({ number: 8, headRefName: branch }),
+        }),
+      ).toEqual({ number: '8', branch, checkout: branch });
+      expect(f.select()).toEqual({
+        number: '',
+        branch: f.branch,
+        checkout: 'main',
+      });
+      expect(f.select({ BRANCH_REFS: `refs/heads/${f.branch}` })).toEqual({
+        number: '',
+        branch: f.branch,
+        checkout: f.branch,
+      });
+      expect(
+        f.select({ BRANCH_REFS: `refs/heads/${f.branch}-other` }).checkout,
+      ).toBe('main');
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+
+  it('opens one draft after a real push and leaves an unchanged checkout alone', () => {
+    const f = consumerFixture();
+    try {
+      f.run();
+      expect(f.calls()).toEqual([]);
+      f.change();
+      f.run();
+      const published = f
+        .git('ls-remote', 'origin', `refs/heads/${f.branch}`)
+        .split(/\s/)[0];
+      expect(published).toBe(f.git('rev-parse', 'HEAD'));
+      const creates = f
+        .calls()
+        .filter((args) => args[0] === 'pr' && args[1] === 'create');
+      expect(creates).toHaveLength(1);
+      expect(creates[0]).toContain('--draft');
+      f.run({
+        PR_NUMBER: '42',
+        PR_CHECKOUT: f.branch,
+        PR_STATE: JSON.stringify({
+          state: 'OPEN',
+          headRefName: f.branch,
+          headRefOid: published,
+        }),
+      });
+      expect(f.calls().filter((args) => args[1] === 'create')).toHaveLength(1);
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+
+  it('recovers PR creation after the push without another commit or release', () => {
+    const f = consumerFixture();
+    try {
+      f.change();
+      expect(() => f.run({ FAIL_CREATE: 'true' })).toThrow();
+      const pushed = f.git('rev-parse', 'HEAD');
+      f.run({ PR_CHECKOUT: f.branch });
+      expect(f.git('rev-parse', 'HEAD')).toBe(pushed);
+      expect(f.calls().filter((args) => args[1] === 'create')).toHaveLength(2);
+      expect(f.git('rev-list', '--count', `${f.base}..HEAD`)).toBe('1');
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+
+  it('refuses stale PR state before committing or pushing', () => {
+    const f = consumerFixture();
+    try {
+      f.change();
+      expect(() =>
+        f.run({
+          PR_NUMBER: '42',
+          PR_STATE: JSON.stringify({
+            state: 'OPEN',
+            headRefName: f.branch,
+            headRefOid: 'a'.repeat(40),
+          }),
+        }),
+      ).toThrow();
+      expect(f.git('rev-parse', 'HEAD')).toBe(f.base);
+      expect(f.git('ls-remote', 'origin')).toBe('');
+      expect(f.calls().some((args) => args[1] === 'create')).toBe(false);
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
   });
 });
