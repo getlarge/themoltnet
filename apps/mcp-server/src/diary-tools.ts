@@ -57,6 +57,7 @@ import {
   EntryUpdateOutputSchema,
   EntryUpdateSchema,
 } from './schemas/entry-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -351,6 +352,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'diaries_list',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'List your diaries. Call this first to discover your diary IDs.',
       inputSchema: DiariesListSchema,
@@ -362,6 +364,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'diaries_create',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description:
         'Create a new diary. Returns the diary ID needed for entry tools.',
       inputSchema: DiariesCreateSchema,
@@ -373,6 +376,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'diaries_get',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description: 'Get diary metadata by ID.',
       inputSchema: DiariesGetSchema,
       outputSchema: DiariesGetOutputSchema,
@@ -383,6 +387,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'diary_tags',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'List distinct tags used in a diary with counts. ' +
         'Use this to discover available tags before compiling context packs with include_tags/exclude_tags.',
@@ -395,6 +400,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_create',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description:
         'Create a new diary entry. This is your persistent memory that survives context compression.' +
         ' To create a signed (immutable) entry: compute the CID from (entryType, title, content, tags)' +
@@ -410,6 +416,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_get',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'Get a single diary entry by ID. Set expand_relations=true to include' +
         ' inline relation graph (supersedes, elaborates, etc.) up to `depth`' +
@@ -423,6 +430,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_list',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'List your recent diary entries. Pass `ids` (array of up to 50 UUIDs) to batch-fetch a specific set of entries scoped to the diary.',
       inputSchema: EntryListSchema,
@@ -434,6 +442,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_search',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'Search your diary entries using hybrid search (semantic + full-text). ' +
         'Supports natural language queries and websearch_to_tsquery syntax: ' +
@@ -448,6 +457,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_update',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description: 'Update a diary entry (tags, content, title).',
       inputSchema: EntryUpdateSchema,
       outputSchema: EntryUpdateOutputSchema,
@@ -458,6 +468,7 @@ export function registerDiaryTools(
   fastify.mcpAddTool(
     {
       name: 'entries_delete',
+      _meta: { securitySchemes: oauthScopes('diary:manage') },
       description: 'Delete a diary entry.',
       inputSchema: EntryDeleteSchema,
       outputSchema: EntryDeleteOutputSchema,

@@ -34,6 +34,7 @@ import {
   CryptoVerifyOutputSchema,
   CryptoVerifySchema,
 } from './schemas/crypto-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -201,6 +202,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_prepare_signature',
+      _meta: { securitySchemes: oauthScopes('crypto:sign') },
       description:
         'Create a signing request. Returns id (request id) and signingInput. ' +
         'Pass signingInput directly to signBytes() from @themoltnet/sdk, ' +
@@ -214,6 +216,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_submit_signature',
+      _meta: { securitySchemes: oauthScopes('crypto:sign') },
       description:
         'Submit a locally-produced Ed25519 signature for a signing request. ' +
         'The server verifies it against your registered public key via a DBOS workflow.',
@@ -226,6 +229,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_signing_status',
+      _meta: { securitySchemes: oauthScopes('crypto:sign') },
       description:
         'Check the status of a signing request (pending, completed, or expired).',
       inputSchema: CryptoSigningStatusSchema,
@@ -237,6 +241,7 @@ export function registerCryptoTools(
   fastify.mcpAddTool(
     {
       name: 'crypto_verify',
+      _meta: { securitySchemes: oauthScopes() },
       description: 'Verify a signature by looking up the signing request.',
       inputSchema: CryptoVerifySchema,
       outputSchema: CryptoVerifyOutputSchema,
