@@ -137,10 +137,9 @@ flowchart TD
 
 [Download the diagram as a PNG](./assets/action-release-flow.png).
 
-The daemon action also publishes independently for its other consumers. Adaptive
-review includes the worker action's built files in its own bundle, so its worker
-does not depend on a separately promoted daemon-action tag. Release Please uses
-workspace dependencies to plan versions; the publisher enforces publication
+Adaptive review includes the worker action's built files in its own bundle. The
+standalone daemon action has its own release for other consumers. Release Please
+uses workspace dependencies to plan versions; the publisher enforces publication
 order. Its gate requires the exact source daemon's published stable release and
 nonempty, uploaded installer, Linux archive, checksum, and signature assets. It
 checks asset metadata, not their downloaded contents or signatures.
@@ -171,10 +170,11 @@ recover historical releases. The publisher requires a clean tracked checkout
 before creating the bundle commit; only `dist/` is added to that detached
 commit.
 
-Historical adaptive-review source tags retain their original required entries
-and independently pinned worker contract. The reconciler derives the entry
-requirements from the source manifest; retrying an old tag does not retrofit
-bundled workers or the new daemon publication gate.
+The reconciler derives required bundle entries and the daemon publication gate
+from the source manifest. Source tags with a bundled-worker dependency require
+the worker files and a published daemon release. Older tags retain their
+original entry requirements and independently pinned worker contract when
+retried.
 
 A retry reuses an existing exact bundle, even if a rebuild produces different
 bytes. It can adopt the legacy major-tag bundle for the same version after
@@ -207,8 +207,7 @@ another commit or release.
 | Adaptive-review callers | Highest published stable adaptive-review action in major zero, with a verified immutable bundle |
 
 Adaptive-review callers adopt the daemon version packaged with their review
-release. They no longer receive separate daemon/action pin updates. A new
-adaptive-review major requires a deliberate caller update.
+release. A new adaptive-review major requires a deliberate caller update.
 
 Exact action lookup uses `bundles/<component>-v<version>`, independently of the
 moving major alias. It validates the package version, source parent and required
@@ -222,19 +221,21 @@ does not discard successful independent updates. The job reports those failures
 after committing, so they remain visible. Release Please itself no longer fails
 because a consumer candidate is unavailable.
 
-`packages/adaptive-review-action/runtime.lock` tracks external files shipped
-with that action. Changes to those files need a refreshed lock in a `fix` or
-`feat` commit to trigger the component release. Refresh the lock again when
-preparing a release PR after generated version changes; the consumer sync job
-also refreshes locks before its commit. When that changes the adaptive-review
-lock, the job uses `fix(adaptive-review-action): sync published runtime pins`
-instead of a `chore(release)` commit. This makes the change eligible for an
-action release even if Release Please has not selected that component in the
-current PR; the version bump may arrive in the next release cycle. Keeping the
-lock current does not mean the current PR already includes an action version
-bump. CI checks every lock on the merged tree; publication checks only the
-component being released. Never repair a historical source tag's unrelated lock
-by rewriting the tag.
+`packages/adaptive-review-action/runtime.lock` hashes runtime inputs outside the
+action package, including `.github/workflows/adaptive-review-reusable.yml`,
+worker-action sources, and `apps/agent-daemon/package.json`. Refresh the lock
+after workflow edits or daemon version bumps as well as changes to shipped
+runtime files. Include the refreshed lock in a `fix` or `feat` commit to trigger
+the component release. Refresh the lock again when preparing a release PR after
+generated version changes; the consumer sync job also refreshes locks before its
+commit. When that changes the adaptive-review lock, the job uses
+`fix(adaptive-review-action): sync published runtime pins` instead of a
+`chore(release)` commit. This makes the change eligible for an action release
+even if Release Please has not selected that component in the current PR; the
+version bump may arrive in the next release cycle. Keeping the lock current does
+not mean the current PR already includes an action version bump. CI checks every
+lock on the merged tree; publication checks only the component being released.
+Never repair a historical source tag's unrelated lock by rewriting the tag.
 
 With the repository's Git hooks installed, each commit refreshes and stages
 runtime locks after lint-staged formats the source files. The `--stage` mode

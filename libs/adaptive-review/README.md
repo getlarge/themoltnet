@@ -62,7 +62,7 @@ code, commands, credentials, providers, or worker profiles. The caller workflow
 owns those capabilities.
 
 The reusable workflow lives in the MoltNet runtime repository. Pin it to a
-released bundle SHA and leave `runtime-ref` unset. New bundles include the worker
+released bundle SHA and leave `runtime-ref` unset. Released bundles include the worker
 action and record the exact daemon version used by default; publishing a newer
 daemon does not change an existing caller. See the
 [action release guide](../../docs/contribute/action-releases.md) for publication

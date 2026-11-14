@@ -567,8 +567,14 @@ describe('adaptive review workflow trust gates', () => {
       NX_DAEMON: 'false',
     });
     expect(build.run).toContain('pnpm install --frozen-lockfile');
-    expect(build.run).toContain(
-      'pnpm exec nx run @themoltnet/adaptive-review-action:build',
+    const workerBuild =
+      'pnpm exec nx run @themoltnet/agent-daemon-action:build';
+    const reviewBuild =
+      'pnpm exec nx run @themoltnet/adaptive-review-action:build';
+    expect(build.run).toContain(workerBuild);
+    expect(build.run).toContain(reviewBuild);
+    expect(build.run!.indexOf(workerBuild)).toBeLessThan(
+      build.run!.indexOf(reviewBuild),
     );
   });
 
