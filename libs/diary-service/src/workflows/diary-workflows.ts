@@ -79,6 +79,22 @@ function getDeps(): DiaryWorkflowDeps {
 
 // ── Retry Configuration ────────────────────────────────────────
 
+export const DIARY_EMBEDDING_QUEUE = 'diary-embeddings';
+
+/** Persist after DBOS launch and before accepting requests. */
+export async function registerDiaryEmbeddingQueue(
+  concurrency = 1,
+): Promise<void> {
+  await DBOS.registerQueue(DIARY_EMBEDDING_QUEUE, {
+    concurrency,
+    // Sub-second inference must not leave the pool idle for the default 1s poll.
+    minPollingIntervalMs: 50,
+    onConflict: 'update_if_latest_version',
+  });
+}
+
+type EmbeddingInput = Pick<DiaryEntry, 'id' | 'content' | 'title' | 'tags'>;
+
 const KETO_RETRY = {
   retriesAllowed: true,
   maxAttempts: 5,
@@ -124,12 +140,11 @@ export function initDiaryWorkflows(): void {
 
   const embedPassageStep = DBOS.registerStep(
     async (content: string): Promise<number[]> => {
-      const { embeddingService } = getDeps();
-      try {
-        return await embeddingService.embedPassage(content);
-      } catch {
-        return [];
+      const vector = await getDeps().embeddingService.embedPassage(content);
+      if (vector.length !== 384 || !vector.every(Number.isFinite)) {
+        throw new Error('Embedding must contain 384 finite dimensions');
       }
+      return vector;
     },
     { name: 'diary.step.embedPassage' },
   );
@@ -164,6 +179,73 @@ export function initDiaryWorkflows(): void {
 
   // ── Workflows ──────────────────────────────────────────────
 
+  // A failed attempt hands off to a delayed durable child instead of holding
+  // a queue slot asleep. Transient failures never silently discard embeddings;
+  // repeated failures remain visible as DELAYED jobs and step error logs.
+  const enrichEntry: (
+    input: EmbeddingInput,
+    jobId: string,
+    attempt?: number,
+  ) => Promise<void> = DBOS.registerWorkflow(
+    async (
+      input: EmbeddingInput,
+      jobId: string,
+      attempt = 0,
+    ): Promise<void> => {
+      const { diaryEntryRepository, transactionRunner } = getDeps();
+      try {
+        const needed = await transactionRunner.runInTransaction(
+          () => diaryEntryRepository.needsEmbedding(input),
+          { name: 'diary.embedding.check' },
+        );
+        if (!needed) return;
+        const embedding = await embedPassageStep(
+          buildEmbeddingTextLocal(input.content, input.tags, input.title),
+        );
+        await transactionRunner.runInTransaction(
+          () => diaryEntryRepository.saveEmbedding(input, embedding),
+          { name: 'diary.embedding.persist' },
+        );
+      } catch (err) {
+        DBOS.logger.warn({
+          message: 'Diary embedding deferred',
+          entryId: input.id,
+          attempt,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        // Explicit bounded IDs make retry handoff idempotent across recovery
+        // without growing a nested child ID on every failed attempt.
+        await DBOS.startWorkflow(enrichEntry, {
+          workflowID: `diary-embedding:${jobId}:${attempt + 1}`,
+          queueName: DIARY_EMBEDDING_QUEUE,
+          timeoutMS: null,
+          enqueueOptions: {
+            delaySeconds: Math.min(300, 5 * 2 ** Math.min(attempt, 6)),
+          },
+        })(input, jobId, attempt + 1);
+        return;
+      }
+    },
+    { name: 'diary.embed' },
+  );
+
+  async function scheduleEmbedding(entry: DiaryEntry): Promise<void> {
+    const jobId = await generateIdStep();
+    await DBOS.startWorkflow(enrichEntry, {
+      workflowID: `diary-embedding:${jobId}:0`,
+      queueName: DIARY_EMBEDDING_QUEUE,
+      timeoutMS: null,
+    })(
+      {
+        id: entry.id,
+        content: entry.content,
+        title: entry.title,
+        tags: entry.tags,
+      },
+      jobId,
+    );
+  }
+
   _workflows = {
     createEntry: DBOS.registerWorkflow(
       async (input: WorkflowCreateEntryInput): Promise<DiaryEntry> => {
@@ -171,12 +253,6 @@ export function initDiaryWorkflows(): void {
 
         const entryId = await generateIdStep();
         const resolvedEntryType = input.entryType ?? 'semantic';
-        const embedText = buildEmbeddingTextLocal(
-          input.content,
-          input.tags,
-          input.title,
-        );
-        const embedding = await embedPassageStep(embedText);
         const { injectionRisk, threats: injectionThreats } =
           await scanInjectionStep(input.content, input.title);
 
@@ -194,7 +270,6 @@ export function initDiaryWorkflows(): void {
               tags: input.tags,
               importance: input.importance,
               entryType: resolvedEntryType,
-              embedding: embedding.length > 0 ? embedding : undefined,
               injectionRisk,
               injectionThreats,
               contentHash: input.contentHash,
@@ -216,6 +291,7 @@ export function initDiaryWorkflows(): void {
           throw new Error('Failed to link entry to diary after creation');
         }
 
+        await scheduleEmbedding(entry);
         return entry;
       },
       { name: 'diary.create' },
@@ -227,7 +303,7 @@ export function initDiaryWorkflows(): void {
         updates: UpdateEntryInput,
         existingContent?: string,
         existingTitle?: string | null,
-        existingTags?: string[] | null,
+        _existingTags?: string[] | null,
       ): Promise<DiaryEntry | null> => {
         const { diaryEntryRepository, transactionRunner } = getDeps();
         const repoUpdates: Record<string, unknown> = { ...updates };
@@ -249,19 +325,17 @@ export function initDiaryWorkflows(): void {
           updates.tags !== undefined ||
           updates.title !== undefined
         ) {
-          const content = updates.content ?? existingContent ?? '';
-          const tags = updates.tags !== undefined ? updates.tags : existingTags;
-          const title =
-            updates.title !== undefined ? updates.title : existingTitle;
-          const embedText = buildEmbeddingTextLocal(content, tags, title);
-          const embedding = await embedPassageStep(embedText);
-          if (embedding.length > 0) repoUpdates.embedding = embedding;
+          // Clear the vector in the same transaction as the content edit.
+          repoUpdates.embedding = null;
         }
 
-        return transactionRunner.runInTransaction(
+        const entry = await transactionRunner.runInTransaction(
           () => diaryEntryRepository.update(id, repoUpdates),
           { name: 'diary.update.persist' },
         );
+        if (entry && repoUpdates.embedding === null)
+          await scheduleEmbedding(entry);
+        return entry;
       },
       { name: 'diary.update' },
     ),

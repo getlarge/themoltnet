@@ -64,6 +64,7 @@ import {
 import { createDiaryService } from '@moltnet/diary-service';
 import {
   initDiaryWorkflows,
+  registerDiaryEmbeddingQueue,
   setDiaryWorkflowDeps,
 } from '@moltnet/diary-service/workflows';
 import { createEmbeddingService } from '@moltnet/embedding-service';
@@ -450,20 +451,22 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // For local dev: download the model once with the bench tool (see README.md),
   // then set EMBEDDING_ALLOW_REMOTE_MODELS=false in .env.local.
   const embeddingService = createEmbeddingService({
+    workers: config.embedding.EMBEDDING_WORKERS,
+    maxQueue: config.embedding.EMBEDDING_MAX_QUEUE,
     cacheDir: config.embedding.EMBEDDING_CACHE_DIR
       ? resolve(config.embedding.EMBEDDING_CACHE_DIR)
       : undefined,
     allowRemoteModels: config.embedding.EMBEDDING_ALLOW_REMOTE_MODELS,
     logger: app.log,
   });
-  // Inference runs on a worker thread so it never blocks this event loop.
+  // Inference runs on a worker process so it never blocks this event loop.
   app.addHook('onClose', () => embeddingService.close?.());
 
   // Eagerly warm the ONNX pipeline so the first user request doesn't pay
   // the ~5 s cold-start cost (model load + runtime init). The health-check
   // grace period (30 s) absorbs this.
   const warmupStart = performance.now();
-  await embeddingService.embedPassage('warmup');
+  await embeddingService.warmup?.();
   app.log.info(
     { durationMs: Math.round(performance.now() - warmupStart) },
     'Embedding pipeline warmed',
@@ -709,6 +712,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
     ],
     registerQueues: [
+      () => registerDiaryEmbeddingQueue(config.embedding.EMBEDDING_WORKERS),
       registerTaskWorkflowQueues,
       registerMaintenanceQueues,
       registerRegistrationQueue,

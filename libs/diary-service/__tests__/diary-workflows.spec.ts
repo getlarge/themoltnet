@@ -7,28 +7,43 @@ import type {
   EmbeddingService,
   RelationshipWriter,
 } from '../src/index.js';
+import type { diaryWorkflows as WorkflowCollection } from '../src/workflows/diary-workflows.js';
 
 // ── DBOS mock ──────────────────────────────────────────────────────
-const { mockRegisterStep, mockRegisterWorkflow, mockRunTransaction } =
-  vi.hoisted(() => {
-    // registerStep returns a callable that just invokes the original fn
-    const mockRegisterStep = vi.fn().mockImplementation((fn) => fn);
-    // registerWorkflow returns a callable that just invokes the original fn
-    const mockRegisterWorkflow = vi.fn().mockImplementation((fn) => fn);
-    const mockRunTransaction = vi.fn().mockImplementation(async (fn) => fn());
+const {
+  mockRegisterStep,
+  mockRegisterWorkflow,
+  mockRunTransaction,
+  mockStartWorkflow,
+  mockEnqueue,
+} = vi.hoisted(() => {
+  // registerStep returns a callable that just invokes the original fn
+  const mockRegisterStep = vi.fn().mockImplementation((fn) => fn);
+  // registerWorkflow returns a callable that just invokes the original fn
+  const mockRegisterWorkflow = vi.fn().mockImplementation((fn) => fn);
+  const mockRunTransaction = vi.fn().mockImplementation(async (fn) => fn());
 
-    return { mockRegisterStep, mockRegisterWorkflow, mockRunTransaction };
-  });
+  const mockStartWorkflow = vi.fn();
+  const mockEnqueue = vi.fn();
+  return {
+    mockRegisterStep,
+    mockRegisterWorkflow,
+    mockRunTransaction,
+    mockStartWorkflow,
+    mockEnqueue,
+  };
+});
 
 vi.mock('@moltnet/database', () => ({
   DBOS: {
+    logger: { warn: vi.fn() },
+    startWorkflow: mockStartWorkflow,
     registerStep: mockRegisterStep,
     registerWorkflow: mockRegisterWorkflow,
   },
 }));
 
 const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
-const GENERATED_ID = '880e8400-e29b-41d4-a716-446655440003';
 const DIARY_ID = '990e8400-e29b-41d4-a716-446655440004';
 
 const MOCK_EMBEDDING = Array.from({ length: 384 }, (_, i) => i * 0.001);
@@ -62,6 +77,8 @@ function createMockDiaryEntryRepository(): {
   [K in keyof DiaryEntryRepository]: ReturnType<typeof vi.fn>;
 } {
   return {
+    needsEmbedding: vi.fn(),
+    saveEmbedding: vi.fn(),
     create: vi.fn(),
     findById: vi.fn(),
     list: vi.fn(),
@@ -139,318 +156,186 @@ describe('Diary Workflows', () => {
   let repo: ReturnType<typeof createMockDiaryEntryRepository>;
   let writer: ReturnType<typeof createMockRelationshipWriter>;
   let embeddings: ReturnType<typeof createMockEmbeddingService>;
+  let workflows: typeof WorkflowCollection;
+  let enrich: (
+    input: DiaryEntry,
+    jobId: string,
+    attempt?: number,
+  ) => Promise<void>;
 
-  // We need to reset the workflow module state for each test
-  // because initDiaryWorkflows is idempotent
   beforeEach(async () => {
     vi.clearAllMocks();
-    // Reset the module to force re-init
     vi.resetModules();
-
     repo = createMockDiaryEntryRepository();
     writer = createMockRelationshipWriter();
     embeddings = createMockEmbeddingService();
+    embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
+    repo.needsEmbedding.mockResolvedValue(true);
+    repo.saveEmbedding.mockResolvedValue(true);
     mockRunTransaction.mockImplementation(async (fn) => fn());
-
-    // Dynamically import to get fresh module state
-    const { setDiaryWorkflowDeps, initDiaryWorkflows } =
-      await import('../src/workflows/diary-workflows.js');
-
-    setDiaryWorkflowDeps({
+    mockStartWorkflow.mockImplementation(() => mockEnqueue);
+    mockEnqueue.mockResolvedValue({ getResult: vi.fn() });
+    const module = await import('../src/workflows/diary-workflows.js');
+    module.setDiaryWorkflowDeps({
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
-      transactionRunner: {
-        runInTransaction: mockRunTransaction,
-      },
+      transactionRunner: { runInTransaction: mockRunTransaction },
     });
-
-    initDiaryWorkflows();
+    module.initDiaryWorkflows();
+    workflows = module.diaryWorkflows;
+    enrich = mockRegisterWorkflow.mock.calls.find(
+      (call) => call[1].name === 'diary.embed',
+    )![0];
   });
 
-  describe('diary.create', () => {
-    it('creates entry with embedding and links to parent diary', async () => {
-      const mockEntry = createMockEntry({ id: GENERATED_ID });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.create.mockResolvedValue(mockEntry);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.createEntry({
-        diaryId: DIARY_ID,
-        creator: { kind: 'agent', id: ENTRY_ID },
-        content: 'Test diary entry content',
-        contentHash: computeContentCid(
-          'semantic',
-          null,
-          'Test diary entry content',
-          null,
-        ),
-      });
-
-      expect(result).toEqual(mockEntry);
-      expect(embeddings.embedPassage).toHaveBeenCalledWith(
-        'Test diary entry content',
-      );
-      expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          diaryId: DIARY_ID,
-          creatorAgentId: ENTRY_ID,
-          creatorHumanId: null,
-          content: 'Test diary entry content',
-          contentHash: computeContentCid(
-            'semantic',
-            null,
-            'Test diary entry content',
-            null,
-          ),
-          embedding: MOCK_EMBEDDING,
-          injectionRisk: false,
-        }),
-      );
-      expect(writer.grantEntryParent).toHaveBeenCalledWith(
-        mockEntry.id,
-        DIARY_ID,
-      );
+  it('returns a readable entry after durable handoff, without running inference', async () => {
+    const entry = createMockEntry();
+    repo.create.mockResolvedValue(entry);
+    const result = await workflows.createEntry({
+      diaryId: DIARY_ID,
+      creator: { kind: 'agent', id: ENTRY_ID },
+      content: entry.content,
+      contentHash: computeContentCid('semantic', null, entry.content, null),
     });
-
-    it('includes title and tags in embedding text', async () => {
-      const mockEntry = createMockEntry({
-        id: GENERATED_ID,
-        title: 'Deploy Log',
-        tags: ['deploy'],
-      });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.create.mockResolvedValue(mockEntry);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await diaryWorkflows.createEntry({
-        diaryId: DIARY_ID,
-        creator: { kind: 'agent', id: ENTRY_ID },
-        content: 'Deployed v3',
-        title: 'Deploy Log',
-        tags: ['deploy'],
-        contentHash: computeContentCid(
-          'semantic',
-          'Deploy Log',
-          'Deployed v3',
-          ['deploy'],
-        ),
-      });
-
-      expect(embeddings.embedPassage).toHaveBeenCalledWith(
-        'Deploy Log\nDeployed v3\ntag:deploy',
-      );
+    expect(result).toEqual(entry);
+    expect(embeddings.embedPassage).not.toHaveBeenCalled();
+    expect(writer.grantEntryParent).toHaveBeenCalledWith(entry.id, DIARY_ID);
+    expect(mockStartWorkflow).toHaveBeenCalledWith(enrich, {
+      workflowID: expect.stringMatching(/^diary-embedding:/),
+      queueName: 'diary-embeddings',
+      timeoutMS: null,
     });
-
-    it('persists importance and entryType when provided', async () => {
-      const mockEntry = createMockEntry({
-        id: GENERATED_ID,
-        importance: 9,
-        entryType: 'semantic',
-      });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.create.mockResolvedValue(mockEntry);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await diaryWorkflows.createEntry({
-        diaryId: DIARY_ID,
-        creator: { kind: 'agent', id: ENTRY_ID },
-        content: 'Core values',
-        importance: 9,
-        entryType: 'semantic',
-        contentHash: computeContentCid('semantic', null, 'Core values', null),
-      });
-
-      expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          diaryId: DIARY_ID,
-          content: 'Core values',
-          importance: 9,
-          entryType: 'semantic',
-        }),
-      );
-    });
-
-    it('creates entry without embedding if embedding service fails', async () => {
-      const mockEntry = createMockEntry();
-      embeddings.embedPassage.mockRejectedValue(new Error('Embedding failed'));
-      repo.create.mockResolvedValue(mockEntry);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.createEntry({
-        diaryId: DIARY_ID,
-        creator: { kind: 'agent', id: ENTRY_ID },
-        content: 'Test content',
-        contentHash: computeContentCid('semantic', null, 'Test content', null),
-      });
-
-      expect(result).toEqual(mockEntry);
-      expect(repo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          embedding: undefined,
-          contentHash: computeContentCid(
-            'semantic',
-            null,
-            'Test content',
-            null,
-          ),
-        }),
-      );
-    });
-
-    it('compensates by deleting entry when grantEntryParent fails', async () => {
-      const mockEntry = createMockEntry();
-      embeddings.embedPassage.mockResolvedValue([]);
-      repo.create.mockResolvedValue(mockEntry);
-      writer.grantEntryParent.mockRejectedValue(new Error('Keto unavailable'));
-      repo.delete.mockResolvedValue(true);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await expect(
-        diaryWorkflows.createEntry({
-          diaryId: DIARY_ID,
-          creator: { kind: 'agent', id: ENTRY_ID },
-          content: 'Test content',
-          contentHash: computeContentCid(
-            'semantic',
-            null,
-            'Test content',
-            null,
-          ),
-        }),
-      ).rejects.toThrow('Failed to link entry to diary after creation');
-
-      // Verify compensation: entry was deleted
-      expect(repo.delete).toHaveBeenCalledWith(mockEntry.id);
-    });
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      { id: entry.id, content: entry.content, title: null, tags: null },
+      expect.any(String),
+    );
+    expect(writer.grantEntryParent.mock.invocationCallOrder[0]).toBeLessThan(
+      mockStartWorkflow.mock.invocationCallOrder[0],
+    );
   });
 
-  describe('diary.update', () => {
-    it('regenerates embedding with existing title when only content changes', async () => {
-      const updated = createMockEntry({
-        content: 'New content',
-        embedding: MOCK_EMBEDDING,
-      });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.update.mockResolvedValue(updated);
+  it('does not acknowledge a failed handoff', async () => {
+    repo.create.mockResolvedValue(createMockEntry());
+    mockEnqueue.mockRejectedValue(new Error('enqueue failed'));
+    await expect(
+      workflows.createEntry({
+        diaryId: DIARY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
+        content: 'x',
+        contentHash: 'cid',
+      }),
+    ).rejects.toThrow('enqueue failed');
+  });
 
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
+  it('compensates a failed Keto link without enqueuing enrichment', async () => {
+    repo.create.mockResolvedValue(createMockEntry());
+    writer.grantEntryParent.mockRejectedValue(new Error('Keto unavailable'));
+    await expect(
+      workflows.createEntry({
+        diaryId: DIARY_ID,
+        creator: { kind: 'agent', id: ENTRY_ID },
+        content: 'x',
+        contentHash: 'cid',
+      }),
+    ).rejects.toThrow('Failed to link entry');
+    expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID);
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
+  });
 
-      const result = await diaryWorkflows.updateEntry(
+  it.each([{ content: 'new' }, { title: 'new' }, { tags: ['new'] }])(
+    'invalidates the vector and schedules the persisted snapshot on edit %j',
+    async (updates) => {
+      const entry = createMockEntry({ ...updates });
+      repo.update.mockResolvedValue(entry);
+      await workflows.updateEntry(
         ENTRY_ID,
-        { content: 'New content' },
-        'Old content',
-        'Old title',
-      );
-
-      expect(result).toEqual(updated);
-      // existingTitle is preserved in the embedding text
-      expect(embeddings.embedPassage).toHaveBeenCalledWith(
-        'Old title\nNew content',
+        updates,
+        'stale content',
+        'stale title',
+        ['stale'],
       );
       expect(repo.update).toHaveBeenCalledWith(
         ENTRY_ID,
-        expect.objectContaining({
-          content: 'New content',
-          embedding: MOCK_EMBEDDING,
-          injectionRisk: false,
-        }),
+        expect.objectContaining({ ...updates, embedding: null }),
       );
-    });
-
-    it('regenerates embedding when only tags change', async () => {
-      const updated = createMockEntry({ tags: ['new-tag'] });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.update.mockResolvedValue(updated);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await diaryWorkflows.updateEntry(
-        ENTRY_ID,
-        { tags: ['new-tag'] },
-        'Original content',
-        null,
-        ['old-tag'],
+      expect(mockEnqueue).toHaveBeenCalledWith(
+        {
+          id: entry.id,
+          content: entry.content,
+          title: entry.title,
+          tags: entry.tags,
+        },
+        expect.any(String),
       );
-
-      expect(embeddings.embedPassage).toHaveBeenCalledWith(
-        'Original content\ntag:new-tag',
-      );
-    });
-
-    it('regenerates embedding when only title changes', async () => {
-      const updated = createMockEntry({ title: 'New Title' });
-      embeddings.embedPassage.mockResolvedValue(MOCK_EMBEDDING);
-      repo.update.mockResolvedValue(updated);
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await diaryWorkflows.updateEntry(
-        ENTRY_ID,
-        { title: 'New Title' },
-        'Body text',
-        'Old Title',
-      );
-
-      expect(embeddings.embedPassage).toHaveBeenCalledWith(
-        'New Title\nBody text',
-      );
-    });
-
-    it('does not regenerate embedding when only metadata changes', async () => {
-      repo.update.mockResolvedValue(
-        createMockEntry({ importance: 9, entryType: 'semantic' }),
-      );
-
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      await diaryWorkflows.updateEntry(ENTRY_ID, {
-        importance: 9,
-        entryType: 'semantic',
-      });
-
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
-    });
+    },
+  );
+
+  it('leaves metadata-only edits out of the inference queue', async () => {
+    repo.update.mockResolvedValue(createMockEntry());
+    await workflows.updateEntry(ENTRY_ID, { importance: 9 });
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
   });
 
-  describe('diary.delete', () => {
-    it('deletes entry and removes Keto relations', async () => {
-      repo.delete.mockResolvedValue(true);
+  it('embeds title, body and tags in a background workflow and saves with CAS', async () => {
+    const entry = createMockEntry({ title: 'Title', tags: ['tag'] });
+    await enrich(entry, 'job');
+    expect(embeddings.embedPassage).toHaveBeenCalledWith(
+      'Title\n' + entry.content + '\ntag:tag',
+    );
+    expect(repo.saveEmbedding).toHaveBeenCalledWith(entry, MOCK_EMBEDDING);
+  });
 
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
+  it('skips inference for deleted, superseded, or already embedded inputs', async () => {
+    repo.needsEmbedding.mockResolvedValue(false);
+    await enrich(createMockEntry(), 'job');
+    expect(embeddings.embedPassage).not.toHaveBeenCalled();
+  });
 
-      const result = await diaryWorkflows.deleteEntry(ENTRY_ID);
+  it('treats a lost CAS during inference as superseded work', async () => {
+    repo.saveEmbedding.mockResolvedValue(false);
+    await enrich(createMockEntry(), 'job');
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
+  });
 
-      expect(result).toBe(true);
-      expect(repo.delete).toHaveBeenCalledWith(ENTRY_ID);
-      expect(writer.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
-    });
+  it.each([new Error('model unavailable'), [], [NaN]])(
+    'durably delays failed or invalid inference without occupying a queue slot: %j',
+    async (failure) => {
+      if (failure instanceof Error)
+        embeddings.embedPassage.mockRejectedValue(failure);
+      else embeddings.embedPassage.mockResolvedValue(failure);
+      await enrich(createMockEntry(), 'job', 10);
+      expect(repo.saveEmbedding).not.toHaveBeenCalled();
+      expect(mockStartWorkflow).toHaveBeenCalledWith(enrich, {
+        workflowID: expect.stringMatching(/^diary-embedding:/),
+        queueName: 'diary-embeddings',
+        timeoutMS: null,
+        enqueueOptions: { delaySeconds: 300 },
+      });
+      expect(mockEnqueue).toHaveBeenCalledWith(createMockEntry(), 'job', 11);
+    },
+  );
 
-    it('skips Keto cleanup when entry does not exist', async () => {
-      repo.delete.mockResolvedValue(false);
+  it.each(['check', 'persist'])(
+    'durably retries database failures during %s',
+    async (phase) => {
+      const failing =
+        phase === 'check' ? repo.needsEmbedding : repo.saveEmbedding;
+      failing.mockRejectedValueOnce(new Error('temporary database failure'));
+      await enrich(createMockEntry(), 'job');
+      expect(mockStartWorkflow).toHaveBeenCalledWith(enrich, {
+        workflowID: 'diary-embedding:job:1',
+        queueName: 'diary-embeddings',
+        timeoutMS: null,
+        enqueueOptions: { delaySeconds: 5 },
+      });
+    },
+  );
 
-      const { diaryWorkflows } =
-        await import('../src/workflows/diary-workflows.js');
-
-      const result = await diaryWorkflows.deleteEntry(ENTRY_ID);
-
-      expect(result).toBe(false);
-      expect(writer.removeEntryRelations).not.toHaveBeenCalled();
-    });
+  it('deletes the row before removing Keto relations', async () => {
+    repo.delete.mockResolvedValue(true);
+    expect(await workflows.deleteEntry(ENTRY_ID)).toBe(true);
+    expect(writer.removeEntryRelations).toHaveBeenCalledWith(ENTRY_ID);
   });
 });
