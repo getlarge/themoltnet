@@ -101,6 +101,8 @@ export function createEmbeddingService(
       ? createWorkerEmbedder(
           {
             modulePath: options?.transformersModulePath,
+            workers: options?.workers,
+            maxQueue: options?.maxQueue,
             modelId,
             quantization,
             localModelPath: cacheDir ? toLocalModelPath(cacheDir) : undefined,
@@ -160,6 +162,13 @@ export function createEmbeddingService(
     },
     async embedQuery(text: string): Promise<number[]> {
       return embed(`query: ${text}`);
+    },
+    async warmup(): Promise<void> {
+      await Promise.all(
+        Array.from({ length: options?.workers ?? 1 }, () =>
+          embed('passage: warmup'),
+        ),
+      );
     },
     async close(): Promise<void> {
       await worker?.close();

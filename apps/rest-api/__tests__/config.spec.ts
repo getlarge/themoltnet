@@ -47,6 +47,32 @@ const validEnv = {
 // ServerConfig
 // ============================================================================
 
+describe('embedding pool configuration', () => {
+  it('defaults to one process and a bounded queue', () => {
+    expect(loadConfig(validEnv).embedding).toMatchObject({
+      EMBEDDING_WORKERS: 1,
+      EMBEDDING_MAX_QUEUE: 64,
+    });
+  });
+  it('coerces pool overrides from environment strings', () => {
+    expect(
+      loadConfig({
+        ...validEnv,
+        EMBEDDING_WORKERS: '2',
+        EMBEDDING_MAX_QUEUE: '16',
+      }).embedding,
+    ).toMatchObject({ EMBEDDING_WORKERS: 2, EMBEDDING_MAX_QUEUE: 16 });
+  });
+  it.each([
+    { EMBEDDING_WORKERS: '0' },
+    { EMBEDDING_WORKERS: '9' },
+    { EMBEDDING_WORKERS: '1.5' },
+    { EMBEDDING_MAX_QUEUE: '0' },
+  ])('rejects invalid pool bounds %j', (overrides) => {
+    expect(() => loadConfig({ ...validEnv, ...overrides })).toThrow();
+  });
+});
+
 describe('loadServerConfig', () => {
   it('parses valid config', () => {
     const config = loadServerConfig({ PORT: '3000', NODE_ENV: 'production' });

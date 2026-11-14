@@ -69,6 +69,7 @@ auditConfig:
   ignoreGhsas:
     - GHSA-848j-6mx2-7j84
 catalog:
+  workerpool: 10.0.3
   '@andersmyrmel/vard': '^1.2.0'
   '@axe-core/webdriverio': '^4.13.0'
   '@commitlint/cli': '^20.1.0'

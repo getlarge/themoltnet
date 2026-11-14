@@ -10,6 +10,10 @@ export interface EmbeddingLogger {
 }
 
 export interface EmbeddingServiceOptions {
+  /** Fixed inference pool size. Each member loads a separate model (default: 1). */
+  workers?: number;
+  /** Maximum waiting in-memory inference calls (default: 64). Overflow rejects. */
+  maxQueue?: number;
   modelId?: string;
   dimensions?: number;
   quantization?: 'q8' | 'q4' | 'fp32' | 'fp16';
@@ -34,6 +38,8 @@ export interface EmbeddingServiceOptions {
 export interface EmbeddingService {
   embedPassage(text: string): Promise<number[]>;
   embedQuery(text: string): Promise<number[]>;
+  /** Load the model in every configured pool worker before serving traffic. */
+  warmup?(): Promise<void>;
   /** Release resources (the inference worker). Later calls reject. */
   close?(): Promise<void>;
 }

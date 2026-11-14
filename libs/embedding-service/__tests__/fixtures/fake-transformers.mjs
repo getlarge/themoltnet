@@ -23,6 +23,7 @@ export async function pipeline(_task, modelId) {
     if (text.includes('throw')) throw new Error('inference failed');
     const vector = Array.from({ length: 384 }, () => 0);
     vector[text.startsWith('query: ') ? 1 : 0] = 2;
+    if (text.includes('thread')) vector[0] = process.pid;
     return { tolist: () => [vector] };
   };
 }
