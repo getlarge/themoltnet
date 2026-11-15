@@ -280,6 +280,8 @@ describe('DiaryService (DBOS integration)', () => {
 
     // Wire diary workflow deps through the DBOS-backed transaction runner.
     setDiaryWorkflowDeps({
+      enqueueWorkflowInCurrentTransaction: (input) =>
+        enqueueWorkflowInCurrentTransaction(db, input),
       diaryEntryRepository: dbSetup.repo,
       relationshipWriter:
         mockRelationshipWriter as unknown as RelationshipWriter,

@@ -638,6 +638,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       (workflowTransactionRunner) => {
         setDiaryWorkflowDeps({
+          enqueueWorkflowInCurrentTransaction: (input) =>
+            enqueueDbosWorkflowInCurrentTransaction(dbConnection.db, input),
           diaryEntryRepository,
           relationshipWriter,
           embeddingService,

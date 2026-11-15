@@ -19,6 +19,8 @@ import { type RelationshipWriter } from '@moltnet/auth';
 import {
   DBOS,
   type DiaryEntryRepository,
+  type TransactionalWorkflowEnqueueInput,
+  type TransactionalWorkflowEnqueueResult,
   type TransactionRunner,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
@@ -57,6 +59,9 @@ export interface DiaryWorkflowDeps {
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
   transactionRunner: TransactionRunner;
+  enqueueWorkflowInCurrentTransaction(
+    input: TransactionalWorkflowEnqueueInput,
+  ): Promise<TransactionalWorkflowEnqueueResult>;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -80,6 +85,7 @@ function getDeps(): DiaryWorkflowDeps {
 // ── Retry Configuration ────────────────────────────────────────
 
 export const DIARY_EMBEDDING_QUEUE = 'diary-embeddings';
+const DIARY_EMBEDDING_MAX_ATTEMPTS = 10;
 
 /** Persist after DBOS launch and before accepting requests. */
 export async function registerDiaryEmbeddingQueue(
@@ -181,7 +187,7 @@ export function initDiaryWorkflows(): void {
 
   // A failed attempt hands off to a delayed durable child instead of holding
   // a queue slot asleep. Transient failures never silently discard embeddings;
-  // repeated failures remain visible as DELAYED jobs and step error logs.
+  // permanent failures stop in ERROR after a bounded number of attempts.
   const enrichEntry: (
     input: EmbeddingInput,
     jobId: string,
@@ -207,6 +213,18 @@ export function initDiaryWorkflows(): void {
           { name: 'diary.embedding.persist' },
         );
       } catch (err) {
+        if (attempt + 1 >= DIARY_EMBEDDING_MAX_ATTEMPTS) {
+          DBOS.logger.error({
+            message: 'Diary embedding retries exhausted',
+            entryId: input.id,
+            jobId,
+            attempts: attempt + 1,
+          });
+          throw new Error(
+            `Diary embedding failed after ${DIARY_EMBEDDING_MAX_ATTEMPTS} attempts`,
+            { cause: err },
+          );
+        }
         DBOS.logger.warn({
           message: 'Diary embedding deferred',
           entryId: input.id,
@@ -229,21 +247,26 @@ export function initDiaryWorkflows(): void {
     { name: 'diary.embed' },
   );
 
-  async function scheduleEmbedding(entry: DiaryEntry): Promise<void> {
-    const jobId = await generateIdStep();
-    await DBOS.startWorkflow(enrichEntry, {
-      workflowID: `diary-embedding:${jobId}:0`,
+  // The DBOS SQL UDF joins the repository transaction; no SDK workflow call
+  // runs inside it. A failed enqueue rolls back content and vector invalidation.
+  async function enqueueEmbedding(
+    entry: DiaryEntry,
+    jobId: string,
+  ): Promise<void> {
+    await getDeps().enqueueWorkflowInCurrentTransaction({
+      workflowName: 'diary.embed',
       queueName: DIARY_EMBEDDING_QUEUE,
-      timeoutMS: null,
-    })(
-      {
-        id: entry.id,
-        content: entry.content,
-        title: entry.title,
-        tags: entry.tags,
-      },
-      jobId,
-    );
+      workflowId: `diary-embedding:${jobId}:0`,
+      positionalArgs: [
+        {
+          id: entry.id,
+          content: entry.content,
+          title: entry.title,
+          tags: entry.tags,
+        },
+        jobId,
+      ],
+    });
   }
 
   _workflows = {
@@ -252,13 +275,14 @@ export function initDiaryWorkflows(): void {
         const { diaryEntryRepository, transactionRunner } = getDeps();
 
         const entryId = await generateIdStep();
+        const embeddingJobId = await generateIdStep();
         const resolvedEntryType = input.entryType ?? 'semantic';
         const { injectionRisk, threats: injectionThreats } =
           await scanInjectionStep(input.content, input.title);
 
         const entry = await transactionRunner.runInTransaction(
           async () => {
-            return diaryEntryRepository.create({
+            const created = await diaryEntryRepository.create({
               id: entryId,
               diaryId: input.diaryId,
               creatorAgentId:
@@ -276,6 +300,8 @@ export function initDiaryWorkflows(): void {
               contentSignature: input.contentSignature,
               signingNonce: input.signingNonce,
             });
+            await enqueueEmbedding(created, embeddingJobId);
+            return created;
           },
           { name: 'diary.create.persist' },
         );
@@ -291,7 +317,6 @@ export function initDiaryWorkflows(): void {
           throw new Error('Failed to link entry to diary after creation');
         }
 
-        await scheduleEmbedding(entry);
         return entry;
       },
       { name: 'diary.create' },
@@ -329,13 +354,17 @@ export function initDiaryWorkflows(): void {
           repoUpdates.embedding = null;
         }
 
-        const entry = await transactionRunner.runInTransaction(
-          () => diaryEntryRepository.update(id, repoUpdates),
+        const embeddingJobId =
+          repoUpdates.embedding === null ? await generateIdStep() : null;
+        return transactionRunner.runInTransaction(
+          async () => {
+            const entry = await diaryEntryRepository.update(id, repoUpdates);
+            if (entry && embeddingJobId)
+              await enqueueEmbedding(entry, embeddingJobId);
+            return entry;
+          },
           { name: 'diary.update.persist' },
         );
-        if (entry && repoUpdates.embedding === null)
-          await scheduleEmbedding(entry);
-        return entry;
       },
       { name: 'diary.update' },
     ),

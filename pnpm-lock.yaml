@@ -1831,6 +1831,9 @@ importers:
 
   apps/rest-api-e2e:
     dependencies:
+      '@dbos-inc/dbos-sdk':
+        specifier: 'catalog:'
+        version: 4.27.6
       '@moltnet/agent-key-service':
         specifier: workspace:*
         version: link:../../libs/agent-key-service

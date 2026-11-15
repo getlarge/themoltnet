@@ -16,6 +16,7 @@ const {
   mockRunTransaction,
   mockStartWorkflow,
   mockEnqueue,
+  mockTransactionalEnqueue,
 } = vi.hoisted(() => {
   // registerStep returns a callable that just invokes the original fn
   const mockRegisterStep = vi.fn().mockImplementation((fn) => fn);
@@ -25,18 +26,20 @@ const {
 
   const mockStartWorkflow = vi.fn();
   const mockEnqueue = vi.fn();
+  const mockTransactionalEnqueue = vi.fn();
   return {
     mockRegisterStep,
     mockRegisterWorkflow,
     mockRunTransaction,
     mockStartWorkflow,
     mockEnqueue,
+    mockTransactionalEnqueue,
   };
 });
 
 vi.mock('@moltnet/database', () => ({
   DBOS: {
-    logger: { warn: vi.fn() },
+    logger: { warn: vi.fn(), error: vi.fn() },
     startWorkflow: mockStartWorkflow,
     registerStep: mockRegisterStep,
     registerWorkflow: mockRegisterWorkflow,
@@ -173,10 +176,12 @@ describe('Diary Workflows', () => {
     repo.needsEmbedding.mockResolvedValue(true);
     repo.saveEmbedding.mockResolvedValue(true);
     mockRunTransaction.mockImplementation(async (fn) => fn());
+    mockTransactionalEnqueue.mockResolvedValue({ workflowId: 'queued' });
     mockStartWorkflow.mockImplementation(() => mockEnqueue);
     mockEnqueue.mockResolvedValue({ getResult: vi.fn() });
     const module = await import('../src/workflows/diary-workflows.js');
     module.setDiaryWorkflowDeps({
+      enqueueWorkflowInCurrentTransaction: mockTransactionalEnqueue,
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
@@ -201,23 +206,24 @@ describe('Diary Workflows', () => {
     expect(result).toEqual(entry);
     expect(embeddings.embedPassage).not.toHaveBeenCalled();
     expect(writer.grantEntryParent).toHaveBeenCalledWith(entry.id, DIARY_ID);
-    expect(mockStartWorkflow).toHaveBeenCalledWith(enrich, {
-      workflowID: expect.stringMatching(/^diary-embedding:/),
+    expect(mockTransactionalEnqueue).toHaveBeenCalledWith({
+      workflowName: 'diary.embed',
       queueName: 'diary-embeddings',
-      timeoutMS: null,
+      workflowId: expect.stringMatching(/^diary-embedding:/),
+      positionalArgs: [
+        { id: entry.id, content: entry.content, title: null, tags: null },
+        expect.any(String),
+      ],
     });
-    expect(mockEnqueue).toHaveBeenCalledWith(
-      { id: entry.id, content: entry.content, title: null, tags: null },
-      expect.any(String),
+    expect(mockTransactionalEnqueue.mock.invocationCallOrder[0]).toBeLessThan(
+      writer.grantEntryParent.mock.invocationCallOrder[0],
     );
-    expect(writer.grantEntryParent.mock.invocationCallOrder[0]).toBeLessThan(
-      mockStartWorkflow.mock.invocationCallOrder[0],
-    );
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
   });
 
   it('does not acknowledge a failed handoff', async () => {
     repo.create.mockResolvedValue(createMockEntry());
-    mockEnqueue.mockRejectedValue(new Error('enqueue failed'));
+    mockTransactionalEnqueue.mockRejectedValueOnce(new Error('enqueue failed'));
     await expect(
       workflows.createEntry({
         diaryId: DIARY_ID,
@@ -226,9 +232,10 @@ describe('Diary Workflows', () => {
         contentHash: 'cid',
       }),
     ).rejects.toThrow('enqueue failed');
+    expect(writer.grantEntryParent).not.toHaveBeenCalled();
   });
 
-  it('compensates a failed Keto link without enqueuing enrichment', async () => {
+  it('compensates a failed Keto link after atomic enrichment enqueue', async () => {
     repo.create.mockResolvedValue(createMockEntry());
     writer.grantEntryParent.mockRejectedValue(new Error('Keto unavailable'));
     await expect(
@@ -259,14 +266,18 @@ describe('Diary Workflows', () => {
         ENTRY_ID,
         expect.objectContaining({ ...updates, embedding: null }),
       );
-      expect(mockEnqueue).toHaveBeenCalledWith(
-        {
-          id: entry.id,
-          content: entry.content,
-          title: entry.title,
-          tags: entry.tags,
-        },
-        expect.any(String),
+      expect(mockTransactionalEnqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          positionalArgs: [
+            {
+              id: entry.id,
+              content: entry.content,
+              title: entry.title,
+              tags: entry.tags,
+            },
+            expect.any(String),
+          ],
+        }),
       );
       expect(embeddings.embedPassage).not.toHaveBeenCalled();
     },
@@ -276,6 +287,7 @@ describe('Diary Workflows', () => {
     repo.update.mockResolvedValue(createMockEntry());
     await workflows.updateEntry(ENTRY_ID, { importance: 9 });
     expect(mockStartWorkflow).not.toHaveBeenCalled();
+    expect(mockTransactionalEnqueue).not.toHaveBeenCalled();
   });
 
   it('embeds title, body and tags in a background workflow and saves with CAS', async () => {
@@ -305,7 +317,7 @@ describe('Diary Workflows', () => {
       if (failure instanceof Error)
         embeddings.embedPassage.mockRejectedValue(failure);
       else embeddings.embedPassage.mockResolvedValue(failure);
-      await enrich(createMockEntry(), 'job', 10);
+      await enrich(createMockEntry(), 'job', 6);
       expect(repo.saveEmbedding).not.toHaveBeenCalled();
       expect(mockStartWorkflow).toHaveBeenCalledWith(enrich, {
         workflowID: expect.stringMatching(/^diary-embedding:/),
@@ -313,7 +325,7 @@ describe('Diary Workflows', () => {
         timeoutMS: null,
         enqueueOptions: { delaySeconds: 300 },
       });
-      expect(mockEnqueue).toHaveBeenCalledWith(createMockEntry(), 'job', 11);
+      expect(mockEnqueue).toHaveBeenCalledWith(createMockEntry(), 'job', 7);
     },
   );
 
@@ -332,6 +344,38 @@ describe('Diary Workflows', () => {
       });
     },
   );
+
+  it('stops in ERROR after ten failed attempts without scheduling another job', async () => {
+    embeddings.embedPassage.mockRejectedValue(new Error('permanent failure'));
+    await expect(enrich(createMockEntry(), 'job', 9)).rejects.toThrow(
+      'failed after 10 attempts',
+    );
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('runs the initial enqueue inside the entry transaction', async () => {
+    let active = false;
+    mockRunTransaction.mockImplementation(async (fn) => {
+      active = true;
+      try {
+        return await fn();
+      } finally {
+        active = false;
+      }
+    });
+    mockTransactionalEnqueue.mockImplementation(() => {
+      expect(active).toBe(true);
+      return Promise.resolve({ workflowId: 'queued' });
+    });
+    repo.create.mockResolvedValue(createMockEntry());
+    await workflows.createEntry({
+      diaryId: DIARY_ID,
+      creator: { kind: 'agent', id: ENTRY_ID },
+      content: 'x',
+      contentHash: 'cid',
+    });
+    expect(mockTransactionalEnqueue).toHaveBeenCalledOnce();
+  });
 
   it('deletes the row before removing Keto relations', async () => {
     repo.delete.mockResolvedValue(true);

@@ -5,6 +5,7 @@ import {
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   DBOS,
+  enqueueWorkflowInCurrentTransaction,
   getDataSource,
   initDBOS,
   launchDBOS,
@@ -25,6 +26,8 @@ initDiaryWorkflows();
 await initDBOS({ databaseUrl, systemDatabaseUrl: databaseUrl });
 const pause = () => new Promise<never>(() => {});
 setDiaryWorkflowDeps({
+  enqueueWorkflowInCurrentTransaction: (input) =>
+    enqueueWorkflowInCurrentTransaction(db, input),
   diaryEntryRepository: createDiaryEntryRepository(db),
   transactionRunner: createDBOSTransactionRunner(getDataSource()),
   relationshipWriter: {
