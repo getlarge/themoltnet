@@ -251,7 +251,7 @@ jobs:
             throw new Error('Invalid packaged review dependency manifest');
           }
           const version = process.env.REQUESTED_DAEMON_VERSION || release.daemonVersion;
-          if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) throw new Error('daemon-version must be an exact version');
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('daemon-version must be an exact stable version (major.minor.patch)');
           appendFileSync(process.env.GITHUB_OUTPUT, `daemon-version=${version}\n`);
           JS
       - name: Configure review database

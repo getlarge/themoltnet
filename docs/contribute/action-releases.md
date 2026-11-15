@@ -195,11 +195,14 @@ Consumer synchronization is a separate job after all pin producers finish. It
 runs on the same legacy triggers, including an exact-version manual retry, and
 can still run when discovery or publication fails. Cancelled runs do not
 synchronize pins. It prefers an existing open Release Please PR, then an open
-`automation/published-consumer-pins-*` PR. If neither exists and eligible pins
-change, it creates a draft consumer PR from `main`. It creates no PR when there
-is nothing to update. If a push succeeds but PR creation is interrupted, a retry
-reuses that run's pushed branch and opens the missing draft without creating
-another commit or release.
+`automation/published-consumer-pins-*` PR. Reused PRs must belong to this
+repository and be authored by the configured Release App. If neither exists and
+eligible pins change, it creates a draft consumer PR from `main`. It creates no
+PR when there is nothing to update. If a push succeeds but PR creation is
+interrupted, a retry regenerates the update from `main` and checks that the
+pushed commit has exactly that tree and parent before opening the missing draft.
+A mismatch stops synchronization for manual inspection; a matching retry creates
+no extra commit or release.
 
 | Consumer family         | Candidate and eligibility                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------------------- |
@@ -218,8 +221,8 @@ These edits reach consumers only after their PR merges. The job attempts each
 family independently, refreshes runtime locks after all successful changes, and
 pushes to an existing PR only if its head has not changed. One failed family
 does not discard successful independent updates. The job reports those failures
-after committing, so they remain visible. Release Please itself no longer fails
-because a consumer candidate is unavailable.
+after committing, so they remain visible. Release Please runs independently of
+consumer synchronization; an unavailable consumer candidate does not block it.
 
 `packages/adaptive-review-action/runtime.lock` hashes runtime inputs outside the
 action package, including `.github/workflows/adaptive-review-reusable.yml`,

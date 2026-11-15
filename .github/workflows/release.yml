@@ -909,30 +909,25 @@ jobs:
         id: pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BOT_LOGIN: app/${{ steps.app-token.outputs.app-slug }}
         run: |
-          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head release-please--branches--main --state open --json number --jq '.[0].number // empty')
-          branch=release-please--branches--main
-          if [ -z "$number" ]; then
-            existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --state open --json number,headRefName --jq '[.[] | select(.headRefName | startswith("automation/published-consumer-pins-"))][0] // empty')
-            branch="automation/published-consumer-pins-$GITHUB_RUN_ID"
-            if [ -n "$existing" ]; then
-              number=$(jq -r .number <<< "$existing")
-              branch=$(jq -r .headRefName <<< "$existing")
-            fi
+          : "${BOT_LOGIN:?Release App login is required}"
+          candidates=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --state open --limit 100 --json number,headRefName,author,isCrossRepository)
+          selected=$(jq -c --arg bot "$BOT_LOGIN" '[.[] |
+            select(.author.login == $bot and .author.is_bot == true and .isCrossRepository == false) |
+            select(.headRefName == "release-please--branches--main" or (.headRefName | test("^automation/published-consumer-pins-[0-9]+$")))] |
+            sort_by(.headRefName != "release-please--branches--main") | .[0] // empty' <<< "$candidates")
+          number=
+          branch="automation/published-consumer-pins-$GITHUB_RUN_ID"
+          checkout=main
+          if [ -n "$selected" ]; then
+            number=$(jq -r .number <<< "$selected")
+            branch=$(jq -r .headRefName <<< "$selected")
+            checkout=$branch
           fi
           echo "number=$number" >> "$GITHUB_OUTPUT"
           echo "branch=$branch" >> "$GITHUB_OUTPUT"
-          if [ -n "$number" ]; then
-            echo "checkout=$branch" >> "$GITHUB_OUTPUT"
-          else
-            refs=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/$branch" --jq '.[].ref')
-            if printf '%s\n' "$refs" | grep -Fxq "refs/heads/$branch"; then
-              # Recover a push that succeeded before PR creation was interrupted.
-              echo "checkout=$branch" >> "$GITHUB_OUTPUT"
-            else
-              echo "checkout=main" >> "$GITHUB_OUTPUT"
-            fi
-          fi
+          echo "checkout=$checkout" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
@@ -974,13 +969,33 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           PR_BRANCH: ${{ steps.pr.outputs.branch }}
-          PR_CHECKOUT: ${{ steps.pr.outputs.checkout }}
+          BOT_LOGIN: app/${{ steps.app-token.outputs.app-slug }}
         run: |
+          : "${BOT_LOGIN:?Release App login is required}"
           if [ -n "$PR_NUMBER" ]; then
-            state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,headRefName,headRefOid)
+            state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,headRefName,headRefOid,baseRefName,author,isCrossRepository)
             test "$(jq -r .state <<< "$state")" = OPEN
+            test "$(jq -r .author.login <<< "$state")" = "$BOT_LOGIN"
+            test "$(jq -r .author.is_bot <<< "$state")" = true
+            test "$(jq -r .isCrossRepository <<< "$state")" = false
+            test "$(jq -r .baseRefName <<< "$state")" = main
             test "$(jq -r .headRefName <<< "$state")" = "$PR_BRANCH"
             test "$(jq -r .headRefOid <<< "$state")" = "$(git rev-parse HEAD)"
+          fi
+          if [ -z "$PR_NUMBER" ]; then
+            # Regenerate from main; a matching branch name is not provenance.
+            remote=$(git ls-remote --exit-code origin "refs/heads/$PR_BRANCH") || {
+              status=$?
+              [ "$status" = 2 ] || exit "$status"
+            }
+            if [ -n "$remote" ]; then
+              recovered=${remote%%[[:space:]]*}
+              git fetch --no-tags origin "$recovered"
+              test "$(git rev-parse "$recovered^{tree}")" = "$(git write-tree)"
+              test "$(git show -s --format=%P "$recovered")" = "$(git rev-parse HEAD)"
+              # Exact generated contents and parent: finish the interrupted PR.
+              git checkout --detach "$recovered"
+            fi
           fi
           if ! git diff --cached --quiet; then
             git config user.name "MoltNet Release[bot]"
@@ -995,7 +1010,7 @@ jobs:
             git commit -m "$message"
             gh auth setup-git
             git push origin "HEAD:refs/heads/$PR_BRANCH"
-          elif [ -n "$PR_NUMBER" ] || [ "$PR_CHECKOUT" = main ]; then
+          elif [ -n "$PR_NUMBER" ] || [ -z "${recovered:-}" ]; then
             exit 0
           fi
           if [ -z "$PR_NUMBER" ]; then

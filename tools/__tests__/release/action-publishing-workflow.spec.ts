@@ -404,8 +404,7 @@ const fs = require('node:fs');
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.GH_LOG, JSON.stringify(args) + '\n');
 if (args[0] === 'pr' && args[1] === 'view') console.log(process.env.PR_STATE);
-if (args[0] === 'pr' && args[1] === 'list') console.log((args.includes('--head') ? process.env.RELEASE_PR : process.env.CONSUMER_PR) || '');
-if (args[0] === 'api') console.log(process.env.BRANCH_REFS || '');
+if (args[0] === 'pr' && args[1] === 'list') console.log(process.env.CANDIDATE_PRS || '[]');
 if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'true') process.exit(1);
 `;
     writeFileSync(join(bin, 'gh'), shim, { mode: 0o755 });
@@ -422,7 +421,7 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
           GITHUB_REPOSITORY: 'example/repo',
           PR_NUMBER: '',
           PR_BRANCH: branch,
-          PR_CHECKOUT: 'main',
+          BOT_LOGIN: 'app/moltnet-release-bot',
           ...extra,
         },
       });
@@ -451,6 +450,7 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
             GH_LOG: log,
             GITHUB_REPOSITORY: 'example/repo',
             GITHUB_RUN_ID: '123',
+            BOT_LOGIN: 'app/moltnet-release-bot',
             GITHUB_OUTPUT: output,
             ...extra,
           },
@@ -466,33 +466,55 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
     return { root, git, remote, base, branch, run, change, calls, select };
   }
 
-  it('selects an existing PR or recovers a pushed branch before starting a new draft', () => {
+  it('selects only same-repository Release App PRs, preferring the release PR', () => {
     const f = consumerFixture();
+    const branch = 'automation/published-consumer-pins-100';
+    const consumer = {
+      number: 8,
+      headRefName: branch,
+      author: { login: 'app/moltnet-release-bot', is_bot: true },
+      isCrossRepository: false,
+    };
+    const release = {
+      ...consumer,
+      number: 7,
+      headRefName: 'release-please--branches--main',
+    };
     try {
-      expect(f.select({ RELEASE_PR: '7' })).toEqual({
-        number: '7',
-        branch: 'release-please--branches--main',
-        checkout: 'release-please--branches--main',
-      });
-      const branch = 'automation/published-consumer-pins-100';
       expect(
-        f.select({
-          CONSUMER_PR: JSON.stringify({ number: 8, headRefName: branch }),
-        }),
-      ).toEqual({ number: '8', branch, checkout: branch });
+        f.select({ CANDIDATE_PRS: JSON.stringify([consumer, release]) }),
+      ).toEqual({
+        number: '7',
+        branch: release.headRefName,
+        checkout: release.headRefName,
+      });
+      expect(f.select({ CANDIDATE_PRS: JSON.stringify([consumer]) })).toEqual({
+        number: '8',
+        branch,
+        checkout: branch,
+      });
+      for (const candidate of [
+        { ...consumer, author: { login: 'someone-else' } },
+        { ...consumer, isCrossRepository: true },
+        {
+          ...consumer,
+          headRefName: 'automation/published-consumer-pins-lookalike',
+        },
+        { ...release, author: { login: 'someone-else' } },
+      ]) {
+        expect(
+          f.select({ CANDIDATE_PRS: JSON.stringify([candidate]) }),
+        ).toEqual({
+          number: '',
+          branch: f.branch,
+          checkout: 'main',
+        });
+      }
       expect(f.select()).toEqual({
         number: '',
         branch: f.branch,
         checkout: 'main',
       });
-      expect(f.select({ BRANCH_REFS: `refs/heads/${f.branch}` })).toEqual({
-        number: '',
-        branch: f.branch,
-        checkout: f.branch,
-      });
-      expect(
-        f.select({ BRANCH_REFS: `refs/heads/${f.branch}-other` }).checkout,
-      ).toBe('main');
     } finally {
       rmSync(f.root, { recursive: true, force: true });
     }
@@ -516,9 +538,11 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
       expect(creates[0]).toContain('--draft');
       f.run({
         PR_NUMBER: '42',
-        PR_CHECKOUT: f.branch,
         PR_STATE: JSON.stringify({
           state: 'OPEN',
+          author: { login: 'app/moltnet-release-bot', is_bot: true },
+          isCrossRepository: false,
+          baseRefName: 'main',
           headRefName: f.branch,
           headRefOid: published,
         }),
@@ -535,10 +559,68 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
       f.change();
       expect(() => f.run({ FAIL_CREATE: 'true' })).toThrow();
       const pushed = f.git('rev-parse', 'HEAD');
-      f.run({ PR_CHECKOUT: f.branch });
+      f.git('reset', '--hard', f.base);
+      f.change();
+      f.run();
       expect(f.git('rev-parse', 'HEAD')).toBe(pushed);
       expect(f.calls().filter((args) => args[1] === 'create')).toHaveLength(2);
       expect(f.git('rev-list', '--count', `${f.base}..HEAD`)).toBe('1');
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+
+  it.each(['different-tree', 'different-parent'])(
+    'refuses a colliding recovery branch with %s',
+    (mismatch) => {
+      const f = consumerFixture();
+      try {
+        if (mismatch === 'different-parent') {
+          f.git('commit', '--allow-empty', '-qm', 'unrelated parent');
+          f.change();
+        } else {
+          f.change();
+        }
+        f.git('commit', '--allow-empty', '-am', 'untrusted candidate');
+        f.git('push', 'origin', `HEAD:refs/heads/${f.branch}`);
+        const before = f.git('ls-remote', 'origin');
+        f.git('reset', '--hard', f.base);
+        if (mismatch === 'different-parent') f.change();
+        expect(() => f.run()).toThrow();
+        expect(f.git('rev-parse', 'HEAD')).toBe(f.base);
+        expect(f.git('ls-remote', 'origin')).toBe(before);
+        expect(f.calls().some((args) => args[1] === 'create')).toBe(false);
+      } finally {
+        rmSync(f.root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.each([
+    { author: { login: 'someone-else' } },
+    { isCrossRepository: true },
+    { baseRefName: 'other-base' },
+  ])('rechecks PR ownership before writes: %j', (invalid) => {
+    const f = consumerFixture();
+    try {
+      f.change();
+      expect(() =>
+        f.run({
+          PR_NUMBER: '42',
+          PR_STATE: JSON.stringify({
+            state: 'OPEN',
+            author: { login: 'app/moltnet-release-bot', is_bot: true },
+            isCrossRepository: false,
+            baseRefName: 'main',
+            headRefName: f.branch,
+            headRefOid: f.base,
+            ...invalid,
+          }),
+        }),
+      ).toThrow();
+      expect(f.git('rev-parse', 'HEAD')).toBe(f.base);
+      expect(f.git('ls-remote', 'origin')).toBe('');
+      expect(f.calls().some((args) => args[1] === 'create')).toBe(false);
     } finally {
       rmSync(f.root, { recursive: true, force: true });
     }
@@ -553,6 +635,9 @@ if (args[0] === 'pr' && args[1] === 'create' && process.env.FAIL_CREATE === 'tru
           PR_NUMBER: '42',
           PR_STATE: JSON.stringify({
             state: 'OPEN',
+            author: { login: 'app/moltnet-release-bot', is_bot: true },
+            isCrossRepository: false,
+            baseRefName: 'main',
             headRefName: f.branch,
             headRefOid: 'a'.repeat(40),
           }),

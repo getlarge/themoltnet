@@ -78,8 +78,8 @@ explains publication and adoption.
 
 Releases containing the bundled worker action record its daemon version in
 `dist/release-dependencies.json`. Leave `daemon-version` unset to use that exact
-version. An explicit override must be an exact `major.minor.patch` version
-(optionally with a prerelease suffix); the caller then owns compatibility with
+version. An explicit override must be an exact stable `major.minor.patch`
+version; prerelease suffixes are rejected. The caller owns compatibility with
 its selected review bundle. Released bundles
 skip workspace installation and compilation. Coordinator and worker jobs verify
 the same artifact digest, and workers restore their action from that artifact.

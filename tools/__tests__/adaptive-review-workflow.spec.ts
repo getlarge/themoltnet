@@ -909,9 +909,8 @@ describe('packaged review workers', () => {
         runStep(resolve.run, { REQUESTED_DAEMON_VERSION: version }, root);
       expect(run('').outputs).toEqual({ 'daemon-version': '0.75.0' });
       expect(run('0.75.1').outputs).toEqual({ 'daemon-version': '0.75.1' });
-      expect(run('0.75.1-rc.1').outputs).toEqual({
-        'daemon-version': '0.75.1-rc.1',
-      });
+      expect(run('0.75.1-rc.1').status).not.toBe(0);
+      expect(run('0.75.1-rc.1').outputs).toEqual({});
       expect(run('latest').status).not.toBe(0);
       expect(run('0.75.1\ninjected=value').outputs).toEqual({});
       writeFileSync(
