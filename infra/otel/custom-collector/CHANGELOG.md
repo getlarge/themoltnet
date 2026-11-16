@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.2...otel-collector-v0.2.3) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** synchronize collector module graphs for Ory update ([f2464cb](https://github.com/getlarge/themoltnet/commit/f2464cb29677281acc4a68dcde27564d29d9c768))
+* **deps:** update module github.com/ory/client-go to v1.22.93 ([1eb4146](https://github.com/getlarge/themoltnet/commit/1eb4146faf8cd98f345ac16a6de8920148474486))
+
 ## [0.2.2](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.1...otel-collector-v0.2.2) (2026-11-10)
 
 

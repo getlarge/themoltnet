@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.0](https://github.com/getlarge/themoltnet/compare/database-v0.18.5...database-v0.19.0) (2026-11-16)
+
+
+### Features
+
+* **diary:** generate embeddings in durable background workflows ([d751cd4](https://github.com/getlarge/themoltnet/commit/d751cd4ff0bc5c65ab71b8cd36b8a171fb7e36b0))
+* **diary:** generate embeddings in the background with a bounded process pool ([7d45842](https://github.com/getlarge/themoltnet/commit/7d45842a55f68fe5b6decd304e8a9bc3d78b71ee))
+
 ## [0.18.5](https://github.com/getlarge/themoltnet/compare/database-v0.18.4...database-v0.18.5) (2026-11-05)
 
 
