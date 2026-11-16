@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@dbos-inc/dbos-sdk": "catalog:",
     "@moltnet/agent-key-service": "workspace:*",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/auth": "workspace:*",

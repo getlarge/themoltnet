@@ -16,6 +16,7 @@ import {
   gte,
   inArray,
   isNotNull,
+  isNull,
   lt,
   or,
   sql,
@@ -39,6 +40,22 @@ function filterConditions(
   ...maybeConditions: (Condition | undefined)[]
 ): Condition[] {
   return maybeConditions.filter((c): c is Condition => c !== undefined);
+}
+
+type EmbeddingInput = Pick<DiaryEntry, 'id' | 'content' | 'title' | 'tags'>;
+
+function pendingEmbeddingCondition(input: EmbeddingInput) {
+  return and(
+    eq(diaryEntries.id, input.id),
+    eq(diaryEntries.content, input.content),
+    input.title === null
+      ? isNull(diaryEntries.title)
+      : eq(diaryEntries.title, input.title),
+    input.tags === null
+      ? isNull(diaryEntries.tags)
+      : eq(diaryEntries.tags, input.tags),
+    isNull(diaryEntries.embedding),
+  );
 }
 
 /** Common entry filter conditions shared by list() and embedding-only search. */
@@ -682,6 +699,30 @@ export function createDiaryEntryRepository(db: Database) {
 
       const rows = (result as unknown as { rows: DiaryTagCount[] }).rows;
       return rows;
+    },
+
+    /** Internal enrichment read: no vector materialization or access tracking. */
+    async needsEmbedding(input: EmbeddingInput): Promise<boolean> {
+      const [row] = await getExecutor(db)
+        .select({ id: diaryEntries.id })
+        .from(diaryEntries)
+        .where(pendingEmbeddingCondition(input))
+        .limit(1);
+      return !!row;
+    },
+
+    /** CAS guards against edits/deletes while inference was running. Derived
+     * vector writes leave signed content untouched. */
+    async saveEmbedding(
+      input: EmbeddingInput,
+      embedding: number[],
+    ): Promise<boolean> {
+      const rows = await getExecutor(db)
+        .update(diaryEntries)
+        .set({ embedding })
+        .where(pendingEmbeddingCondition(input))
+        .returning({ id: diaryEntries.id });
+      return rows.length > 0;
     },
 
     /**

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { createEmbeddingService } from '../src/embedding-service.js';
+import { createWorkerEmbedder } from '../src/embedding-worker.js';
 import type { EmbeddingService } from '../src/types.js';
 
 const fakeTransformers = fileURLToPath(
@@ -92,7 +93,7 @@ describe('createEmbeddingService (worker executor)', () => {
 
     // Act / Assert
     await expect(service.embedPassage('crash')).rejects.toThrow(
-      /Embedding worker exited/,
+      /Workerpool Worker terminated/,
     );
     await expect(service.embedPassage('recovered')).resolves.toHaveLength(384);
   });
@@ -108,6 +109,32 @@ describe('createEmbeddingService (worker executor)', () => {
     await expect(service.embedPassage('b')).rejects.toThrow(
       'model load failed',
     );
+  });
+
+  it('uses two pool workers and rejects overflow at the configured bound', async () => {
+    const pool = createWorkerEmbedder(
+      {
+        modelId: 'fake-model',
+        quantization: 'q8',
+        allowRemoteModels: false,
+        modulePath: fakeTransformers,
+        workers: 2,
+        maxQueue: 1,
+      },
+      { info() {}, warn() {}, error() {}, debug() {} },
+    );
+    try {
+      // Occupy both workers, leave one waiting, then exceed the queue bound.
+      const first = pool.embedRaw('thread busy:300');
+      const second = pool.embedRaw('thread busy:300');
+      const waiting = pool.embedRaw('thread');
+      await expect(pool.embedRaw('overflow')).rejects.toThrow(/queue/i);
+      const vectors = await Promise.all([first, second, waiting]);
+      expect(new Set(vectors.slice(0, 2).map((v) => v[0])).size).toBe(2);
+      expect(vectors[2]).toHaveLength(384);
+    } finally {
+      await pool.close();
+    }
   });
 
   it('rejects calls after close', async () => {

@@ -56,6 +56,7 @@
     "@moltnet/task-service": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@noble/ed25519": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-logs-otlp-proto": "catalog:",
     "@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
@@ -94,7 +95,7 @@
     "typebox": "catalog:",
     "winston": "catalog:",
     "winston-transport": "catalog:",
-    "@noble/ed25519": "catalog:"
+    "workerpool": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",
@@ -127,7 +128,7 @@
       "build": {
         "outputs": [
           "{projectRoot}/dist/main.js",
-          "{projectRoot}/dist/embedding-worker-thread.js",
+          "{projectRoot}/dist/embedding-worker-process.js",
           "{projectRoot}/dist/assets/**",
           "{projectRoot}/dist/openapi.json",
           "{projectRoot}/dist/response-serializers.cjs"

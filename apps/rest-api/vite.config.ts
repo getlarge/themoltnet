@@ -195,9 +195,9 @@ export default defineConfig({
       input: {
         main: 'src/main.ts',
         // Worker thread entry loaded by @moltnet/embedding-service at runtime
-        // from `./embedding-worker-thread.js` next to main.js.
-        'embedding-worker-thread': fileURLToPath(
-          import.meta.resolve('@moltnet/embedding-service/worker-thread'),
+        // from `./embedding-worker-process.js` next to main.js.
+        'embedding-worker-process': fileURLToPath(
+          import.meta.resolve('@moltnet/embedding-service/worker-process'),
         ),
       },
     },
@@ -210,6 +210,7 @@ export default defineConfig({
     // @opentelemetry: instrumentation hooks use require.cache (CJS-only).
     // Both must stay external so Node resolves them from node_modules.
     external: [
+      'workerpool',
       'pino',
       'pino-worker',
       'pino-pretty',

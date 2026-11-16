@@ -241,6 +241,12 @@ const TaskArtifactStorageConfigSchema = Type.Object({
 });
 
 const EmbeddingConfigSchema = Type.Object({
+  EMBEDDING_WORKERS: Type.Integer({ default: 1, minimum: 1, maximum: 8 }),
+  EMBEDDING_MAX_QUEUE: Type.Integer({
+    default: 64,
+    minimum: 1,
+    maximum: 10000,
+  }),
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
   /** Allow downloading models from huggingface.co at runtime (default: true) */
@@ -487,6 +493,13 @@ export function loadRecoveryConfig(
 function loadEmbeddingConfig(
   env: Record<string, string | undefined> = process.env,
 ): EmbeddingConfig {
+  // TypeBox's integer conversion truncates fractional strings; reject them
+  // before conversion so a typo cannot silently change the resource budget.
+  for (const key of ['EMBEDDING_WORKERS', 'EMBEDDING_MAX_QUEUE']) {
+    if (env[key] !== undefined && !Number.isInteger(Number(env[key]))) {
+      throw new Error(`${key} must be an integer`);
+    }
+  }
   return validateSchema(
     'Embedding',
     EmbeddingConfigSchema,
