@@ -208,3 +208,74 @@ test('corrupt mappings and API failures fail closed rather than scheduling an ov
     undefined,
   );
 });
+
+for (const bundled of [false, true]) {
+  test(`adaptive bundle entry contract follows its source generation: bundled=${bundled}`, async () => {
+    const component = 'adaptive-review-action';
+    const tag = `${component}-v0.4.1`;
+    const pkg = {
+      name: `@themoltnet/${component}`,
+      version: '0.4.1',
+      ...(bundled
+        ? {
+            devDependencies: {
+              '@themoltnet/agent-daemon-action': 'workspace:*',
+            },
+          }
+        : {}),
+    };
+    const release = { tag_name: tag, draft: true };
+    const metadata = {
+      content: Buffer.from(JSON.stringify(pkg)).toString('base64'),
+    };
+    const entries = [
+      'review.js',
+      'publish.js',
+      'outcomes.js',
+      'diary-runtime.js',
+      ...(bundled
+        ? ['worker-action/main.js', 'release-dependencies.json']
+        : []),
+    ];
+    const tree = [
+      `packages/${component}/action.yml`,
+      ...entries.map((p) => `packages/${component}/dist/${p}`),
+      '.github/workflows/adaptive-review-reusable.yml',
+      '.github/workflows/adaptive-review-outcomes-reusable.yml',
+    ].map((path) => ({ path, type: 'blob', size: 42 }));
+    const data = {
+      'releases?per_page=100&page=1': [release],
+      [`git/ref/tags/bundles/${tag}`]: { object: { type: 'commit', sha } },
+      [`contents/packages/${component}/package.json?ref=${sha}`]: metadata,
+      [`contents/packages/${component}/package.json?ref=${tag}`]: metadata,
+      [`commits/${tag}`]: { sha: source },
+      [`git/commits/${sha}`]: { parents: [{ sha: source }] },
+      [`git/trees/${sha}?recursive=1`]: { tree },
+      'git/ref/tags/adaptive-review-action-v0': undefined,
+    };
+    const api = async (path) => {
+      assert.ok(Object.hasOwn(data, path), path);
+      return data[path];
+    };
+    const plan = await planRepairs(api);
+    assert.equal(plan[0].entries, entries.join(','));
+    assert.equal(
+      (await resolveBundle(api, component, '0.4.1', { published: false })).sha,
+      sha,
+    );
+    if (bundled) {
+      for (const file of [
+        'worker-action/main.js',
+        'release-dependencies.json',
+      ]) {
+        const entry = tree.find((e) => e.path.endsWith(`dist/${file}`));
+        entry.size = 0;
+        await assert.rejects(
+          resolveBundle(api, component, '0.4.1', { published: false }),
+          /missing required/,
+        );
+        entry.size = 42;
+      }
+    }
+  });
+}

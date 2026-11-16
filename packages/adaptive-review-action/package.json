@@ -22,7 +22,8 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
-    "@earendil-works/pi-coding-agent": "catalog:"
+    "@earendil-works/pi-coding-agent": "catalog:",
+    "@themoltnet/agent-daemon-action": "workspace:*"
   },
   "nx": {
     "tags": [
@@ -39,7 +40,7 @@
         ],
         "options": {
           "cwd": "{workspaceRoot}",
-          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries review.js,publish.js,outcomes.js,diary-runtime.js --stable-major-tag-prefix adaptive-review-action-v"
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries review.js,publish.js,outcomes.js,diary-runtime.js,worker-action/main.js,release-dependencies.json --stable-major-tag-prefix adaptive-review-action-v"
         }
       }
     }

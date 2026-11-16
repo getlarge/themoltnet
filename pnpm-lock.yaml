@@ -3818,6 +3818,9 @@ importers:
       '@moltnet/adaptive-review':
         specifier: workspace:*
         version: link:../../libs/adaptive-review
+      '@themoltnet/agent-daemon-action':
+        specifier: workspace:*
+        version: link:../agent-daemon-action
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
