@@ -33,6 +33,7 @@ import {
   createDatabase,
   createDatabaseCapacityRepository,
   createDBOSTransactionRunner,
+  createDiaryEmbeddingQueue,
   createDiaryEntryRepository,
   createDiaryRepository,
   createDiaryTransferRepository,
@@ -116,6 +117,7 @@ import {
 import dbosPlugin from './plugins/dbos.js';
 import { loadSerializerArtifact } from './serializer-artifact.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
+import { registerEmbeddingBacklogMetrics } from './services/embedding-backlog-metrics.js';
 import {
   createTaskService,
   type TaskService,
@@ -282,6 +284,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
 
   const dbConnection = createDatabase(config.database.DATABASE_URL);
+  const diaryEmbeddingQueue = createDiaryEmbeddingQueue(
+    dbConnection.db,
+    config.embedding.DIARY_EMBEDDING_MAX_PENDING,
+  );
   // Seed the getDatabase() singleton so route-level code (e.g. advisory
   // locks) can obtain the shared Drizzle instance without a URL.
   getDatabase(config.database.DATABASE_URL);
@@ -639,7 +645,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       (workflowTransactionRunner) => {
         setDiaryWorkflowDeps({
           enqueueWorkflowInCurrentTransaction: (input) =>
-            enqueueDbosWorkflowInCurrentTransaction(dbConnection.db, input),
+            diaryEmbeddingQueue.enqueue(input),
           diaryEntryRepository,
           relationshipWriter,
           embeddingService,
@@ -715,6 +721,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     ],
     registerQueues: [
       () => registerDiaryEmbeddingQueue(config.embedding.EMBEDDING_WORKERS),
+      () => {
+        app.log.info(
+          { maxPending: config.embedding.DIARY_EMBEDDING_MAX_PENDING },
+          'Diary embedding admission configured',
+        );
+        registerEmbeddingBacklogMetrics(app, () =>
+          diaryEmbeddingQueue.snapshot(),
+        );
+        return Promise.resolve();
+      },
       registerTaskWorkflowQueues,
       registerMaintenanceQueues,
       registerRegistrationQueue,
