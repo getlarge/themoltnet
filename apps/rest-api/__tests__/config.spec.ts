@@ -52,6 +52,7 @@ describe('embedding pool configuration', () => {
     expect(loadConfig(validEnv).embedding).toMatchObject({
       EMBEDDING_WORKERS: 1,
       EMBEDDING_MAX_QUEUE: 64,
+      DIARY_EMBEDDING_MAX_PENDING: 1000,
     });
   });
   it('coerces pool overrides from environment strings', () => {
@@ -60,14 +61,22 @@ describe('embedding pool configuration', () => {
         ...validEnv,
         EMBEDDING_WORKERS: '2',
         EMBEDDING_MAX_QUEUE: '16',
+        DIARY_EMBEDDING_MAX_PENDING: '250',
       }).embedding,
-    ).toMatchObject({ EMBEDDING_WORKERS: 2, EMBEDDING_MAX_QUEUE: 16 });
+    ).toMatchObject({
+      EMBEDDING_WORKERS: 2,
+      EMBEDDING_MAX_QUEUE: 16,
+      DIARY_EMBEDDING_MAX_PENDING: 250,
+    });
   });
   it.each([
     { EMBEDDING_WORKERS: '0' },
     { EMBEDDING_WORKERS: '9' },
     { EMBEDDING_WORKERS: '1.5' },
     { EMBEDDING_MAX_QUEUE: '0' },
+    { DIARY_EMBEDDING_MAX_PENDING: '0' },
+    { DIARY_EMBEDDING_MAX_PENDING: '1.5' },
+    { DIARY_EMBEDDING_MAX_PENDING: '100001' },
   ])('rejects invalid pool bounds %j', (overrides) => {
     expect(() => loadConfig({ ...validEnv, ...overrides })).toThrow();
   });
