@@ -128,3 +128,21 @@ evidence demonstrates a concrete regression that can be cited under the lane's n
 The contributor-facing requirements are in
 [CONTRIBUTING.md](CONTRIBUTING.md#visual-evidence-for-ui-changes). This section is
 self-contained because the guidance loader does not expand links.
+
+## Architecture and workflow diagrams
+
+Within the conventions lane, consider whether a diagram would materially help
+review a workflow, architecture, state transition, or interaction across
+services. Diagrams are discretionary for non-UI changes. Suggest one only when
+you can name a concrete interaction, boundary, or failure path that is difficult
+to understand from the supplied explanation; state what the diagram would
+clarify. Do not request decorative visuals or ones that merely repeat short
+prose, and do not treat their absence alone as a defect or coverage gap.
+
+When a diagram is supplied, assess its consistency with the implemented
+behavior, responsibilities, and relevant failure paths. Check readability,
+editable source, and whether later changes made it stale. Distinguish seeing
+a link from inspecting its contents; do not claim to have verified a diagram
+that is unavailable to you. A diagram does not replace required UI captures or
+runtime verification. The contributor guidance is in
+[CONTRIBUTING.md](CONTRIBUTING.md#diagrams-for-architecture-and-workflow-review).

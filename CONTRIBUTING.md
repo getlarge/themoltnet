@@ -78,11 +78,12 @@ only when it also belongs in documentation or reusable fixtures; PR uploads
 are sufficient for review evidence alone.
 
 Tests complement visual evidence. If a UI-affecting change has no capturable
-visible effect, explain why in the PR's Visual evidence section and identify
-the relevant verification, such as keyboard or accessibility tests. Inability
-to run or capture the UI is a validation gap, not an automatic exemption:
-describe the blocker and propose alternative evidence, such as reproducible
-steps and relevant automated verification. Keep the PR in draft until a reviewer
+visible effect, explain why in the PR's Visual evidence / architecture diagram
+section and identify the relevant verification, such as keyboard or
+accessibility tests. Inability to run or capture the UI is a validation gap,
+not an automatic exemption: describe the blocker and propose alternative
+evidence, such as reproducible steps and relevant automated verification.
+Keep the PR in draft until a reviewer
 agrees that the alternative demonstrates the changed behavior. Reviewers should
 request changes when evidence is missing, outdated, or does not demonstrate the
 affected behavior.
@@ -91,6 +92,30 @@ Adaptive review uses the criteria in [REVIEW.md](REVIEW.md#ui-visual-evidence)
 for its conventions lane. It reports missing or unassessable evidence as a
 coverage gap. An automated review does not replace the author's visual
 inspection.
+
+## Diagrams for architecture and workflow review
+
+Consider adding a diagram when a PR changes a workflow, architecture, state
+transitions, or interactions across multiple services and the relationships are
+hard to follow in prose. Diagrams are optional; skip them when a short explanation
+makes the change clear.
+
+Show the final behavior implemented by the PR, including responsibilities,
+boundaries, triggers, and handoffs. Include failure or recovery paths when they
+matter to the change, and clearly label any planned behavior that is not yet
+implemented. Keep the diagram focused on what reviewers need to understand.
+
+Render and inspect the diagram for readable labels and layout, verify it against
+the implementation, and refresh it when later commits change the behavior. Keep
+editable source alongside the rendered version; inline Mermaid in the PR
+description is acceptable. Commit diagrams when they also belong in maintained
+documentation, and update source and render together.
+
+Include the diagram in the PR's Visual evidence / architecture diagram section
+or link to a durable location reviewers can access. Add a text description of
+the relationships or sequence so readers can understand it without seeing the
+image. A diagram complements the screenshots or recordings required for
+[UI changes](#visual-evidence-for-ui-changes); it does not replace them.
 
 ## What makes a good contribution
 

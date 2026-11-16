@@ -186,10 +186,10 @@ groups non-major npm dev tooling into one PR.
 **UI-affecting PRs must include screenshots and/or recordings before being
 marked ready for review.** Follow the canonical
 [visual evidence policy](CONTRIBUTING.md#visual-evidence-for-ui-changes) and fill
-in the PR template's Visual evidence section. Scope this by user-visible
-impact, not only frontend file paths: shared components, UI copy, interaction
-behavior, documentation layouts, and backend changes that alter UI states can
-qualify.
+in the PR template's Visual evidence / architecture diagram section. Scope this
+by user-visible impact, not only frontend file paths: shared components, UI copy,
+interaction behavior, documentation layouts, and backend changes that alter UI
+states can qualify.
 
 Capture and inspect the implemented result; refresh the evidence when later
 commits change it. Use a recording when static images cannot demonstrate the
@@ -200,6 +200,23 @@ Do not claim a UI PR is review-ready while this requirement is unmet.
 Adaptive review's reviewer criteria live in
 [REVIEW.md](REVIEW.md#ui-visual-evidence), loaded from the pinned PR base; keep
 author instructions and the reviewer criteria consistent.
+
+### Diagrams for architecture and workflow review
+
+For changes involving workflows, architecture, state transitions, or multiple
+services, consider whether a diagram would make review materially easier.
+When useful, include a rendered diagram showing the final behavior,
+responsibilities, boundaries, and relevant failure paths. Inspect it for
+accuracy and readability, keep its editable source alongside it, and refresh
+it when the implementation changes. Inline Mermaid can serve as both source
+and rendered diagram.
+
+Follow the [diagram guidance](CONTRIBUTING.md#diagrams-for-architecture-and-workflow-review)
+and fill in the PR template's Visual evidence / architecture diagram section;
+briefly explain when neither applies. Skip visuals that merely repeat a short
+explanation. Diagrams are discretionary for non-UI changes; reviewer guidance
+in [REVIEW.md](REVIEW.md#architecture-and-workflow-diagrams) requires a concrete
+review need before suggesting one.
 
 ## This Repository Is Public
 
