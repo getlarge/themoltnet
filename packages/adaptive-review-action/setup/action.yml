@@ -51,5 +51,4 @@ runs:
         NX_DAEMON: 'false'
       run: |
         pnpm install --frozen-lockfile
-        pnpm exec nx run @themoltnet/agent-daemon-action:build --excludeTaskDependencies
-        pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+        pnpm exec nx run @themoltnet/adaptive-review-action:build

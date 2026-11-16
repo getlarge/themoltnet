@@ -555,7 +555,7 @@ describe('adaptive review workflow trust gates', () => {
     );
   });
 
-  it('installs and builds the standalone action without an Nx Cloud lifecycle', () => {
+  it('builds the standalone action through Nx dependencies without an Nx Cloud lifecycle', () => {
     const setup = parse(
       read('../../packages/adaptive-review-action/setup/action.yml'),
     ) as { runs: { steps: Step[] } };
@@ -567,15 +567,11 @@ describe('adaptive review workflow trust gates', () => {
       NX_DAEMON: 'false',
     });
     expect(build.run).toContain('pnpm install --frozen-lockfile');
-    const workerBuild =
-      'pnpm exec nx run @themoltnet/agent-daemon-action:build';
-    const reviewBuild =
-      'pnpm exec nx run @themoltnet/adaptive-review-action:build';
-    expect(build.run).toContain(workerBuild);
-    expect(build.run).toContain(reviewBuild);
-    expect(build.run!.indexOf(workerBuild)).toBeLessThan(
-      build.run!.indexOf(reviewBuild),
+    expect(build.run).toContain(
+      'pnpm exec nx run @themoltnet/adaptive-review-action:build',
     );
+    expect(build.run).not.toContain('--excludeTaskDependencies');
+    expect(build.run).not.toContain('@themoltnet/agent-daemon-action:build');
   });
 
   it('builds the review action once and verifies it before later jobs run it', () => {
