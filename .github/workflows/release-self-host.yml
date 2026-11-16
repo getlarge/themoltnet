@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Bundle version (for example 1.0.0-rc.1)
+        description: Bundle version; select its matching self-host-v tag (for example 1.0.0-rc.1)
         required: true
 
 permissions:
@@ -19,6 +19,9 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
@@ -32,6 +35,12 @@ jobs:
             version="$INPUT_VERSION"
           else
             version="${REF_NAME#self-host-v}"
+          fi
+          # The consumer authenticates provenance against this exact tag ref.
+          # workflow_dispatch must select that tag rather than a branch.
+          if [ "$GITHUB_REF" != "refs/tags/self-host-v$version" ]; then
+            echo 'Select the self-host-v<version> tag matching the bundle version' >&2
+            exit 1
           fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
@@ -89,6 +98,11 @@ jobs:
           (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$root" && sha256sum -c SHA256SUMS)
 
+      - name: Smoke-test Ory against populated PostgreSQL 17
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: node tools/release/ory-module-smoke.mjs "moltnet-self-host-$VERSION"
+
       - name: Smoke-test released images through Caddy
         env:
           VERSION: ${{ steps.version.outputs.value }}
@@ -103,6 +117,50 @@ jobs:
           (cd "$root" && sha256sum -c SHA256SUMS)
           tar -czf "$root.tar.gz" "$root"
           sha256sum "$root.tar.gz" > "$root.tar.gz.sha256"
+
+      - name: Attest release archive
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz
+
+      - name: Resolve first-party image subjects
+        id: subjects
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          for variable in REST_API_IMAGE MCP_SERVER_IMAGE CONSOLE_IMAGE DB_MIGRATE_IMAGE; do
+            ref=$(sed -n "s/^$variable=//p" "moltnet-self-host-$VERSION/deploy/self-host/.env.release")
+            echo "${variable}_name=${ref%@*}" >> "$GITHUB_OUTPUT"
+            echo "${variable}_digest=${ref##*@}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Attest REST API image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.subjects.outputs.REST_API_IMAGE_name }}
+          subject-digest: ${{ steps.subjects.outputs.REST_API_IMAGE_digest }}
+          push-to-registry: true
+
+      - name: Attest MCP image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.subjects.outputs.MCP_SERVER_IMAGE_name }}
+          subject-digest: ${{ steps.subjects.outputs.MCP_SERVER_IMAGE_digest }}
+          push-to-registry: true
+
+      - name: Attest Console image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.subjects.outputs.CONSOLE_IMAGE_name }}
+          subject-digest: ${{ steps.subjects.outputs.CONSOLE_IMAGE_digest }}
+          push-to-registry: true
+
+      - name: Attest database and Ory tools image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.subjects.outputs.DB_MIGRATE_IMAGE_name }}
+          subject-digest: ${{ steps.subjects.outputs.DB_MIGRATE_IMAGE_digest }}
+          push-to-registry: true
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

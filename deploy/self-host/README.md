@@ -30,14 +30,20 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
 
    ```bash
    docker compose --env-file .env config --quiet
-   docker compose --env-file .env up -d
+   docker compose --env-file .env up -d --wait postgres
+   docker compose --env-file .env run --rm --no-deps ory-db-init
+   docker compose --env-file .env run --rm --no-deps talos-init
+   for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
+     docker compose --env-file .env run --rm --no-deps "$job"
+   done
+   docker compose --env-file .env up -d --wait
+   docker compose --env-file .env run --rm --no-deps hydra-native-client
    docker compose --env-file .env ps
    ```
 
 The Ory administrative ports, PostgreSQL, Valkey, Talos, and the object store
 are private to the Compose network. Only Caddy publishes host ports.
-Hydra provisions the tracked `moltnet-native` public PKCE client before the REST
-API starts. The same client definition is reapplied on subsequent starts; review
+After the explicit provisioning step, Hydra holds the tracked `moltnet-native` public PKCE client. Re-run the provisioning job explicitly to reconcile its definition; review
 it when upgrading if you manage additional OAuth clients.
 
 To enable Tailscale custom OIDC login, set
@@ -47,7 +53,7 @@ same value in Tailscale. Compose then registers the confidential
 `openid profile email` scopes, and
 `https://login.tailscale.com/a/oauth_response` as its only redirect URI. Set
 Tailscale's issuer to `https://$OAUTH_DOMAIN/` and its client ID to
-`tailscale-login`. If the client already exists, startup verifies its public
+`tailscale-login`. If the client already exists, the provisioning job verifies its public
 policy; changing its secret requires an administrator update in Hydra.
 Removing `TAILSCALE_LOGIN_CLIENT_SECRET` from `.env` stops provisioning but does
 not delete an existing client. Disable or remove it through Hydra administration
@@ -66,3 +72,14 @@ This baseline does not turn one Docker host into a highly available platform.
 Read the [production guide](https://docs.themolt.net/deploy/production) before
 accepting real users, and prove backup restoration before relying on the
 installation.
+
+## Reuse Ory with an existing database
+
+The standalone stack extends `../ory/compose.yaml`; see
+[the module contract](../ory/README.md) for existing PostgreSQL 17, private
+network integration, initialization, migrations, and protected Talos storage.
+Maintenance jobs have the `maintenance` profile and `restart: "no"`. Normal
+startup never provisions Ory databases, migrates Ory schemas, or generates Talos
+keys. On upgrades, stop affected serves and run the reviewed migration jobs,
+then start serves and reconcile clients. Never re-run `talos-init` on an
+established volume; restore its complete state instead.

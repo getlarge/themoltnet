@@ -34,7 +34,8 @@ import {
   type RelationshipReader,
 } from '../src/relationship-reader.js';
 
-const KETO_IMAGE = 'oryd/keto:v25.4.0';
+const KETO_IMAGE =
+  'oryd/keto:v26.2.0@sha256:bfdb8b9e283aedbd9e1d005c44eb1bbefd2096b2cb5b5aa0b7360b6e39c178d2';
 const KETO_READ_PORT = 4466;
 const KETO_WRITE_PORT = 4467;
 

@@ -55,14 +55,16 @@ under `skills/local-moltnet-setup`, check out that revision explicitly, and
 start a fresh assistant session. The same workspace can hold a release archive
 or a separate source checkout used for a disposable deployment rehearsal.
 
-Hydra's one-shot initialization job applies the tracked `moltnet-native`
-authorization-code client before the REST API starts. Its loopback redirect,
-scopes, and audiences match the Desktop provisioning flow. Other OAuth clients
-can use Hydra dynamic registration; the REST API serves the shared consent page
-at `/oauth2/consent`. Keto loads the bundled permission model from
-`infra/ory/permissions.ts`. The identity hostname sends browser pages such as
-`/login`, `/registration`, and `/recovery` to the Kratos self-service UI;
-`/self-service/*` requests go to Kratos itself.
+Run the explicit initialization and migration commands in the archive's
+`deploy/self-host/README.md` before starting serves. Normal startup performs no
+Ory schema migration or Talos key generation. After serves are healthy, run
+`hydra-native-client` to apply the tracked `moltnet-native` authorization-code
+client. Its loopback redirect, scopes, and audiences match the Desktop
+provisioning flow. Other OAuth clients can use Hydra dynamic registration; the
+REST API serves the shared consent page at `/oauth2/consent`. Keto loads the
+bundled permission model from `infra/ory/permissions.ts`. The identity hostname
+sends browser pages such as `/login`, `/registration`, and `/recovery` to the
+Kratos self-service UI; `/self-service/*` requests go to Kratos itself.
 
 ## Collect logs and telemetry
 
@@ -168,3 +170,13 @@ extensions:
 
 Never downgrade a database after its migration has run. Restore the pre-upgrade
 backup instead.
+
+## Reuse the identity services
+
+`deploy/ory/compose.yaml` is the reusable Ory module consumed by the standalone
+bundle. It supports existing PostgreSQL 17, consumer-owned private networks, and
+externally protected Talos volumes. The archive includes its complete
+configuration and maintenance jobs. Follow `deploy/ory/README.md` for the
+interface and explicit initialization sequence. `images.txt` records every
+runtime and maintenance image; release archives and first-party images carry
+GitHub attestations from `release-self-host.yml`.

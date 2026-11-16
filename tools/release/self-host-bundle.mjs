@@ -20,6 +20,7 @@ const sourceDir = path.join(repoRoot, 'deploy/self-host');
 const imageProjects = {
   console: 'apps/console',
   'db-migrate': 'libs/database',
+  'ory-tools': 'libs/database',
   'mcp-server': 'apps/mcp-server',
   'rest-api': 'apps/rest-api',
 };
@@ -96,11 +97,15 @@ function assertRepositoryPath(source) {
   return relative;
 }
 
-function validationEnvironment() {
-  const compose = readFileSync(path.join(sourceDir, 'compose.yaml'), 'utf8');
+function validationEnvironment(withImages = true) {
+  const compose = ['deploy/self-host/compose.yaml', 'deploy/ory/compose.yaml']
+    .map((file) => readFileSync(path.join(repoRoot, file), 'utf8'))
+    .join('\n');
   const required = [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g)];
   return Object.fromEntries(
-    required.map(([, name]) => [name, 'bundle-validation-secret']),
+    required
+      .filter(([, name]) => withImages || !name.endsWith('_IMAGE'))
+      .map(([, name]) => [name, 'bundle-validation-secret']),
   );
 }
 
@@ -111,8 +116,12 @@ function discoverBindSources() {
       'compose',
       '--env-file',
       '.env.example',
+      '--profile',
+      '*',
       '-f',
       'compose.yaml',
+      '-f',
+      'compose.tracing.yaml',
       'config',
       '--format',
       'json',
@@ -223,13 +232,15 @@ function validateBundle(bundleRoot) {
         '.env.example',
         '--env-file',
         '.env.release',
+        '--profile',
+        '*',
         ...files.flatMap((file) => ['-f', file]),
         'config',
         '--quiet',
       ],
       {
         cwd: path.join(bundleRoot, 'deploy/self-host'),
-        env: validationEnvironment(),
+        env: validationEnvironment(false),
       },
     );
   }
@@ -255,6 +266,15 @@ function main() {
   ]) {
     cpSync(path.join(sourceDir, name), path.join(bundleSource, name));
   }
+  mkdirSync(path.join(bundleRoot, 'deploy/ory'), { recursive: true });
+  for (const name of ['compose.yaml', 'README.md']) {
+    cpSync(
+      path.join(repoRoot, 'deploy/ory', name),
+      path.join(bundleRoot, 'deploy/ory', name),
+    );
+  }
+  // All other module assets are copied from effective bind mounts below.
+  // Never recursively package an operator's local environment or state files.
   for (const source of discoverBindSources()) {
     const relative = assertRepositoryPath(source);
     const destination = path.join(bundleRoot, relative);
@@ -268,6 +288,35 @@ function main() {
     args.imageTag,
   );
   validateBundle(bundleRoot);
+  const rendered = run(
+    'docker',
+    [
+      'compose',
+      '--env-file',
+      '.env.example',
+      '--env-file',
+      '.env.release',
+      '--profile',
+      '*',
+      'config',
+      '--format',
+      'json',
+    ],
+    { capture: true, cwd: bundleSource, env: validationEnvironment(false) },
+  );
+  const images = [
+    ...new Set(
+      Object.values(JSON.parse(rendered).services).map(
+        (service) => service.image,
+      ),
+    ),
+  ].sort();
+  if (
+    !args.skipDigests &&
+    images.some((image) => !/@sha256:[a-f0-9]{64}$/.test(image))
+  )
+    throw new Error('Every effective bundle image must be digest pinned');
+  writeFileSync(path.join(bundleRoot, 'images.txt'), images.join('\n') + '\n');
   process.stdout.write(`${bundleRoot}\n`);
 }
 

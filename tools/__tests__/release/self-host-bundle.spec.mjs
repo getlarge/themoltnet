@@ -6,6 +6,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -15,7 +16,8 @@ import process from 'node:process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { provisionClients } from '../../../deploy/self-host/config/provision-oauth-clients.mjs';
+import { provisionDatabases } from '../../../deploy/ory/provision-databases.mjs';
+import { provisionClients } from '../../../deploy/ory/provision-oauth-clients.mjs';
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -236,10 +238,27 @@ test('builds an installable source archive with current component versions', () 
       releaseEnv.includes(`RELEASE_SIGNER_PUBKEY=${releaseSignerPublicKey}\n`),
     );
 
+    // Validate after a real archive roundtrip and delete the assembled tree;
+    // every extends reference and bind must survive independently.
+    execFileSync('tar', [
+      '-czf',
+      path.join(temporary, 'bundle.tar.gz'),
+      '-C',
+      output,
+      '.',
+    ]);
+    rmSync(output, { recursive: true });
+    mkdirSync(output);
+    execFileSync('tar', [
+      '-xzf',
+      path.join(temporary, 'bundle.tar.gz'),
+      '-C',
+      output,
+    ]);
     const composeDir = path.join(output, 'deploy/self-host');
     assert.equal(existsSync(path.join(composeDir, '.env')), false);
     assert.equal(
-      existsSync(path.join(composeDir, 'config/provision-oauth-clients.mjs')),
+      existsSync(path.join(composeDir, '../ory/provision-oauth-clients.mjs')),
       true,
     );
     assert.equal(
@@ -276,11 +295,15 @@ test('builds an installable source archive with current component versions', () 
           ...process.env,
           ...Object.fromEntries(
             [
-              ...readFileSync(
-                path.join(composeDir, 'compose.yaml'),
-                'utf8',
-              ).matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
-            ].map(([, name]) => [name, 'test-secret']),
+              ...['compose.yaml', '../ory/compose.yaml']
+                .map((file) =>
+                  readFileSync(path.join(composeDir, file), 'utf8'),
+                )
+                .join('\n')
+                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
+            ]
+              .filter(([, name]) => !name.endsWith('_IMAGE'))
+              .map(([, name]) => [name, 'test-secret']),
           ),
         },
       },
@@ -309,17 +332,90 @@ test('builds an installable source archive with current component versions', () 
           ...process.env,
           ...Object.fromEntries(
             [
-              ...readFileSync(
-                path.join(composeDir, 'compose.yaml'),
-                'utf8',
-              ).matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
-            ].map(([, name]) => [name, 'test-secret']),
+              ...['compose.yaml', '../ory/compose.yaml']
+                .map((file) =>
+                  readFileSync(path.join(composeDir, file), 'utf8'),
+                )
+                .join('\n')
+                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
+            ]
+              .filter(([, name]) => !name.endsWith('_IMAGE'))
+              .map(([, name]) => [name, 'test-secret']),
           ),
         },
       },
     );
     assert.equal(tracingConfig.status, 0, tracingConfig.stderr);
     const tracingServices = JSON.parse(tracingConfig.stdout).services;
+    for (const service of Object.values(tracingServices)) {
+      for (const bind of service.volumes ?? []) {
+        if (bind.type !== 'bind') continue;
+        assert.ok(
+          bind.source.startsWith(realpathSync(output) + path.sep),
+          bind.source,
+        );
+        assert.ok(existsSync(bind.source), bind.source);
+      }
+    }
+    assert.equal(tracingServices.hydra.image.includes('@sha256:'), true);
+    for (const name of ['kratos', 'hydra', 'keto']) {
+      const dsn = new URL(tracingServices[name].environment.DSN);
+      assert.equal(dsn.searchParams.get('max_conns'), '10');
+      assert.equal(dsn.searchParams.get('max_idle_conns'), '2');
+    }
+    assert.equal(tracingServices.talos.command[0], 'serve');
+    assert.equal(tracingServices.talos.depends_on, undefined);
+    for (const name of ['kratos', 'hydra', 'keto', 'talos']) {
+      assert.equal(tracingServices[name].ports, undefined);
+    }
+    const maintenance = execFileSync(
+      'docker',
+      [
+        'compose',
+        '--env-file',
+        '.env.example',
+        '--env-file',
+        '.env.release',
+        '--profile',
+        '*',
+        'config',
+        '--format',
+        'json',
+      ],
+      {
+        cwd: composeDir,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          ...Object.fromEntries(
+            [
+              ...['compose.yaml', '../ory/compose.yaml']
+                .map((file) =>
+                  readFileSync(path.join(composeDir, file), 'utf8'),
+                )
+                .join('\n')
+                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
+            ]
+              .filter(([, name]) => !name.endsWith('_IMAGE'))
+              .map(([, name]) => [name, 'test-secret']),
+          ),
+        },
+      },
+    );
+    for (const name of [
+      'ory-db-init',
+      'kratos-migrate',
+      'hydra-migrate',
+      'keto-migrate',
+      'talos-init',
+      'talos-migrate',
+      'hydra-native-client',
+    ]) {
+      const job = JSON.parse(maintenance).services[name];
+      assert.equal(job.restart, 'no');
+      assert.deepEqual(job.profiles, ['maintenance']);
+    }
+
     for (const name of ['kratos', 'hydra', 'keto']) {
       assert.equal(tracingServices[name].environment.TRACING_PROVIDER, 'otel');
       assert.equal(
@@ -386,6 +482,7 @@ test('locks all component images to the source revision tag', () => {
       'MCP_SERVER_IMAGE',
       'CONSOLE_IMAGE',
       'DB_MIGRATE_IMAGE',
+      'ORY_TOOLS_IMAGE',
     ]) {
       assert.match(releaseEnv, new RegExp(`^${name}=.+:${tag}$`, 'm'));
     }
@@ -435,10 +532,52 @@ test('resolves digest pins for source-tagged images', () => {
       'MCP_SERVER_IMAGE',
       'CONSOLE_IMAGE',
       'DB_MIGRATE_IMAGE',
+      'ORY_TOOLS_IMAGE',
     ]) {
       assert.match(releaseEnv, new RegExp(`^${name}=.+@${digest}$`, 'm'));
     }
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
+});
+
+test('existing Ory databases are verified without changing passwords or app ownership', async () => {
+  const calls = [];
+  const client = {
+    query: async (sql, params) => {
+      calls.push({ sql, params });
+      if (sql.includes('FROM pg_roles'))
+        return { rows: [{ rolcanlogin: true }] };
+      if (sql.includes('FROM pg_database'))
+        return { rows: [{ owner: params[0] }] };
+      return { rows: [] };
+    },
+  };
+  await provisionDatabases(
+    client,
+    { kratos: 'synthetic', hydra: 'synthetic', keto: 'synthetic' },
+    () => {},
+  );
+  assert.ok(!calls.some(({ sql }) => /CREATE|ALTER|moltnet OWNER/.test(sql)));
+  assert.ok(calls.every(({ sql }) => !sql.includes('synthetic')));
+});
+
+test('Ory provisioning rejects unexpected existing database ownership', async () => {
+  const calls = [];
+  const client = {
+    query: async (sql) => {
+      calls.push(sql);
+      if (sql.includes('FROM pg_roles'))
+        return { rows: [{ rolcanlogin: true }] };
+      if (sql.includes('FROM pg_database'))
+        return { rows: [{ owner: 'application' }] };
+      return { rows: [] };
+    },
+  };
+  await assert.rejects(
+    provisionDatabases(client, { kratos: 'synthetic' }, () => {}),
+    /unexpected ownership/,
+  );
+  assert.ok(!calls.some((sql) => /ALTER|REVOKE/.test(sql)));
+  assert.match(calls.at(-1), /pg_advisory_unlock/);
 });
