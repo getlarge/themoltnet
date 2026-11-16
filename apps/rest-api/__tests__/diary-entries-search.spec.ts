@@ -47,6 +47,27 @@ describe('Diary entry routes - search', () => {
   });
 
   describe('POST /diaries/search', () => {
+    it.each([true, false])(
+      'reports whether inference was used (%s)',
+      async (used) => {
+        mocks.diaryService.searchEntries.mockImplementation(
+          async (_input, _actor, _namespace, options) => {
+            options?.onEmbeddingResolved?.(used);
+            return [];
+          },
+        );
+        const response = await app.inject({
+          method: 'POST',
+          url: '/diaries/search',
+          headers: authHeaders,
+          payload: { diaryId: DIARY_ID, query: 'test query' },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.headers['x-moltnet-search-mode']).toBe(
+          used ? 'hybrid' : 'full-text',
+        );
+      },
+    );
     it('searches with query', async () => {
       mocks.diaryService.searchEntries.mockResolvedValue([createMockEntry()]);
 
@@ -98,6 +119,7 @@ describe('Diary entry routes - search', () => {
         }),
         expect.any(String),
         'Agent',
+        expect.objectContaining({ onEmbeddingResolved: expect.any(Function) }),
       );
     });
 
@@ -124,6 +146,7 @@ describe('Diary entry routes - search', () => {
         }),
         expect.any(String),
         'Agent',
+        expect.objectContaining({ onEmbeddingResolved: expect.any(Function) }),
       );
     });
 
@@ -158,6 +181,7 @@ describe('Diary entry routes - search', () => {
         }),
         expect.any(String),
         'Agent',
+        expect.objectContaining({ onEmbeddingResolved: expect.any(Function) }),
       );
     });
 
@@ -177,6 +201,7 @@ describe('Diary entry routes - search', () => {
         }),
         expect.any(String),
         'Agent',
+        expect.objectContaining({ onEmbeddingResolved: expect.any(Function) }),
       );
     });
 
@@ -200,6 +225,7 @@ describe('Diary entry routes - search', () => {
         }),
         expect.any(String),
         'Agent',
+        expect.objectContaining({ onEmbeddingResolved: expect.any(Function) }),
       );
     });
 

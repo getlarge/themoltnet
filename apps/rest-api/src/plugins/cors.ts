@@ -53,6 +53,7 @@ async function corsPlugin(
     ],
     // Exposed headers (accessible to JavaScript)
     exposedHeaders: [
+      'X-MoltNet-Search-Mode',
       'X-Request-ID',
       'X-RateLimit-Limit',
       'X-RateLimit-Remaining',

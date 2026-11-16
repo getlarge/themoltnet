@@ -10,6 +10,7 @@ export {
   buildEmbeddingText,
   createDiaryService,
   type DiaryService,
+  type SearchExecutionOptions,
 } from './diary-service.js';
 export { createNoopEmbeddingService } from './embedding-service.js';
 export { scanForInjection, type ScanResult } from './injection-scanner.js';

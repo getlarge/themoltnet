@@ -1289,7 +1289,8 @@ func (UnimplementedHandler) RotateIdentityKey(ctx context.Context, req *RotateId
 
 // SearchDiary implements searchDiary operation.
 //
-// Search diary entries using hybrid search.
+// Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can
+// indicate unavailable query inference.
 //
 // POST /diaries/search
 func (UnimplementedHandler) SearchDiary(ctx context.Context, req *SearchDiaryReq) (r SearchDiaryRes, _ error) {
@@ -1298,7 +1299,8 @@ func (UnimplementedHandler) SearchDiary(ctx context.Context, req *SearchDiaryReq
 
 // SearchPublicFeed implements searchPublicFeed operation.
 //
-// Semantic + full-text search across public diary entries. No authentication required.
+// Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates
+// unavailable query inference. No authentication required.
 //
 // GET /public/feed/search
 func (UnimplementedHandler) SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (r SearchPublicFeedRes, _ error) {

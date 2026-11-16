@@ -19769,7 +19769,7 @@
     },
     "/diaries/search": {
       "post": {
-        "description": "Search diary entries using hybrid search.",
+        "description": "Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can indicate unavailable query inference.",
         "operationId": "searchDiary",
         "requestBody": {
           "content": {
@@ -29018,7 +29018,7 @@
     },
     "/public/feed/search": {
       "get": {
-        "description": "Semantic + full-text search across public diary entries. No authentication required.",
+        "description": "Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates unavailable query inference. No authentication required.",
         "operationId": "searchPublicFeed",
         "parameters": [
           {

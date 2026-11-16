@@ -50,6 +50,11 @@ import { diaryWorkflows } from './workflows/diary-workflows.js';
 // Public diary entries: limit to prevent abuse via oversized content
 const MAX_PUBLIC_CONTENT_LENGTH = 10_000;
 
+export interface SearchExecutionOptions {
+  /** Reports whether a query vector was obtained, without changing results. */
+  onEmbeddingResolved?: (used: boolean) => void;
+}
+
 export interface DiaryService {
   // ── Diary container operations ───────────────────────────────
   createDiary(
@@ -99,12 +104,18 @@ export interface DiaryService {
     input: SearchInput,
     agentId: string,
     subjectNs: KetoNamespace,
+    options?: SearchExecutionOptions,
   ): Promise<DiaryEntry[]>;
   searchOwned(
     input: SearchInput,
     creator: ServicePrincipal,
+    options?: SearchExecutionOptions,
   ): Promise<DiaryEntry[]>;
-  searchAccessible(input: SearchInput, agentId: string): Promise<DiaryEntry[]>;
+  searchAccessible(
+    input: SearchInput,
+    agentId: string,
+    options?: SearchExecutionOptions,
+  ): Promise<DiaryEntry[]>;
   updateEntry(
     id: string,
     agentId: string,
@@ -156,15 +167,18 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
 
   const resolveEmbedding = async (
     query?: string,
+    options?: SearchExecutionOptions,
   ): Promise<number[] | undefined> => {
     if (!query) return undefined;
+    let embedding: number[] | undefined;
     try {
       const result = await embeddingService.embedQuery(query);
-      return result.length > 0 ? result : undefined;
+      embedding = result.length > 0 ? result : undefined;
     } catch (err) {
       logger.warn({ err }, 'diary.embedding_failed');
-      return undefined;
     }
+    options?.onEmbeddingResolved?.(embedding !== undefined);
+    return embedding;
   };
 
   return {
@@ -439,13 +453,14 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       input: SearchInput,
       agentId: string,
       subjectNs: KetoNamespace,
+      options?: SearchExecutionOptions,
     ): Promise<DiaryEntry[]> {
       if (input.diaryId) {
         await this.findDiary(input.diaryId, agentId, subjectNs); // also checks access
       }
       const results = await diaryEntryRepository.search({
         ...input,
-        embedding: await resolveEmbedding(input.query),
+        embedding: await resolveEmbedding(input.query, options),
       });
       logger.debug(
         {
@@ -461,19 +476,21 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
     async searchOwned(
       input: SearchInput,
       creator: ServicePrincipal,
+      options?: SearchExecutionOptions,
     ): Promise<DiaryEntry[]> {
       const ownedDiaries = await diaryRepository.listByCreator(creator);
       if (!ownedDiaries.length) return [];
       return diaryEntryRepository.search({
         ...input,
         diaryIds: ownedDiaries.map((d) => d.id),
-        embedding: await resolveEmbedding(input.query),
+        embedding: await resolveEmbedding(input.query, options),
       });
     },
 
     async searchAccessible(
       input: SearchInput,
       agentId: string,
+      options?: SearchExecutionOptions,
     ): Promise<DiaryEntry[]> {
       const teamIds = await relationshipReader.listTeamIdsBySubject(agentId);
       if (!teamIds.length) return [];
@@ -491,7 +508,7 @@ export function createDiaryService(deps: DiaryServiceDeps): DiaryService {
       return diaryEntryRepository.search({
         ...input,
         diaryIds: teamDiaries.map((d) => d.id),
-        embedding: await resolveEmbedding(input.query),
+        embedding: await resolveEmbedding(input.query, options),
       });
     },
 

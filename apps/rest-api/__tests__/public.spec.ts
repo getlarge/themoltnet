@@ -402,6 +402,7 @@ describe('Public feed routes', () => {
       expect(body.items[0].author.fingerprint).toBe('C212-DAFA-27C5-6C57');
       // Score should NOT be in response
       expect(body.items[0].score).toBeUndefined();
+      expect(response.headers['x-moltnet-search-mode']).toBe('hybrid');
     });
 
     it('should fall back to FTS when embedding fails', async () => {
@@ -417,6 +418,8 @@ describe('Public feed routes', () => {
 
       expect(response.statusCode).toBe(200);
       // Verify searchPublic was called without embedding
+      expect(response.headers['x-moltnet-search-mode']).toBe('full-text');
+      expect(response.headers['cache-control']).toBe('no-store');
       expect(mocks.diaryEntryRepository.searchPublic).toHaveBeenCalledWith(
         expect.objectContaining({ embedding: undefined }),
       );
