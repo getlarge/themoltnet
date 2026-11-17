@@ -62,9 +62,8 @@ export type RequestResult<
   : Promise<
       TResponseStyle extends 'data'
         ? ResponseData<TData> | undefined
-        :
-            | { data: ResponseData<TData>; error: undefined }
-            | { data: undefined; error: ResponseData<TError> }
+        : | { data: ResponseData<TData>; error: undefined }
+          | { data: undefined; error: ResponseData<TError> }
     >;
 
 type MethodFn = <

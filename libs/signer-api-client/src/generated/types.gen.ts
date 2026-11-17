@@ -26,8 +26,7 @@ export type PreviewSignChallenge = {
 };
 
 export type PreviewSignChallengeOperation =
-  | 'credential-registration'
-  | 'signing-request';
+  'credential-registration' | 'signing-request';
 
 export type PreviewSignChallengeValue = {
   value: PreviewSignChallenge;
@@ -93,8 +92,7 @@ export type SignerCeremonyParams = {
 };
 
 export type SignerCeremonyRequest =
-  | SignerEnrollmentCeremonyRequest
-  | SignerChallengeCeremonyRequest;
+  SignerEnrollmentCeremonyRequest | SignerChallengeCeremonyRequest;
 
 export type SignerCeremonyResult =
   | SignerPendingResult
@@ -132,9 +130,7 @@ export type SignerFailedResult = {
 };
 
 export type SignerOperation =
-  | 'credential-enrollment'
-  | 'credential-registration'
-  | 'signing-request';
+  'credential-enrollment' | 'credential-registration' | 'signing-request';
 
 export type SignerPendingResult = {
   operation: SignerOperation;

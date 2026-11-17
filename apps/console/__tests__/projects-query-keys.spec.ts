@@ -27,7 +27,8 @@ it('invalidates real generated project keys across pages and filters within one 
       query: { offset: 0, limit: 50, includeArchived: false },
     },
   ].map((options) => listProjectsOptions({ ...options, client }).queryKey);
-  for (const key of keys) cache.setQueryData(key, { items: [] });
+  for (const key of keys)
+    cache.setQueryData(key, { items: [], nextOffset: null });
   await cache.invalidateQueries({
     queryKey: listProjectsQueryKey({
       client,
