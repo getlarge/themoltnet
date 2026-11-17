@@ -4,7 +4,8 @@
     "declarationDir": "out-tsc",
     "outDir": "out-tsc",
     "rootDir": "src",
-    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist", "out-tsc", "__tests__", "e2e"],
   "extends": "./tsconfig.json",
