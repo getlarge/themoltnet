@@ -99,8 +99,13 @@ const run = (command, capture = false) => {
         `Passed Compose operation: ${command.filter((part) => !part.startsWith('-')).join(' ')}`,
       );
     return result;
-  } catch {
-    throw new Error(`Synthetic Compose operation failed: ${command[0]}`);
+  } catch (error) {
+    // Only this isolated, synthetic project is captured; never inherit workload
+    // variables or read an operator's .env. Keep failure output bounded.
+    const details = `${error.stdout ?? ''}\n${error.stderr ?? ''}`.slice(-6000);
+    throw new Error(
+      `Synthetic Compose operation failed: ${command.join(' ')}\n${details}`,
+    );
   }
 };
 const sql = (query) =>
@@ -131,10 +136,8 @@ const talosState = () =>
     ],
     true,
   );
-let started = false;
 try {
   console.log(`Synthetic Ory module project: ${project}`);
-  started = true;
   run(['up', '-d', '--wait', '--wait-timeout', '120', 'postgres']);
   // Represent an existing application database. Provisioning must preserve it.
   sql('CREATE ROLE application LOGIN');
@@ -168,6 +171,12 @@ try {
     ),
     passwordHashes,
   );
+  sql('CREATE ROLE inherited_privilege; GRANT inherited_privilege TO kratos');
+  assert.throws(
+    () => run(['run', '--rm', '--no-deps', 'ory-db-init'], true),
+    /kratos: existing role has unexpected membership/,
+  );
+  sql('REVOKE inherited_privilege FROM kratos; DROP ROLE inherited_privilege');
   assert.equal(
     run(
       [
@@ -233,7 +242,27 @@ try {
   console.log(
     'Passed: populated PostgreSQL 17 preserved; Ory ready; Talos keys stable on restart and refused reinitialization',
   );
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = 1;
+  for (const command of [
+    ['ps', '--all'],
+    ['logs', '--no-color', '--tail=30'],
+  ]) {
+    try {
+      console.error(run(command, true).slice(-12000));
+    } catch (diagnosticError) {
+      console.error(diagnosticError.message);
+    }
+  }
 } finally {
-  if (started) run(['--profile', '*', 'down', '-v', '--remove-orphans']);
-  rmSync(temporary, { recursive: true, force: true });
+  try {
+    run(['--profile', '*', 'down', '-v', '--remove-orphans']);
+  } catch (error) {
+    // Report cleanup separately so it cannot replace the original failure.
+    console.error(`Cleanup failed for ${project}: ${error.message}`);
+    process.exitCode = 1;
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
 }

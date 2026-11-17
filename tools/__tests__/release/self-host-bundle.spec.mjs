@@ -6,6 +6,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -16,7 +17,10 @@ import process from 'node:process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { provisionDatabases } from '../../../deploy/ory/provision-databases.mjs';
+import {
+  provisionDatabases,
+  provisioningFailure,
+} from '../../../deploy/ory/provision-databases.mjs';
 import { provisionClients } from '../../../deploy/ory/provision-oauth-clients.mjs';
 
 const repoRoot = path.resolve(
@@ -580,4 +584,152 @@ test('Ory provisioning rejects unexpected existing database ownership', async ()
   );
   assert.ok(!calls.some((sql) => /ALTER|REVOKE/.test(sql)));
   assert.match(calls.at(-1), /pg_advisory_unlock/);
+});
+
+test('Ory provisioning reports safe reasons and refuses inherited privileges', async () => {
+  const calls = [];
+  const client = {
+    query: async (sql) => {
+      calls.push(sql);
+      if (sql.includes('FROM pg_auth_members'))
+        return { rows: [{ member: true }] };
+      if (sql.includes('FROM pg_roles'))
+        return { rows: [{ rolcanlogin: true }] };
+      return { rows: [] };
+    },
+  };
+  // Memberships confer privileges even when the role's own flags are ordinary.
+  await assert.rejects(
+    provisionDatabases(client, { kratos: 'synthetic' }, () => {}),
+    (error) =>
+      provisioningFailure(error).includes(
+        'kratos: existing role has unexpected membership',
+      ),
+  );
+  assert.ok(!calls.some((sql) => /CREATE|REVOKE|GRANT/.test(sql)));
+  assert.match(calls.at(-1), /pg_advisory_unlock/);
+  await assert.rejects(
+    provisionDatabases(client, {}, () => {}),
+    (error) =>
+      provisioningFailure(error).includes(
+        'kratos: required database password missing',
+      ),
+  );
+  assert.equal(
+    provisioningFailure({
+      code: '42501',
+      message: 'synthetic-sensitive-query',
+      detail: 'synthetic-password',
+    }),
+    'Ory database provisioning failed: PostgreSQL SQLSTATE 42501',
+  );
+  assert.doesNotMatch(
+    provisioningFailure({
+      code: 'synthetic-password',
+      message: 'synthetic-password',
+    }),
+    /synthetic-password/,
+  );
+});
+
+test('Talos initialization locks before generation and cleans failed staging', () => {
+  const temporary = mkdtempSync(path.join(os.tmpdir(), 'talos-init-test-'));
+  const data = path.join(temporary, 'data');
+  const bin = path.join(temporary, 'bin');
+  const wrapper = path.join(temporary, 'talos.sh');
+  mkdirSync(data);
+  mkdirSync(bin);
+  // Substitute only the mount path; exercise the shipped shell script without
+  // introducing a runtime override for production key storage.
+  writeFileSync(
+    wrapper,
+    readFileSync(path.join(repoRoot, 'deploy/ory/talos.sh'), 'utf8').replaceAll(
+      '/var/lib/talos',
+      data,
+    ),
+  );
+  writeFileSync(
+    path.join(bin, 'talos'),
+    `#!/bin/sh
+if [ "$1" = jwk ]; then
+  for destination; do :; done
+  printf 'synthetic-jwk' > "$destination"
+  [ "\${FAIL_GENERATE:-0}" = 0 ] || exit 1
+else
+  printf '%s\\n' "$1"
+fi
+`,
+    { mode: 0o755 },
+  );
+  const run = (mode, extra = {}) =>
+    spawnSync('sh', [wrapper, mode], {
+      encoding: 'utf8',
+      env: { PATH: `${bin}:${process.env.PATH}`, ...extra },
+    });
+  try {
+    const lock = path.join(data, '.initialize-lock');
+    mkdirSync(lock);
+    assert.match(run('init').stderr, /lock exists/);
+    assert.ok(
+      existsSync(lock),
+      'a competing initializer must not remove the lock',
+    );
+    rmSync(lock, { recursive: true });
+    assert.notEqual(run('init', { FAIL_GENERATE: '1' }).status, 0);
+    assert.deepEqual(
+      readdirSync(data),
+      [],
+      'failed generation publishes no keys',
+    );
+    assert.equal(run('init').status, 0);
+    const before = readFileSync(path.join(data, 'jwks.json'), 'utf8');
+    assert.match(run('init').stderr, /empty volume/);
+    assert.equal(readFileSync(path.join(data, 'jwks.json'), 'utf8'), before);
+    assert.match(run('serve').stderr, /database missing/);
+    rmSync(path.join(data, 'hmac-secret'));
+    assert.match(run('migrate').stderr, /key material missing/);
+    assert.match(run('init').stderr, /empty volume/);
+    assert.equal(run('unknown').status, 2);
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test('module smoke retains operation diagnostics when teardown also fails', () => {
+  const temporary = mkdtempSync(
+    path.join(os.tmpdir(), 'ory-smoke-failure-test-'),
+  );
+  writeFileSync(
+    path.join(temporary, 'docker'),
+    `#!/bin/sh
+case " $* " in
+  *' ps '*) echo synthetic-status ;;
+  *' logs '*) echo synthetic-service-log ;;
+  *' down '*) echo synthetic-cleanup-failure >&2; exit 1 ;;
+  *) echo synthetic-startup-failure >&2; exit 1 ;;
+esac
+`,
+    { mode: 0o755 },
+  );
+  try {
+    const result = spawnSync(
+      'node',
+      [path.join(repoRoot, 'tools/release/ory-module-smoke.mjs'), repoRoot],
+      {
+        encoding: 'utf8',
+        env: { PATH: `${temporary}:${process.env.PATH}` },
+      },
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /operation failed: up -d --wait/);
+    for (const marker of [
+      'startup-failure',
+      'status',
+      'service-log',
+      'cleanup-failure',
+    ])
+      assert.ok(result.stderr.includes(`synthetic-${marker}`));
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
 });

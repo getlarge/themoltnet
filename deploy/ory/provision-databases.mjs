@@ -2,6 +2,21 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
 const databases = ['kratos', 'hydra', 'keto'];
+// Serializes this provisioner across connections to the same PostgreSQL server.
+const provisioningLock = 684615703;
+class ProvisioningError extends Error {}
+
+export function provisioningFailure(error) {
+  // Only our fixed messages are safe; driver messages/context can contain SQL
+  // and parameters. PostgreSQL SQLSTATE codes have a bounded public format.
+  const reason =
+    error instanceof ProvisioningError
+      ? error.message
+      : /^[0-9A-Z]{5}$/.test(error?.code ?? '')
+        ? `PostgreSQL SQLSTATE ${error.code}`
+        : 'check database connectivity and administrator privileges';
+  return `Ory database provisioning failed: ${reason}`;
+}
 
 /** Create only Ory roles/databases. Existing ownership and passwords are preserved. */
 export async function provisionDatabases(
@@ -16,11 +31,13 @@ export async function provisionDatabases(
   await client.query(`SET log_error_verbosity = 'terse'`);
   await client.query(`SET log_parameter_max_length = 0`);
   await client.query(`SET log_parameter_max_length_on_error = 0`);
-  await client.query('SELECT pg_advisory_lock(684615703)');
+  await client.query('SELECT pg_advisory_lock($1)', [provisioningLock]);
   try {
     for (const name of databases) {
       if (!passwords[name])
-        throw new Error('Required Ory database password missing');
+        throw new ProvisioningError(
+          `${name}: required database password missing`,
+        );
       const role = await client.query(
         'SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, rolcanlogin FROM pg_roles WHERE rolname = $1',
         [name],
@@ -35,7 +52,17 @@ export async function provisionDatabases(
           r.rolreplication ||
           r.rolbypassrls
         )
-          throw new Error('Existing Ory role has unexpected privileges');
+          throw new ProvisioningError(
+            `${name}: existing role has unexpected privileges`,
+          );
+        const membership = await client.query(
+          'SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.member WHERE r.rolname = $1 LIMIT 1',
+          [name],
+        );
+        if (membership.rows.length)
+          throw new ProvisioningError(
+            `${name}: existing role has unexpected membership`,
+          );
       } else {
         // Parameters never become SQL text sent by the client. The DO block
         // executes on the server after statement/parameter logging is disabled.
@@ -55,15 +82,19 @@ export async function provisionDatabases(
         [name],
       );
       if (db.rows.length && db.rows[0].owner !== name)
-        throw new Error('Existing Ory database has unexpected ownership');
+        throw new ProvisioningError(
+          `${name}: existing database has unexpected ownership`,
+        );
       if (!db.rows.length)
         await client.query(`CREATE DATABASE ${name} OWNER ${name}`);
       await client.query(`REVOKE CONNECT ON DATABASE ${name} FROM PUBLIC`);
       await client.query(`GRANT CONNECT ON DATABASE ${name} TO ${name}`);
-      output(`Verified Ory database ${name}`);
+      output(
+        `Verified Ory database ${name}; ${role.rows.length ? 'existing role password unchanged' : 'created login role'}`,
+      );
     }
   } finally {
-    await client.query('SELECT pg_advisory_unlock(684615703)');
+    await client.query('SELECT pg_advisory_unlock($1)', [provisioningLock]);
   }
 }
 
@@ -93,7 +124,9 @@ if (
         process.env.ORY_DB_SSLMODE ?? 'disable',
       )
     )
-      throw new Error('Unsupported database TLS mode');
+      throw new ProvisioningError(
+        'unsupported ORY_DB_SSLMODE; use disable or verify-full',
+      );
     await client.connect();
     await provisionDatabases(
       client,
@@ -104,11 +137,8 @@ if (
         ]),
       ),
     );
-  } catch {
-    // Driver errors may carry parameters or server context. Never print them.
-    console.error(
-      'Ory database provisioning failed; check connectivity, privileges, and existing ownership',
-    );
+  } catch (error) {
+    console.error(provisioningFailure(error));
     process.exitCode = 1;
   } finally {
     await client.end().catch(() => {});

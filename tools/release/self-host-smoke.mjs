@@ -71,6 +71,7 @@ const api = settings.API_DOMAIN;
 const oauth = settings.OAUTH_DOMAIN;
 const mcp = settings.MCP_DOMAIN;
 await expectStatus(api, '/health', 200);
+await expectStatus(api, '/health/ready', 200);
 await expectStatus(api, '/agents/whoami', 401);
 await expectStatus(api, '/hooks/hydra/token-exchange', 404);
 await expectStatus(settings.CONSOLE_DOMAIN, '/', 200);
