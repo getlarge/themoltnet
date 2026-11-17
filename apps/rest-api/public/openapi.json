@@ -10650,6 +10650,32 @@
         ],
         "type": "object"
       },
+      "RuntimeStoreInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "pi-durable.v1"
+            ],
+            "type": "string"
+          },
+          "headSeq": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "storeId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "storeId",
+          "format",
+          "headSeq"
+        ],
+        "type": "object"
+      },
       "RuntimeWorkspace": {
         "properties": {
           "createdAtMs": {
@@ -32051,30 +32077,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "additionalProperties": false,
-                      "properties": {
-                        "format": {
-                          "enum": [
-                            "pi-durable.v1"
-                          ],
-                          "type": "string"
-                        },
-                        "headSeq": {
-                          "maximum": 9007199254740991,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "storeId": {
-                          "format": "uuid",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "storeId",
-                        "format",
-                        "headSeq"
-                      ],
-                      "type": "object"
+                      "$ref": "#/components/schemas/RuntimeStoreInfo"
                     },
                     {
                       "type": "null"

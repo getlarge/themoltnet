@@ -23489,7 +23489,7 @@ func decodeGetRuntimeStoreForAttemptResponse(resp *http.Response) (res GetRuntim
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response NilGetRuntimeStoreForAttemptOK
+			var response NilRuntimeStoreInfo
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

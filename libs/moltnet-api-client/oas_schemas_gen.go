@@ -26625,76 +26625,6 @@ type GetRuntimeStoreForAttemptNotFound ProblemDetails
 
 func (*GetRuntimeStoreForAttemptNotFound) getRuntimeStoreForAttemptRes() {}
 
-type GetRuntimeStoreForAttemptOK struct {
-	Format  GetRuntimeStoreForAttemptOKFormat `json:"format"`
-	HeadSeq int                               `json:"headSeq"`
-	StoreId uuid.UUID                         `json:"storeId"`
-}
-
-// GetFormat returns the value of Format.
-func (s *GetRuntimeStoreForAttemptOK) GetFormat() GetRuntimeStoreForAttemptOKFormat {
-	return s.Format
-}
-
-// GetHeadSeq returns the value of HeadSeq.
-func (s *GetRuntimeStoreForAttemptOK) GetHeadSeq() int {
-	return s.HeadSeq
-}
-
-// GetStoreId returns the value of StoreId.
-func (s *GetRuntimeStoreForAttemptOK) GetStoreId() uuid.UUID {
-	return s.StoreId
-}
-
-// SetFormat sets the value of Format.
-func (s *GetRuntimeStoreForAttemptOK) SetFormat(val GetRuntimeStoreForAttemptOKFormat) {
-	s.Format = val
-}
-
-// SetHeadSeq sets the value of HeadSeq.
-func (s *GetRuntimeStoreForAttemptOK) SetHeadSeq(val int) {
-	s.HeadSeq = val
-}
-
-// SetStoreId sets the value of StoreId.
-func (s *GetRuntimeStoreForAttemptOK) SetStoreId(val uuid.UUID) {
-	s.StoreId = val
-}
-
-type GetRuntimeStoreForAttemptOKFormat string
-
-const (
-	GetRuntimeStoreForAttemptOKFormatPiDurableV1 GetRuntimeStoreForAttemptOKFormat = "pi-durable.v1"
-)
-
-// AllValues returns all GetRuntimeStoreForAttemptOKFormat values.
-func (GetRuntimeStoreForAttemptOKFormat) AllValues() []GetRuntimeStoreForAttemptOKFormat {
-	return []GetRuntimeStoreForAttemptOKFormat{
-		GetRuntimeStoreForAttemptOKFormatPiDurableV1,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s GetRuntimeStoreForAttemptOKFormat) MarshalText() ([]byte, error) {
-	switch s {
-	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *GetRuntimeStoreForAttemptOKFormat) UnmarshalText(data []byte) error {
-	switch GetRuntimeStoreForAttemptOKFormat(data) {
-	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
-		*s = GetRuntimeStoreForAttemptOKFormatPiDurableV1
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type GetRuntimeStoreForAttemptServiceUnavailable ProblemDetails
 
 func (*GetRuntimeStoreForAttemptServiceUnavailable) getRuntimeStoreForAttemptRes() {}
@@ -35932,53 +35862,6 @@ func (o NilFloat64) Or(d float64) float64 {
 	return d
 }
 
-// NewNilGetRuntimeStoreForAttemptOK returns new NilGetRuntimeStoreForAttemptOK with value set to v.
-func NewNilGetRuntimeStoreForAttemptOK(v GetRuntimeStoreForAttemptOK) NilGetRuntimeStoreForAttemptOK {
-	return NilGetRuntimeStoreForAttemptOK{
-		Value: v,
-	}
-}
-
-// NilGetRuntimeStoreForAttemptOK is nullable GetRuntimeStoreForAttemptOK.
-type NilGetRuntimeStoreForAttemptOK struct {
-	Value GetRuntimeStoreForAttemptOK
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilGetRuntimeStoreForAttemptOK) SetTo(v GetRuntimeStoreForAttemptOK) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilGetRuntimeStoreForAttemptOK) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilGetRuntimeStoreForAttemptOK) SetToNull() {
-	o.Null = true
-	var v GetRuntimeStoreForAttemptOK
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilGetRuntimeStoreForAttemptOK) Get() (v GetRuntimeStoreForAttemptOK, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilGetRuntimeStoreForAttemptOK) Or(d GetRuntimeStoreForAttemptOK) GetRuntimeStoreForAttemptOK {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-func (*NilGetRuntimeStoreForAttemptOK) getRuntimeStoreForAttemptRes() {}
-
 // NewNilInt returns new NilInt with value set to v.
 func NewNilInt(v int) NilInt {
 	return NilInt{
@@ -36158,6 +36041,53 @@ func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Or(d Runtime
 	}
 	return d
 }
+
+// NewNilRuntimeStoreInfo returns new NilRuntimeStoreInfo with value set to v.
+func NewNilRuntimeStoreInfo(v RuntimeStoreInfo) NilRuntimeStoreInfo {
+	return NilRuntimeStoreInfo{
+		Value: v,
+	}
+}
+
+// NilRuntimeStoreInfo is nullable RuntimeStoreInfo.
+type NilRuntimeStoreInfo struct {
+	Value RuntimeStoreInfo
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilRuntimeStoreInfo) SetTo(v RuntimeStoreInfo) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilRuntimeStoreInfo) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilRuntimeStoreInfo) SetToNull() {
+	o.Null = true
+	var v RuntimeStoreInfo
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilRuntimeStoreInfo) Get() (v RuntimeStoreInfo, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilRuntimeStoreInfo) Or(d RuntimeStoreInfo) RuntimeStoreInfo {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+func (*NilRuntimeStoreInfo) getRuntimeStoreForAttemptRes() {}
 
 // NewNilString returns new NilString with value set to v.
 func NewNilString(v string) NilString {
@@ -52228,6 +52158,77 @@ func (s *RuntimeProfileToolEnforcement) UnmarshalText(data []byte) error {
 		return nil
 	case RuntimeProfileToolEnforcementEnforce:
 		*s = RuntimeProfileToolEnforcementEnforce
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/RuntimeStoreInfo
+type RuntimeStoreInfo struct {
+	Format  RuntimeStoreInfoFormat `json:"format"`
+	HeadSeq int                    `json:"headSeq"`
+	StoreId uuid.UUID              `json:"storeId"`
+}
+
+// GetFormat returns the value of Format.
+func (s *RuntimeStoreInfo) GetFormat() RuntimeStoreInfoFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *RuntimeStoreInfo) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *RuntimeStoreInfo) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// SetFormat sets the value of Format.
+func (s *RuntimeStoreInfo) SetFormat(val RuntimeStoreInfoFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *RuntimeStoreInfo) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *RuntimeStoreInfo) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+type RuntimeStoreInfoFormat string
+
+const (
+	RuntimeStoreInfoFormatPiDurableV1 RuntimeStoreInfoFormat = "pi-durable.v1"
+)
+
+// AllValues returns all RuntimeStoreInfoFormat values.
+func (RuntimeStoreInfoFormat) AllValues() []RuntimeStoreInfoFormat {
+	return []RuntimeStoreInfoFormat{
+		RuntimeStoreInfoFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeStoreInfoFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeStoreInfoFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeStoreInfoFormat) UnmarshalText(data []byte) error {
+	switch RuntimeStoreInfoFormat(data) {
+	case RuntimeStoreInfoFormatPiDurableV1:
+		*s = RuntimeStoreInfoFormatPiDurableV1
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

@@ -54,13 +54,7 @@ export type AgentServerCatalogueProfile = {
       provider: string;
       temperature?: null | number;
       thinkingLevel?:
-        | 'off'
-        | 'minimal'
-        | 'low'
-        | 'medium'
-        | 'high'
-        | 'xhigh'
-        | null;
+        'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
       topK?: number | null;
       topP?: null | number;
     };

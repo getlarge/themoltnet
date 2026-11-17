@@ -1018,6 +1018,7 @@ export type {
   RuntimeSessionContent,
   RuntimeSlot,
   RuntimeSlotListResponse,
+  RuntimeStoreInfo,
   RuntimeWorkspace,
   SearchDiaryData,
   SearchDiaryError,
