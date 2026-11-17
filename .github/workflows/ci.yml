@@ -801,6 +801,8 @@ jobs:
         run: pnpm run check:axiom
       - name: Check test conventions
         run: pnpm run check:test-conventions
+      - name: Check Node.js toolchain pins
+        run: pnpm run check:node-toolchain
       - name: Check formatting
         run: pnpm exec nx format:check
 
