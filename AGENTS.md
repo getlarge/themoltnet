@@ -598,10 +598,16 @@ these rules.
 - **The Node.js toolchain is pinned once, in `.tool-versions`.** Every
   `actions/setup-node` step uses `node-version-file: .tool-versions` (or the
   trusted checkout's copy in jobs that run trusted tooling from a subpath).
-  `FROM node:` lines in Dockerfiles use the same version, and Renovate updates
-  both in one "Node.js toolchain" PR. Published composite actions
+  `FROM node:` lines in Dockerfiles, `.nvmrc` (kept for nvm/fnm users) and the
+  musl download in `sandbox.json` use the same version, and Renovate updates
+  them in one "Node.js toolchain" group. Published composite actions
   (`packages/*-action/action.yml`) run in other repositories and keep a literal
-  version.
+  version. `pnpm run check:node-toolchain` (CI: Orchestrator) fails on any
+  drift. Each Renovate datasource clears the release-age gate on its own
+  schedule, so a group branch can first bump `.tool-versions` before the
+  Docker Hub tag is eligible; the check keeps that branch red until the
+  Dockerfile update lands on it. Do not merge a Node.js toolchain PR past a
+  failing check.
 - **Pin Docker base images by digest with a literal `FROM`** line
   (`FROM node:24.14.1-slim@sha256:…`). Renovate cannot pin or update a `FROM`
   that interpolates an `ARG`.
