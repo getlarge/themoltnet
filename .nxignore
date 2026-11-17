@@ -6,6 +6,10 @@
 # does not contain modules listed in go.work".
 infra/otel/custom-collector/oryintrospectionauthextension
 
+# Pins actionlint as a Go `tool` dependency for tools/src/actionlint.ts. It
+# holds no packages and sits outside go.work for the same reason as above.
+tools/actionlint
+
 # Ory Network project config (name "MoltNet"), not an Nx project. Ignore only
 # this file: the rest of infra/ory must stay visible to Nx so the secretlint
 # workspace target hashes and scans it.

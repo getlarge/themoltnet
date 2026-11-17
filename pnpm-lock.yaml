@@ -766,9 +766,6 @@ importers:
       eslint-plugin-simple-import-sort:
         specifier: 'catalog:'
         version: 12.1.1(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))
-      github-actionlint:
-        specifier: 1.7.12
-        version: 1.7.12
       globals:
         specifier: 'catalog:'
         version: 17.14.0
@@ -9358,10 +9355,6 @@ packages:
     resolution: {integrity: sha512-XNAb/a6TCqou+TufU8/u11HCu9x1gYvOoxLwtlXgIqmkrYQADVv6ljyW2zwiPhHz9R1gItAWpuDrdJMmrOBFEA==}
     engines: {node: '>= 16.0.0'}
 
-  adm-zip@0.5.18:
-    resolution: {integrity: sha512-ufJnssQGbxzLNS1Ho9bCtX4rQKCCvoVuDLHoJyc3F9dOGDB4BkWs2Ci0kv53lqocAEQ/Cbi+I2XCsNYGqVYqng==}
-    engines: {node: '>=12.0'}
-
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -11461,11 +11454,6 @@ packages:
     resolution: {integrity: sha512-Y+csSm2GD/PCSh6Isd/WiMjNAydu0VBiG9J7EdQsNA5P9uXvLayqjmTsNlK5Gs9IhblFZqOU0yid5Il5JPoLiQ==}
     engines: {node: '>=18'}
     deprecated: Deprecated and no longer maintained. Use @conventional-changelog/git-client instead.
-    hasBin: true
-
-  github-actionlint@1.7.12:
-    resolution: {integrity: sha512-kSVz5clt9voatp2Tdh1BETKNooT358/nPChYseaDC4M6f9Hc/sBRMbhagx2FTu2F/WHzDoxlNPh2EqwBngTYQg==}
-    engines: {node: '>=18.0.0'}
     hasBin: true
 
   github-slugger@2.0.0:
@@ -21552,8 +21540,6 @@ snapshots:
 
   address@2.0.3: {}
 
-  adm-zip@0.5.18: {}
-
   agent-base@6.0.2(supports-color@10.2.2):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
@@ -23921,11 +23907,6 @@ snapshots:
     transitivePeerDependencies:
       - conventional-commits-filter
       - conventional-commits-parser
-
-  github-actionlint@1.7.12:
-    dependencies:
-      adm-zip: 0.5.18
-      tar: 7.5.23
 
   github-slugger@2.0.0: {}
 

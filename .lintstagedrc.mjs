@@ -134,7 +134,9 @@ export default {
     return [
       `nx format:write --files=${list(files)}`,
       ...(targets.length > 0
-        ? [`github-actionlint -shellcheck= -pyflakes= ${targets.join(' ')}`]
+        ? [
+            `node tools/src/actionlint.ts -shellcheck= -pyflakes= ${targets.join(' ')}`,
+          ]
         : []),
     ];
   },
