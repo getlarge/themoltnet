@@ -14,7 +14,7 @@ protected volume name. The standalone consumer accepts `TALOS_DATA_VOLUME`.
 
 Set `ORY_TOOLS_IMAGE` independently from the application migration image. The
 release locks both to the same database-tools digest initially. It contains
-Node, pg, and psql. All first-party images are source-revision pinned; Ory,
+Node and pg. All first-party images are source-revision pinned; Ory,
 its UI, and Talos use the module's explicit digest pins. `images.txt` lists
 every effective image, including maintenance jobs.
 
@@ -29,8 +29,15 @@ to Kratos, Hydra, and Keto serves and migration jobs. The administrator password
 `ory-db-init`; serves receive only their own database credential. Run the
 provisioner against a healthy database explicitly. It creates only missing
 Ory roles/databases, preserves existing passwords and app ownership, and rejects
-unexpected Ory database owners or elevated roles. It disables statement and
-parameter logging for its administrator session and emits bounded status text.
+unexpected Ory database owners, elevated role flags, or role memberships.
+The provisioner requires a PostgreSQL superuser to disable statement and
+parameter logging for its administrator session. If your managed provider does
+not permit those settings, have its administrator create the roles/databases
+instead. Existing passwords are retained, not checked against supplied values.
+Errors name the failed invariant or a SQLSTATE code without driver details.
+For a database outside the private Docker network, explicitly use
+`ORY_DB_SSLMODE=verify-full` and a server certificate trusted by the containers;
+only `disable` and `verify-full` are supported by the provisioner.
 
 The other configuration variables match `../self-host/.env.example`.
 `IDENTITY_DOMAIN` and `OAUTH_DOMAIN` remain independent for standalone ingress;

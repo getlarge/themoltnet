@@ -112,8 +112,8 @@ tools/release/self-host-smoke.sh /tmp/moltnet-self-host-dev
 
 The Ory module check preserves a populated PostgreSQL 17 application database,
 checks idempotent provisioning and password retention, and proves Talos keys
-survive restarts and reject reinitialization. It also verifies psql 16+ in the
-tools image. The full harness starts a uniquely named Compose project, checks Caddy and OAuth,
+survive restarts and reject reinitialization. The full harness starts a uniquely
+named Compose project, checks Caddy and OAuth,
 makes authenticated REST and MCP requests, writes and reads both object
 buckets, and removes that run's containers and volumes. Ensure host ports 80
 and 443 and the loopback ports declared in

@@ -163,13 +163,31 @@ extensions:
 1. Take and verify a fresh backup.
 2. Download and checksum the next self-host release.
 3. Compare its `.env.example` and Compose configuration with your overrides.
-4. Run `docker compose config --quiet`, pull the digest-pinned images, and let
-   the one-shot database and Ory migration services complete.
-5. Check service health and the login, OAuth client-credentials, REST, and MCP
-   smoke paths before retiring the previous bundle.
+4. Preserve the existing project name, volumes, secrets and domains. Update
+   `.env` with the next release's `.env.release` image pins.
+5. From `deploy/self-host`, run the following steps in order, stopping on any
+   failure. Keep PostgreSQL running while the application and Ory serves stop:
 
-Never downgrade a database after its migration has run. Restore the pre-upgrade
-backup instead.
+```bash
+docker compose --env-file .env config --quiet
+docker compose --env-file .env --profile maintenance pull
+docker compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos
+for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
+  docker compose --env-file .env run --rm --no-deps "$job" || exit 1
+done
+docker compose --env-file .env up -d --wait
+docker compose --env-file .env run --rm --no-deps hydra-native-client
+docker compose --env-file .env ps --all
+```
+
+Normal startup does not run the Ory maintenance jobs. The application's
+`db-migrate` dependency still completes before REST starts. Check
+`/health/ready` and the login, OAuth client-credentials, REST and MCP smoke
+paths before retiring the previous bundle.
+
+Never run `ory-db-init` or `talos-init` during an upgrade, or downgrade a
+database after its migration has run. Restore the pre-upgrade backup instead.
+PostgreSQL major-version changes require a separate migration procedure.
 
 ## Reuse the identity services
 

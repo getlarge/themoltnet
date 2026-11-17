@@ -80,6 +80,30 @@ The standalone stack extends `../ory/compose.yaml`; see
 network integration, initialization, migrations, and protected Talos storage.
 Maintenance jobs have the `maintenance` profile and `restart: "no"`. Normal
 startup never provisions Ory databases, migrates Ory schemas, or generates Talos
-keys. On upgrades, stop affected serves and run the reviewed migration jobs,
-then start serves and reconcile clients. Never re-run `talos-init` on an
-established volume; restore its complete state instead.
+keys.
+
+## Upgrade an existing installation
+
+Verify a fresh backup and review the new release and overrides first. Preserve
+the existing Compose project name, volumes, secrets, and domains; update the
+image pins in `.env` from the new `.env.release`. From `deploy/self-host`, run
+each step below only after the previous one succeeds. PostgreSQL remains running
+while the application and Ory serves are stopped:
+
+```bash
+docker compose --env-file .env config --quiet
+docker compose --env-file .env --profile maintenance pull
+docker compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos
+for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
+  docker compose --env-file .env run --rm --no-deps "$job" || exit 1
+done
+docker compose --env-file .env up -d --wait
+docker compose --env-file .env run --rm --no-deps hydra-native-client
+docker compose --env-file .env ps --all
+```
+
+`up` also runs the application's `db-migrate` dependency before starting REST.
+Verify `/health/ready`, login, OAuth, REST and MCP before retiring the previous
+bundle. Never run `ory-db-init` or `talos-init` as part of an upgrade. Restore the
+complete backup rather than rerunning initialization or downgrading a migrated
+database. A PostgreSQL major-version upgrade needs its own migration procedure.
