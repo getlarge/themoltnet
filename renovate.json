@@ -183,6 +183,12 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
+      "description": "Pi packages are released in lockstep and pin each other exactly; updating one alone installs a second copy of chord and pi-telemetry. Published peer pins use catalog:, so the catalog is the only version to move",
+      "groupName": "Pi",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@earendil-works/chord", "@earendil-works/pi-*"]
+    },
+    {
       "description": "Keep React runtime and type declarations aligned",
       "groupName": "React",
       "matchManagers": ["npm"],

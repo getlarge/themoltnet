@@ -77,8 +77,8 @@
     "@earendil-works/pi-codemode": "catalog:"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "1.4.0",
-    "@earendil-works/pi-coding-agent": "1.4.0"
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "catalog:",

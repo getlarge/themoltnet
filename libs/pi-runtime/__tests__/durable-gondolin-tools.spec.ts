@@ -3,9 +3,9 @@ import {
   withAbortSignal,
 } from '@earendil-works/chord/context';
 import type { VM } from '@earendil-works/gondolin';
-import { Type } from '@earendil-works/pi-ai';
 import type { ToolExecutionApi } from '@earendil-works/pi-durable';
 import { CodingTools } from '@earendil-works/pi-durable/tools';
+import { Type } from 'typebox';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GondolinDurableEnv } from '../src/durable-gondolin-env.js';

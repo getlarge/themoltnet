@@ -5,7 +5,6 @@ import {
   fauxProvider,
   fauxToolCall,
   getCurrentTools,
-  Type,
 } from '@earendil-works/pi-ai';
 import { createProvider } from '@earendil-works/pi-ai/models';
 import {
@@ -18,6 +17,7 @@ import {
   type Extension,
   Harness,
   LiveDoc,
+  type Storage,
   type StorageWrite,
   type SubmissionId,
   type TaskId,
@@ -40,6 +40,7 @@ import {
   type TaskReporter,
 } from '@themoltnet/agent-runtime';
 import type { RuntimeSessionsNamespace, TasksNamespace } from '@themoltnet/sdk';
+import { Type } from 'typebox';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import { createDurableTaskExecutor } from '../src/durable-executor.js';
@@ -48,6 +49,19 @@ import { acquireDurableTransport } from '../src/durable-transport.js';
 import { createPiTelemetry } from '../src/otel/durable.js';
 import { piCodemode } from '../src/runtime-definition.js';
 import { remoteLog } from './durable-log.js';
+
+/** Commits one batch; a refusal fails the test setup instead of passing silently. */
+async function commitOrThrow(
+  storage: Pick<Storage, 'commit'>,
+  writes: readonly StorageWrite[],
+) {
+  const { refused } = await storage.commit(
+    [writes],
+    () => undefined,
+    BACKGROUND_CONTEXT,
+  );
+  if (refused !== undefined) throw refused;
+}
 
 function task(
   id = 'aaaaaaaa-0000-4000-8000-000000000001',
@@ -164,40 +178,37 @@ async function pendingCompactions(
   for (let n = 0; n < count; n++) {
     const id = await storage.mintId<TaskId<CompactionResult>>();
     ids.push(id);
-    await storage.commit(
-      [
-        {
-          type: 'task',
-          value: {
-            id,
-            conversationId: 1 as ConversationId,
-            kind: CompactionTask.definition.name,
-            version: CompactionTask.definition.version,
-            background: true,
-            abortRequested: false,
-            input: { reason: 'threshold' },
-            state: {
-              status: 'pending',
-              checkpoint: {
-                phase: 'summarize',
-                attempt: 1,
-                model: {
-                  provider: fixture.faux.provider.id,
-                  modelId: fixture.faux.models[0].id,
-                },
-                thinkingLevel: 'off',
-                streamOptions: {},
-                maxTokens: 128,
-                tail: history.items[0].id,
-                firstKept: history.items[1].id,
+    await commitOrThrow(storage, [
+      {
+        type: 'task',
+        value: {
+          id,
+          conversationId: 1 as ConversationId,
+          kind: CompactionTask.definition.name,
+          version: CompactionTask.definition.version,
+          background: true,
+          abortRequested: false,
+          input: { reason: 'threshold' },
+          state: {
+            status: 'pending',
+            checkpoint: {
+              phase: 'summarize',
+              attempt: 1,
+              model: {
+                provider: fixture.faux.provider.id,
+                modelId: fixture.faux.models[0].id,
               },
+              thinkingLevel: 'off',
+              streamOptions: {},
+              maxTokens: 128,
+              tail: history.items[0].id,
+              firstKept: history.items[1].id,
             },
-            ...overrides,
           },
+          ...overrides,
         },
-      ],
-      BACKGROUND_CONTEXT,
-    );
+      },
+    ]);
   }
   const harness = await Harness.open(
     storage,
@@ -211,7 +222,7 @@ async function pendingCompactions(
     const live = await tx.doc(LiveDoc, 1 as ConversationId);
     live.compactions = ids.map((taskId) => ({
       taskId,
-      reason: 'threshold',
+      trigger: 'threshold',
       blocking: false,
       attempt: 1,
     }));
@@ -666,7 +677,9 @@ describe('Durable task integration', () => {
       expect(parent.status).toBe('completed');
       expect(child.status).toBe('completed');
       expect(faux.state.callCount).toBe(2);
-      expect(child.usage.inputTokens).toBeGreaterThan(0);
+      // The faux provider reports prompt tokens as cache reads and writes.
+      expect(child.usage.outputTokens).toBeGreaterThan(0);
+      expect(child.usage.outputTokens).toBe(parent.usage.outputTokens);
       // The child's per-model split carries only its own call.
       expect(child.usage.models).toEqual([
         expect.objectContaining({
@@ -874,20 +887,17 @@ describe('Durable task integration', () => {
       fixture.transport,
       BACKGROUND_CONTEXT,
     );
-    await storage.commit(
-      [
-        {
-          type: 'submission',
-          value: {
-            id: await storage.mintId<SubmissionId>(),
-            conversationId: 1 as ConversationId,
-            type: 'input',
-            status: 'queued',
-          },
+    await commitOrThrow(storage, [
+      {
+        type: 'submission',
+        value: {
+          id: await storage.mintId<SubmissionId>(),
+          conversationId: 1 as ConversationId,
+          type: 'input',
+          status: 'queued',
         },
-      ],
-      BACKGROUND_CONTEXT,
-    );
+      },
+    ]);
     await storage.close(BACKGROUND_CONTEXT);
     await expect(fixture.execute(continuation(), reporter())).rejects.toThrow(
       'Parent Durable attempt has unfinished work',
@@ -1031,7 +1041,7 @@ describe('Durable task integration', () => {
               },
         );
       }
-      await storage.commit(writes, BACKGROUND_CONTEXT);
+      await commitOrThrow(storage, writes);
       await storage.close(BACKGROUND_CONTEXT);
       const events = reporter();
       await expect(
@@ -2124,7 +2134,9 @@ describe('submission deadline integration with the real Durable harness', () => 
           });
       });
       const pending = s.execute(timedTask(), events);
-      await vi.advanceTimersByTimeAsync(850);
+      // Settles about 900 ms in (Durable publishes each stored commit a
+      // macrotask apart), still before the 1 s cutoff.
+      await vi.advanceTimersByTimeAsync(950);
       expect((await pending).status).toBe('completed');
       expect(s.faux.state.callCount).toBe(1);
       const storage = await ApiDurableStorage.open(
