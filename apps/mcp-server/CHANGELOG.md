@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.7](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.6...mcp-server-v0.30.7) (2026-11-19)
+
+
+### Bug Fixes
+
+* **docker:** align node base images with the 24.22.3 toolchain ([0b21f08](https://github.com/getlarge/themoltnet/commit/0b21f08a4e967d66d857f3c1685aa7ad309fedf8))
+
 ## [0.30.6](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.5...mcp-server-v0.30.6) (2026-11-05)
 
 

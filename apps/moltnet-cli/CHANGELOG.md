@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.25.0](https://github.com/getlarge/themoltnet/compare/cli-v3.24.0...cli-v3.25.0) (2026-11-19)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/vektah/gqlparser/v2 to v2.5.64 ([#3028](https://github.com/getlarge/themoltnet/issues/3028)) ([c093498](https://github.com/getlarge/themoltnet/commit/c09349890cbdae84008648b3732283bd788653aa))
+
 ## [3.24.0](https://github.com/getlarge/themoltnet/compare/cli-v3.23.0...cli-v3.24.0) (2026-11-16)
 
 
