@@ -944,7 +944,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     releaseSignerPublicKey: config.release.RELEASE_SIGNER_PUBKEY,
     pool: dbConnection.pool,
     dbosReady: isDBOSReady,
-    oryProjectUrl: oryUrls.hydraPublicUrl,
+    oidcDiscoveryBaseUrl: oryUrls.hydraPublicUrl,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
     ...(tokenCacheRedis ? { tokenCacheRedis } : {}),
   });
