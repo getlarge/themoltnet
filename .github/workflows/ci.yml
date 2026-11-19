@@ -306,6 +306,7 @@ jobs:
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       check-dist-actions: ${{ steps.compute.outputs.check-dist-actions }}
+      renovate-config: ${{ steps.compute.outputs.renovate-config }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -526,6 +527,12 @@ jobs:
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-actions=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- renovate.json .github/workflows/renovate.yml .github/workflows/ci.yml; then
+            echo "renovate-config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "renovate-config=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli" "@moltnet/agent-config" "@moltnet/agent-desktop"; then
@@ -864,6 +871,27 @@ jobs:
         run: claude plugin validate packages/legreffier-plugin --strict
       - name: Install in Codex and Claude
         run: pnpm exec nx run @themoltnet/legreffier-plugin:smoke:install
+
+  renovate-config:
+    name: Renovate config
+    needs: [affected]
+    if: needs.affected.outputs.renovate-config == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .tool-versions
+      # Validate with the Renovate release the Renovate workflow runs, so the
+      # check cannot drift from the version that reads this config.
+      - name: Validate renovate.json
+        run: |
+          version=$(awk '$1 == "renovate-version:" { print $2 }' .github/workflows/renovate.yml)
+          [ -n "$version" ] || { echo 'renovate.yml declares no renovate-version' >&2; exit 1; }
+          npx --yes --package "renovate@$version" -- renovate-config-validator --strict
 
   code-analysis:
     name: Code Analysis (Knip)
