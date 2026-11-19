@@ -42,7 +42,7 @@ export default defineConfig({
     // @nx/vite/plugin recognizes this as buildable (its isBuildable check reads
     // build.lib || rollupOptions.input || rolldownOptions.input — but NOT
     // build.ssr). Vite's actual build is still driven by build.ssr.
-    rollupOptions: {
+    rolldownOptions: {
       external,
       input: {
         index: 'src/index.ts',

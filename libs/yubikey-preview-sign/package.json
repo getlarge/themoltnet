@@ -54,6 +54,7 @@
     "check:verify-isolation": "tsx scripts/check-verify-isolation.ts"
   },
   "nx": {
+    "projectType": "library",
     "tags": [
       "type:client",
       "scope:identity",

@@ -73,7 +73,7 @@ export default defineConfig({
     // rolldownOptions.input — but NOT build.ssr). Vite's actual build
     // is still driven by build.ssr; this field is a hint to the Nx
     // inference layer.
-    rollupOptions: {
+    rolldownOptions: {
       external,
       input: {
         human: 'src/human.ts',

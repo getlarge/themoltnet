@@ -69,7 +69,6 @@
         "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
         "serveTargetName": "serve",
-        "testTargetName": "vite-test-disabled",
         "typecheckTargetName": "vite-typecheck-disabled",
         "watchDepsTargetName": "watch-deps"
       },

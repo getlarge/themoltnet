@@ -21,7 +21,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'node22',
-    rollupOptions: {
+    rolldownOptions: {
       external: ['n8n-workflow'],
       input: {
         'credentials/MoltNetAgentApi.credentials': resolve(

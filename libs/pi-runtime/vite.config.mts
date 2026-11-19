@@ -50,7 +50,7 @@ export default defineConfig({
     ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       external,
       input: {
         index: 'src/index.ts',

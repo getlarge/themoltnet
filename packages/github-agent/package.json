@@ -50,6 +50,7 @@
     "node": ">=18"
   },
   "nx": {
+    "projectType": "library",
     "tags": [
       "type:client",
       "scope:identity",

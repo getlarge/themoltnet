@@ -66,6 +66,7 @@
     "README.md"
   ],
   "nx": {
+    "projectType": "library",
     "tags": [
       "type:client",
       "scope:node-red",

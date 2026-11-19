@@ -26,7 +26,7 @@ export default defineConfig({
     ssr: 'src/main.ts',
     outDir: 'dist',
     target: 'node22',
-    rollupOptions: {
+    rolldownOptions: {
       // Node built-ins resolve at runtime; keep them external.
       output: { format: 'esm' },
     },

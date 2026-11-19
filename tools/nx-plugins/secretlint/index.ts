@@ -14,8 +14,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 
 import {
+  type CreateNodes,
   createNodesFromFiles,
-  type CreateNodesV2,
   type TargetConfiguration,
 } from '@nx/devkit';
 import ignore from 'ignore';
@@ -98,7 +98,7 @@ export function orphanGlobs(
   // Directories that hold project roots but belong to no project themselves.
   const ancestors = new Set([WORKSPACE_ROOT]);
   for (const root of projectRoots) {
-    for (let dir = posix.dirname(root); dir !== WORKSPACE_ROOT; ) {
+    for (let dir = posix.dirname(root); dir !== WORKSPACE_ROOT;) {
       if (!belongsToProject(dir)) ancestors.add(dir);
       dir = posix.dirname(dir);
     }
@@ -158,7 +158,7 @@ function buildTarget(
   };
 }
 
-export const createNodesV2: CreateNodesV2<SecretlintPluginOptions> = [
+export const createNodesV2: CreateNodes<SecretlintPluginOptions> = [
   '**/{project.json,package.json}',
   async (configFiles, options, context) => {
     const targetName = options?.targetName ?? 'secretlint';

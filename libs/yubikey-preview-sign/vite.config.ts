@@ -19,7 +19,7 @@ export default defineConfig({
     ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         index: 'src/index.ts',
         protocol: 'src/protocol-entry.ts',

@@ -41,7 +41,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     target: 'node20',
-    rollupOptions: {
+    rolldownOptions: {
       external,
       input: Object.fromEntries(
         nodes.map((n) => [`nodes/${n}`, resolve(here, `src/nodes/${n}.ts`)]),

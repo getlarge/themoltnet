@@ -26,7 +26,7 @@ export default defineConfig(() => ({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         main: 'index.html',
         sandbox: 'sandbox.html',

@@ -39,6 +39,7 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "nx": {
+    "projectType": "library",
     "tags": [
       "type:feature",
       "scope:credentials",

@@ -35,7 +35,7 @@ export default defineConfig({
     ssr: true,
     outDir: 'dist',
     target: 'node20',
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         index: resolve(here, 'src/index.ts'),
         'theme-css': resolve(here, 'src/theme-css.ts'),
