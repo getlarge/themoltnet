@@ -17,6 +17,8 @@ import {
 } from '../src/durable-storage.js';
 import { remoteLog } from './durable-log.js';
 
+const noReceipt = () => undefined;
+
 describe('API Durable storage conformance', () => {
   for (const test of createStorageConformance({
     assertions: createExpectAssertions(expect),
@@ -45,7 +47,8 @@ describe('remote commit recovery', () => {
       const id = await first.mintId<ConversationId>();
       ids.push(id);
       await first.commit(
-        [{ type: 'conversation', value: { id } }],
+        [[{ type: 'conversation', value: { id } }]],
+        noReceipt,
         BACKGROUND_CONTEXT,
       );
     }
@@ -69,14 +72,44 @@ describe('remote commit recovery', () => {
     };
     const storage = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
     const id = await storage.mintId<ConversationId>();
+    const receipts: [number, number][] = [];
     expect(
       await storage.commit(
-        [{ type: 'conversation', value: { id } }],
+        [[{ type: 'conversation', value: { id } }]],
+        (index, seq) => receipts.push([index, seq]),
         BACKGROUND_CONTEXT,
       ),
-    ).toBe(1);
+    ).toEqual({ stored: 1 });
+    expect(receipts).toEqual([[0, 1]]);
     expect(commits).toHaveLength(1);
     expect(transport.onUncertainCommit).not.toHaveBeenCalled();
+    await storage.close(BACKGROUND_CONTEXT);
+  });
+  it('stops at a refused batch without appending it or poisoning the store', async () => {
+    const { transport, commits } = remoteLog();
+    const storage = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
+    const id = await storage.mintId<ConversationId>();
+    const writes: StorageWrite[] = [{ type: 'conversation', value: { id } }];
+    const receipts: [number, number][] = [];
+    const result = await storage.commit(
+      [writes, writes, writes],
+      (index, seq) => receipts.push([index, seq]),
+      BACKGROUND_CONTEXT,
+    );
+    expect(result.stored).toBe(1);
+    expect(result.refused).toBeInstanceOf(Error);
+    expect(receipts).toEqual([[0, 1]]);
+    expect(commits).toHaveLength(1);
+    expect(transport.onUncertainCommit).not.toHaveBeenCalled();
+    const next = await storage.mintId<ConversationId>();
+    expect(
+      await storage.commit(
+        [[{ type: 'conversation', value: { id: next } }]],
+        noReceipt,
+        BACKGROUND_CONTEXT,
+      ),
+    ).toEqual({ stored: 1 });
+    expect(commits).toHaveLength(2);
     await storage.close(BACKGROUND_CONTEXT);
   });
   it('halts new writes after an unreconciled failure', async () => {
@@ -87,12 +120,12 @@ describe('remote commit recovery', () => {
     const storage = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
     const id = await storage.mintId<ConversationId>();
     const writes: StorageWrite[] = [{ type: 'conversation', value: { id } }];
-    await expect(storage.commit(writes, BACKGROUND_CONTEXT)).rejects.toThrow(
-      'offline',
-    );
-    await expect(storage.commit(writes, BACKGROUND_CONTEXT)).rejects.toThrow(
-      'reopened',
-    );
+    await expect(
+      storage.commit([writes], noReceipt, BACKGROUND_CONTEXT),
+    ).rejects.toThrow('offline');
+    await expect(
+      storage.commit([writes], noReceipt, BACKGROUND_CONTEXT),
+    ).rejects.toThrow('reopened');
     expect(transport.onUncertainCommit).toHaveBeenCalledOnce();
     await storage.close(BACKGROUND_CONTEXT);
   });
@@ -101,7 +134,8 @@ describe('remote commit recovery', () => {
     const first = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
     const id = await first.mintId<ConversationId>();
     await first.commit(
-      [{ type: 'conversation', value: { id } }],
+      [[{ type: 'conversation', value: { id } }]],
+      noReceipt,
       BACKGROUND_CONTEXT,
     );
     await first.close(BACKGROUND_CONTEXT);
@@ -140,7 +174,8 @@ describe('remote log integrity', () => {
     for (let n = 0; n < 2; n++) {
       const id = await storage.mintId<ConversationId>();
       await storage.commit(
-        [{ type: 'conversation', value: { id } }],
+        [[{ type: 'conversation', value: { id } }]],
+        noReceipt,
         BACKGROUND_CONTEXT,
       );
     }
@@ -195,13 +230,13 @@ describe('remote log integrity', () => {
     const storage = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
     const id = await storage.mintId<ConversationId>();
     const writes: StorageWrite[] = [{ type: 'conversation', value: { id } }];
-    await expect(storage.commit(writes, BACKGROUND_CONTEXT)).rejects.toThrow(
-      'Runtime commit sequence mismatch',
-    );
+    await expect(
+      storage.commit([writes], noReceipt, BACKGROUND_CONTEXT),
+    ).rejects.toThrow('Runtime commit sequence mismatch');
     expect(transport.onUncertainCommit).toHaveBeenCalledOnce();
-    await expect(storage.commit(writes, BACKGROUND_CONTEXT)).rejects.toThrow(
-      'reopened',
-    );
+    await expect(
+      storage.commit([writes], noReceipt, BACKGROUND_CONTEXT),
+    ).rejects.toThrow('reopened');
     await storage.close(BACKGROUND_CONTEXT);
   });
 
@@ -217,7 +252,8 @@ describe('remote log integrity', () => {
     const id = await storage.mintId<ConversationId>();
     await expect(
       storage.commit(
-        [{ type: 'conversation', value: { id } }],
+        [[{ type: 'conversation', value: { id } }]],
+        noReceipt,
         BACKGROUND_CONTEXT,
       ),
     ).rejects.toThrow('lost acknowledgment');

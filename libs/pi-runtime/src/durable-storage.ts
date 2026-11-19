@@ -1,12 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import type { Context } from '@earendil-works/chord';
+import type { Context } from '@earendil-works/chord/context';
 import {
+  type CommitResult,
   type Id,
   MemoryStorage,
   type Seq,
   type StorageWrite,
 } from '@earendil-works/pi-durable';
+
+type PreparedCommit = ReturnType<MemoryStorage['prepareCommit']>;
 
 export interface RuntimeCommit {
   seq: number;
@@ -94,13 +97,39 @@ export class ApiDurableStorage extends MemoryStorage {
     return id as I;
   }
 
+  /**
+   * Appends each batch as its own remote commit, in order. A batch the memory
+   * index refuses ends the call with `refused`; it never reaches the remote log
+   * or poisons the store. A transport failure is an unknown outcome: it poisons
+   * the store and rejects, and the receipts of earlier batches still stand.
+   */
   override async commit(
-    writes: readonly StorageWrite[],
+    batches: readonly (readonly StorageWrite[])[],
+    receive: (index: number, seq: Seq) => void,
+    context: Context,
+  ): Promise<CommitResult> {
+    this.assertWritable();
+    const seqs: Seq[] = [];
+    try {
+      for (const writes of batches) {
+        let prepared: PreparedCommit;
+        try {
+          prepared = this.prepareCommit(writes);
+        } catch (refused) {
+          return { stored: seqs.length, refused };
+        }
+        seqs.push(await this.append(prepared, context));
+      }
+      return { stored: seqs.length };
+    } finally {
+      for (const [index, seq] of seqs.entries()) receive(index, seq);
+    }
+  }
+
+  private async append(
+    prepared: PreparedCommit,
     context: Context,
   ): Promise<Seq> {
-    this.assertWritable();
-    // Invalid commits never reach the remote log or poison the store.
-    const prepared = this.prepareCommit(writes);
     const request = {
       commitId: randomUUID(),
       expectedSeq: this.head,

@@ -1,4 +1,4 @@
-import type { Context } from '@earendil-works/chord';
+import type { Context } from '@earendil-works/chord/context';
 import {
   BACKGROUND_CONTEXT,
   withAbortSignal,
@@ -420,13 +420,8 @@ export function createDurableTaskExecutor(options: {
                         withAbortSignal(connected.signal, ctx),
                       );
               await emit('tool_call_start', { tool_name: call.name });
-              if (!block) return undefined;
-              // A blocked call settles without afterTool, so close it here.
-              await emit('tool_call_end', {
-                tool_name: call.name,
-                is_error: true,
-              });
-              return { block };
+              // afterTool also runs on the blocked result and closes the call.
+              return block ? { block } : undefined;
             },
             async afterTool(call, result) {
               await emit('tool_call_end', {
@@ -898,9 +893,8 @@ export function createDurableTaskExecutor(options: {
                     registry
                       .snapshot()
                       .extension(`moltnet-subagent-${contract.name}`)!,
-                    ...(prepared!.subagentExtensions ?? []).map(
-                      (extension) =>
-                        registry.snapshot().extension(extension.name)!,
+                    ...(prepared!.subagentExtensions ?? []).map((extension) =>
+                      registry.snapshot().extension(extension.name)!,
                     ),
                   ],
                 });
@@ -966,8 +960,8 @@ export function createDurableTaskExecutor(options: {
           model: options.model,
           extensions: [
             guards,
-            ...(prepared.extensions ?? []).map(
-              (extension) => registry.snapshot().extension(extension.name)!,
+            ...(prepared.extensions ?? []).map((extension) =>
+              registry.snapshot().extension(extension.name)!,
             ),
             registry.snapshot().extension('moltnet-tools')!,
           ],
