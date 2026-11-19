@@ -1,3 +1,4 @@
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
@@ -14,6 +15,7 @@ export default defineConfig({
       rollupTypes: true,
       tsconfigPath: './tsconfig.lib.json',
     }),
+    nxReadySignal(),
   ],
   build: {
     ssr: true,

@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { tsImport } from 'tsx/esm/api';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
@@ -183,7 +184,11 @@ export async function generateRouteArtifacts(
 
 export default defineConfig({
   define: { __MOLTNET_PRECOMPILED_SERIALIZERS__: 'true' },
-  plugins: [rejectBundledDBOSInternals(), routeArtifactsPlugin()],
+  plugins: [
+    rejectBundledDBOSInternals(),
+    routeArtifactsPlugin(),
+    nxReadySignal(),
+  ],
   build: {
     // `ssr: true` (not an entry path) so Vite builds every entry in
     // rolldownOptions.input; a string here would override that map. The

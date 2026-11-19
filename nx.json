@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "legacy": true
+  },
   "analytics": false,
   "generators": {
     "@nx/web:application": {
@@ -43,6 +46,7 @@
     ],
     "sharedGlobals": [
       "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/tsconfig.base.json",
       "{workspaceRoot}/pnpm-workspace.yaml",
       "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/.npmrc",

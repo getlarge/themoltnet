@@ -55,6 +55,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-static-copy": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },

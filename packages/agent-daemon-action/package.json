@@ -39,6 +39,7 @@
     "node": ">=22"
   },
   "nx": {
+    "projectType": "library",
     "implicitDependencies": [
       "@themoltnet/agent-daemon"
     ],
