@@ -189,8 +189,8 @@ catalogs:
       specifier: ^1.59.1
       version: 1.75.1
     '@earendil-works/chord':
-      specifier: 1.4.0
-      version: 1.4.0
+      specifier: 1.5.2
+      version: 1.5.2
     '@earendil-works/gondolin':
       specifier: ^0.14.0
       version: 0.14.0
@@ -1031,13 +1031,13 @@ importers:
     devDependencies:
       '@earendil-works/chord':
         specifier: 'catalog:'
-        version: 1.4.0
+        version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@earendil-works/pi-ai':
         specifier: 'catalog:'
         version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
       '@earendil-works/pi-durable':
         specifier: 'catalog:'
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
@@ -2200,10 +2200,10 @@ importers:
     dependencies:
       '@earendil-works/chord':
         specifier: 'catalog:'
-        version: 1.4.0
+        version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@earendil-works/pi-durable':
         specifier: 'catalog:'
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../api-client
@@ -3024,7 +3024,7 @@ importers:
     dependencies:
       '@earendil-works/chord':
         specifier: 'catalog:'
-        version: 1.4.0
+        version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.14.0
@@ -3033,7 +3033,7 @@ importers:
         version: 1.4.0
       '@earendil-works/pi-durable':
         specifier: 'catalog:'
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)
       '@earendil-works/pi-telemetry':
         specifier: 'catalog:'
         version: 1.4.0
@@ -3272,10 +3272,10 @@ importers:
     dependencies:
       '@earendil-works/chord':
         specifier: 'catalog:'
-        version: 1.4.0
+        version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@earendil-works/pi-durable':
         specifier: 'catalog:'
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../auth
@@ -4046,7 +4046,7 @@ importers:
     devDependencies:
       '@earendil-works/chord':
         specifier: 'catalog:'
-        version: 1.4.0
+        version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@nx/devkit':
         specifier: 'catalog:'
         version: 22.7.12(nx@22.7.12(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
@@ -5091,6 +5091,21 @@ packages:
     resolution: {integrity: sha512-dTbgyz4xgDS5KAUFx1bFENqj0Cr1N3tYxJJOYStc6g6HS78FSBZydyoCwLoddiQRF+VgRS0fpgAi+iKxjZ3BQA==}
     engines: {node: '>=22.19.0'}
 
+  '@earendil-works/chord@1.5.2':
+    resolution: {integrity: sha512-3g088g7qVXL2cpRAKWjj9za6RLls9FBnuUo5c0hBZ0xCftBQjae0opS+34M22vdXTVE7BNqkRG/FPc9BsM7eEg==}
+    engines: {node: '>=22.19.0'}
+    peerDependencies:
+      esbuild: 0.28.2
+      react: 19.3.0
+      ws: 8.21.0
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
+      react:
+        optional: true
+      ws:
+        optional: true
+
   '@earendil-works/gondolin-krun-runner-darwin-arm64@0.14.0':
     resolution: {integrity: sha512-fvuhz1CZPaEbmXC0luZoXd1obAb0bjaaGJz33Jo63bhMlosYunAahItakh7cU0dnTlNFzufOSnpGOPqtuYjnpQ==}
     cpu: [arm64]
@@ -5134,8 +5149,16 @@ packages:
     resolution: {integrity: sha512-92aZmmGsUpHHknYuKXZHRINQfahntw5hU9If0I0ZM49GojOaFHpkl5/GF3/aatqpt7v7GjZbBfpfSygGKW+pnw==}
     engines: {node: '>=22.19.0'}
 
+  '@earendil-works/pi-schema@1.5.2':
+    resolution: {integrity: sha512-hJoyCXWUhsSrXY5wJo2Q4kHXUsR51pNhkJHAMkWRwVMLDRtMDPkKNaa+JlVRVqTw1hjdSxcVVaFLSDbKlaTXEQ==}
+    engines: {node: '>=22.19.0'}
+
   '@earendil-works/pi-telemetry@1.4.0':
     resolution: {integrity: sha512-MLIfowwUYIY65jSjMX82paZOrX/NTvLk6D08h+3Jq42a99RzUOewzuCR0zOlPul3D6UBfddat76VT6LvsHEs1w==}
+    engines: {node: '>=22.19.0'}
+
+  '@earendil-works/pi-telemetry@1.5.2':
+    resolution: {integrity: sha512-m+cumjIqNh1aMISi/9ttcG3ZOwIdriPbz/eMyWmRMJCGa/WcgY1RX4lrb7HvsHhSfI/JUeBESA4nOCr8C3y5ow==}
     engines: {node: '>=22.19.0'}
 
   '@earendil-works/pi-tui@1.4.0':
@@ -16865,6 +16888,14 @@ snapshots:
       '@earendil-works/pi-telemetry': 1.4.0
       typebox: 1.3.27
 
+  '@earendil-works/chord@1.5.2(esbuild@0.28.2)(ws@8.23.0)':
+    dependencies:
+      '@earendil-works/pi-schema': 1.5.2
+      '@earendil-works/pi-telemetry': 1.5.2
+    optionalDependencies:
+      esbuild: 0.28.2
+      ws: 8.23.0
+
   '@earendil-works/gondolin-krun-runner-darwin-arm64@0.14.0':
     optional: true
 
@@ -16987,7 +17018,7 @@ snapshots:
       - ws
       - zod
 
-  '@earendil-works/pi-durable@1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)':
+  '@earendil-works/pi-durable@1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)':
     dependencies:
       '@earendil-works/chord': 1.4.0
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(supports-color@10.2.2)(undici@7.30.2)(ws@8.23.0)(zod@4.6.7)
@@ -17013,7 +17044,11 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
 
+  '@earendil-works/pi-schema@1.5.2': {}
+
   '@earendil-works/pi-telemetry@1.4.0': {}
+
+  '@earendil-works/pi-telemetry@1.5.2': {}
 
   '@earendil-works/pi-tui@1.4.0':
     dependencies:
