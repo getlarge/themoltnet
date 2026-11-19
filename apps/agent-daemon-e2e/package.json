@@ -18,8 +18,12 @@
     "@earendil-works/chord": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-durable": "catalog:",
+    "@moltnet/adaptive-review": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -31,7 +35,8 @@
       "platform:cli"
     ],
     "implicitDependencies": [
-      "@themoltnet/agent-daemon"
+      "@themoltnet/agent-daemon",
+      "@themoltnet/adaptive-review-action"
     ],
     "targets": {
       "e2e": {
@@ -122,7 +127,15 @@
           "command": "vitest run --config vitest.config.ts",
           "cwd": "apps/agent-daemon-e2e"
         },
-        "outputs": []
+        "outputs": [],
+        "dependsOn": [
+          {
+            "projects": [
+              "@themoltnet/adaptive-review-action"
+            ],
+            "target": "build"
+          }
+        ]
       },
       "e2e:artifact-safety-ab": {
         "cache": false,

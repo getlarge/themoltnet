@@ -7,7 +7,7 @@
     "types": ["vitest/globals", "node"]
   },
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "include": ["src/**/*.ts", "vitest.config.ts", "src/**/*.mts"],
   "references": [
     {
       "path": "../../apps/agent-daemon/tsconfig.lib.json"

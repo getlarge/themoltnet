@@ -40,6 +40,9 @@
       "path": "../../libs/models"
     },
     {
+      "path": "../../libs/adaptive-review"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

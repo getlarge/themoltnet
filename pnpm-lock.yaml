@@ -1040,12 +1040,24 @@ importers:
       '@earendil-works/pi-durable':
         specifier: 'catalog:'
         version: 1.5.2(@aws-sdk/credential-provider-node@3.972.97)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(supports-color@10.2.2)(zod@4.6.7))(@smithy/signature-v4@5.7.5)(esbuild@0.28.2)(supports-color@10.2.2)(undici@7.30.2)(zod@4.6.7)
+      '@moltnet/adaptive-review':
+        specifier: workspace:*
+        version: link:../../libs/adaptive-review
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../../libs/pi-runtime
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

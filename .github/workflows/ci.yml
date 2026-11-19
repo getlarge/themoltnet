@@ -1593,6 +1593,19 @@ jobs:
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d rest-api
+      - name: Start Absurd database for standalone review E2E
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.configuration == 'runtime'
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: |
+          docker compose -f docker-compose.e2e.yaml up -d --wait issue-lifecycle-db
+          docker compose -f docker-compose.e2e.yaml run --rm --build issue-lifecycle-db-migrate
+          db_port=$(docker compose -f docker-compose.e2e.yaml port issue-lifecycle-db 5432 | awk -F: 'NR == 1 { print $NF }')
+          if [[ ! "$db_port" =~ ^[0-9]+$ ]]; then
+            echo 'Could not resolve the Absurd Postgres host port' >&2
+            exit 1
+          fi
+          echo "ORCHESTRATION_ABSURD_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:${db_port}/issue_lifecycle" >> "$GITHUB_ENV"
       - name: Run Gondolin sandbox VM integration tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
         env:
