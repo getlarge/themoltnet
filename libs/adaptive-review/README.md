@@ -1,8 +1,9 @@
 # Adaptive review policy
 
-For caller workflow examples, local stage commands, and recovery, see
-[Run and resume an adaptive review](EXECUTION.md). The caller's `execution-mode`
+For caller workflow examples, the standalone workflow, and recovery, see
+[Run and resume an adaptive review](EXECUTION.md). In GitHub Actions, the caller's `execution-mode`
 chooses persistent (`durable`, the default) or disposable (`ephemeral`) Postgres.
+Local runs always use an existing `ADAPTIVE_DATABASE_URL`.
 This is separate from `mode: active` / `shadow`, which selects review coverage;
 `.github/adaptive-review.json` does not control execution infrastructure.
 

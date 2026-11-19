@@ -1,19 +1,130 @@
 # Run and resume an adaptive review
 
-Adaptive review classifies a pinned pull request, runs the selected review
-lanes through MoltNet tasks, and publishes an advisory GitHub report. You can
-launch it through the reusable Actions workflow or run its Node stage commands
-from a trusted local checkout. Both use Absurd, a Postgres-backed workflow
-engine, to execute `prepare`, `route`, `review`, and `publish`. `plan` is a
-read-only command and does not create workflow state.
+Adaptive review runs as one Absurd task: it pins a pull request, classifies
+its changes, selects review lanes, waits for MoltNet tasks, assembles a report,
+and optionally publishes it. The same Node entry point runs locally and in
+GitHub Actions. Actions supplies infrastructure and credentials; it does not
+choose or sequence review stages.
 
-For Actions, pin the reusable workflow to a released action bundle that
-supports the execution mode and inputs you configure. The
-[caller workflow](../../.github/workflows/adaptive-review.yml) selects that
-release independently of your local checkout. Local stage commands use the
-code in your trusted checkout. See
-[verification limits](#supervisor-responsibilities-and-verification-limits)
-for the recovery scenarios tested and the external services they simulate.
+## Run the complete workflow
+
+Use a trusted MoltNet runtime checkout, the Node version in `.tool-versions`,
+pnpm, Git, and `gh`. Build the runtime outside the reviewed head:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm exec nx run @themoltnet/adaptive-review-action:build
+export REVIEW_DIST="$PWD/packages/adaptive-review-action/dist"
+export ADAPTIVE_RUNTIME_SHA="$(git rev-parse HEAD)"
+```
+
+The bundle is currently a private workspace artifact, not an npm-installed
+review CLI. Keep its shared chunks and worker manifest with `run.js`.
+
+Provide an initialized Absurd 0.4.0 database through `ADAPTIVE_DATABASE_URL`,
+MoltNet credentials with `task:write` plus the daemon credential scopes,
+`MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`, and the profiles
+required by the base policy. `ADAPTIVE_CLASSIFIER_PROFILE` is always required;
+set `ADAPTIVE_FOCUSED_PROFILE`, `ADAPTIVE_DOCS_PROFILE`,
+`ADAPTIVE_COMPLEXITY_PROFILE`, and `ADAPTIVE_SECURITY_PROFILE` for their enabled
+lanes. The existing [environment contract](#environment-contract)
+lists the profile and budget variables. Set `ADAPTIVE_APP_LOGIN` to the reviewer
+App login, including `[bot]`. Supply its repository-scoped token as `GH_TOKEN`.
+For automatic token renewal during long reviews, instead supply
+`ADAPTIVE_GITHUB_APP_ID` and `MOLTNET_GITHUB_APP_PRIVATE_KEY`; tokens are scoped
+to the reviewed repository and refreshed in memory.
+
+For locally managed workers, install the compatible released `moltnet-agent`,
+set `MOLTNET_AGENT_NAME`, and configure its model providers and signing
+credentials using the [daemon guide](../../apps/agent-daemon/README.md).
+Use the exact daemon version recorded in `dist/release-dependencies.json`.
+`ADAPTIVE_DAEMON_BIN` can select an installed binary or trusted wrapper; the
+launcher does not check that binary's version.
+
+Change to a checkout of the repository being reviewed, then run:
+
+```bash
+node "$REVIEW_DIST/run.js" \
+  --repo owner/repository --pr 123 \
+  --execution-id '<new-review-uuid>' \
+  --report /absolute/private/review-report.json
+```
+
+The default creates a report without publishing to GitHub. Report-only still
+creates and runs MoltNet review tasks. Add `--publish` (or set `ADAPTIVE_PUBLICATION=github`) to
+include publication in the workflow. Use `--help` for options. The workflow
+still uses GitHub to read PR metadata and previous findings. It checks eligibility
+before fetching pinned Git objects or submitting model tasks, and reads policy
+and review guidance from the pinned base. It never executes the reviewed head
+to run the review.
+
+The launcher starts separate daemon processes for the classifier and configured
+specialist profiles. Every worker filters claims by the same review correlation
+ID, team, profile and task type. Project-scoped reviews also get matching daemon
+bindings for headless and Git worktree execution. The docs pool supplies both
+strategies because its planning tasks and revision-pinned reviews have different
+workspace requirements. Unprojected reviews explicitly select General. Task creation centrally enforces the correlation, team and diary,
+including semantic repairs. Correlation selects work; permissions and runtime
+sandboxing provide access and execution isolation.
+
+Workers stay available across idle gaps until the coordinator finishes. They
+are stopped when the host exits, fails, receives SIGINT/SIGTERM, or reaches
+`--timeout-sec` (default two hours). An unexpected worker exit fails the host;
+the supervisor does not classify outstanding work as final failed lanes. Restart with the
+same command to supply replacement capacity. Host shutdown stops active daemon
+attempts, which can exhaust a task's one-attempt limit. Restarting restores
+workers and coordinator checkpoints; it does not recreate terminally failed
+child tasks. `--workers external` skips local
+worker startup when matching workers already exist. Those workers must use the
+same correlation ID, team, profile, task types, and project binding. Both modes run the same
+Absurd workflow.
+
+```mermaid
+flowchart TD
+    Host[Local launcher or Actions consumer] --> Workflow[One durable Absurd review]
+    Host --> Workers[Review-scoped daemon workers]
+    Workflow --> Pin[Pin PR and policy]
+    Pin --> Classify[Classify and decide routes]
+    Classify --> Lanes[Run selected lanes concurrently]
+    Lanes --> Report[Assemble report]
+    Report --> Publish{Publication requested?}
+    Publish -->|Yes| GitHub[Reconcile GitHub publication]
+    Publish -->|No| Done[Return report]
+    GitHub --> Done
+    Workflow <-->|Submit tasks and await outcomes| API[MoltNet tasks]
+    Workers <-->|Claim by correlation and profile| API
+```
+
+## Resume the complete workflow
+
+Reuse the execution UUID, original options, runtime, database, and team/profile
+configuration. The UUID is also the correlation ID on every child task. A new
+intentional review needs a new UUID; a replacement host keeps the old one.
+The workflow has its own versioned queue namespace, separate from legacy stage
+executions. Immutable input binding rejects changing options on resume.
+
+Completed checkpoints retain classifier decisions, task IDs, lane results and
+publication state. Replacement hosts reconstruct local Git objects for unfinished
+investigation; publication reuses the saved report. No prepared or routing JSON
+files are required. A transient coordinator API failure does
+not become a final lane result. Daemon attempt policy, bounded semantic repair,
+and explicit terminal-task recovery remain distinct. Existing review tasks
+retain their configured one-attempt limit; this change does not increase it.
+
+A failed workflow that exhausted automatic attempts requires explicit
+`ADAPTIVE_RETRY_FAILED=true` with the original command. This reuses completed
+checkpoints; it does not recreate terminal child tasks or clear failed lane
+results. A lane failure is written to the report and makes the command exit 1.
+Inspect coverage: successful process exit is not review clearance.
+
+A persistent database allows recovery after loss of the host. A disposable
+local or CI database only permits recovery while that database survives.
+The launcher does not provision or initialize a local database. For a fresh
+database you own:
+
+```bash
+ABSURD_DATABASE_URL="$ADAPTIVE_DATABASE_URL" uvx absurdctl init --ref 0.4.0
+```
 
 ## Choose an execution mode
 
@@ -26,10 +137,10 @@ review lanes run.
 | `durable` (default) | You provide an initialized persistent database through the `ADAPTIVE_DATABASE_URL` secret.                 | Replacement jobs resume the same review while its database state and pinned inputs remain available.  |
 | `ephemeral`         | Actions starts and initializes disposable Postgres for each coordinator job. No database secret is needed. | Checkpoints last only for that job. Re-running all jobs starts a new review and can submit new tasks. |
 
-Both choices run the same Absurd-backed stage code. Ephemeral mode does not
+Both choices run the same complete Absurd workflow. Ephemeral mode does not
 select an in-memory engine or fall back when a durable database is unavailable.
 The exported library functions can use an inline `WorkflowContext` for embedding
-and unit tests, but that is not a stage CLI launch mode.
+and unit tests; the launcher always uses Absurd.
 
 ### Launch through GitHub Actions
 
@@ -57,6 +168,7 @@ jobs:
     with:
       environment: review
       execution-mode: durable
+      runtime-ref: <release-commit-sha>
       mode: active
       api-url: https://api.themolt.net
       team-id: <team-uuid>
@@ -70,8 +182,8 @@ jobs:
         .github/workflows/adaptive-review.yml
 ```
 
-Use your caller's actual filename in `protected-paths`. Keep `runtime-ref`
-unset so the runtime comes from the pinned release. Obtain the full bundle SHA
+Use your caller's actual filename in `protected-paths`. Set `runtime-ref` to the same bundle SHA as the reusable workflow pin.
+This explicit pin also works when the runner omits workflow identity context. Obtain the full bundle SHA
 from that release's `Action bundle commit:` line; the source tag has no compiled
 bundle. The [action release guide](../../docs/contribute/action-releases.md)
 explains publication and adoption.
@@ -108,21 +220,22 @@ with:
   # Keep the remaining inputs from the caller above.
 ```
 
-Actions creates separate Postgres services for the prepare, route, and review
-jobs. The [setup helper](../../tools/setup-adaptive-review-database.sh)
-initializes each disposable service with Absurd schema `0.4.0`. Review and
-publication share the review job's database. Prepared inputs pass through job
-outputs, and routing results through artifacts; no database is carried between
-jobs. An inherited durable database secret is unused in this mode. The helper
-never initializes a supplied durable URL.
+Actions creates one Postgres service for the complete review job. The [setup helper](../../tools/setup-adaptive-review-database.sh)
+initializes each disposable service with Absurd schema `0.4.0`. Classification, selected lanes and publication use the same workflow state.
+There are no prepared/routing artifact handoffs. Losing the disposable database
+loses coordinator checkpoints; an ephemeral Actions rerun starts a new review.
+The helper never initializes a supplied durable URL.
 
-The workflow provisions finite MoltNet daemon workers for classification and
-selected specialist lanes. It also performs the stage and artifact handoffs;
-no separate coordinator service is needed. A new authorized `/review` request
+The Actions job starts the standalone host and worker capacity for the configured
+classifier and specialist profiles. Absurd selects the lanes and retains their
+results; no separate coordinator service is needed. A new authorized `/review` request
 starts a new Actions run. See the [caller guidance](README.md#findings-and-outcomes)
 for adding the comment trigger and its authorization checks.
 
-## Launch from a trusted runtime checkout
+## Legacy stage commands
+
+These manual stage entry points remain for existing executions. They are not
+the orchestration used by the current reusable Actions workflow.
 
 Use the repository's Node version from `.tool-versions`, pnpm, Git, and `gh`.
 Build the bundle in a trusted MoltNet checkout containing this implementation:
@@ -174,8 +287,8 @@ remain an operator responsibility. The Actions setup helper requires a job-local
 service and is not a general persistent-database provisioning command.
 
 These commands still target GitHub: preparation and freshness checks use `gh`,
-prior findings use GraphQL, and publication uses the GitHub API. There is no
-single command or installed supervisor that launches every stage and its workers.
+prior findings use GraphQL, and publication uses the GitHub API. These are the retained stage commands for existing executions. New reviews
+should use the complete `run.js` entry point above.
 
 The following uses General work, without a MoltNet project binding. Substitute
 real identifiers and provide secrets through your environment; the shell
@@ -270,6 +383,11 @@ incomplete report. There is no implicit approval gate between these commands.
 
 ### Environment contract
 
+This table describes the retained stage commands. The complete `run.js`
+workflow uses the profile/budget settings above and optional `ADAPTIVE_REPORT`;
+it does not require `ADAPTIVE_PREPARED` or `ADAPTIVE_ROUTE`.
+`ADAPTIVE_EXECUTION_MODE` selects database provisioning in Actions only.
+
 | Setting                                                                             | Meaning                                                                                                                         |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `ADAPTIVE_EXECUTION_MODE`                                                           | `durable` (default) or `ephemeral`; keep it unchanged from preparation through publication.                                     |
@@ -298,7 +416,7 @@ outstanding; revision checks are not an immutable provider/model snapshot.
 The `providers` YAML accepted by the Actions workflow is an action input,
 **not** an environment variable consumed by `review.js`.
 
-## Workers and lifetime
+## Legacy stage workers and lifetime
 
 Two kinds of worker participate:
 
@@ -349,7 +467,7 @@ Task dispatch/execution/expiry budgets remain authoritative. Durable replacement
 Actions attempts keep those tasks; an ephemeral rerun starts new work. Outside
 Actions, the operator supplies process lifetime and restart policy.
 
-## What persists and how resume works
+## Legacy stage persistence and recovery
 
 This recovery path requires retained database state. In Actions, choose
 `durable` to keep it across jobs and run attempts. An ephemeral job can replay
@@ -651,9 +769,9 @@ pnpm exec nx run @moltnet/adaptive-review:test:integration
 The target is not cached and never starts or migrates a database. It requires
 the explicit test URL and uses isolated execution queues, removed after each
 test. CI runs it in the existing database-only orchestration job alongside the
-shared adapter tests. A complete local review instead uses the stage commands
-and real daemon workers described above, producing `ADAPTIVE_REPORT` before
-the separately invoked publication command.
+shared adapter tests. The standalone suite also kills a whole-review coordinator after routing and
+checks recovery with the same task IDs. For a complete local review, use
+`run.js` as described at the top of this guide.
 
 | Recovery condition                             | Local evidence                                                                                                                   | Real Absurd coverage                                       |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -705,3 +823,23 @@ remain simulated: no real model or GitHub API was used. Live provider behavior,
 GitHub publication recovery, deployed credentials, and production readiness
 remain unverified. Before relying on this path operationally, validate a
 controlled review against the intended database and worker deployment.
+
+### Complete launcher end-to-end test
+
+The [standalone e2e suite](../../apps/agent-daemon-e2e/src/adaptive-review.e2e.spec.ts)
+runs the built `run.js`, real Absurd checkpoints, the REST API, and separate
+real daemon processes. It covers classifier-selected and screened branches,
+correlation filtering, signed executor completion, publication, and a fresh
+launcher replay with no duplicate tasks or comments. The runtime executor and
+GitHub boundary are scripted; this does not exercise a live model sandbox,
+measure review quality, or verify live GitHub permissions.
+
+Start the full e2e stack before running it:
+
+```bash
+pnpm run e2e:up
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e -- src/adaptive-review.e2e.spec.ts
+pnpm run e2e:down
+```
+
+CI runs it in the daemon runtime e2e lane, with an initialized Absurd database.
