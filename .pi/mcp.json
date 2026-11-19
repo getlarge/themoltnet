@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nx": {
+      "args": ["exec", "nx", "mcp"],
+      "command": "pnpm",
+      "cwd": ".",
+      "exposure": "direct"
+    }
+  }
+}
