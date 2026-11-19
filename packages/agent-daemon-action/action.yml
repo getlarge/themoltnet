@@ -77,6 +77,13 @@ inputs:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
     default: 'once'
+  supervisor-entry:
+    description: >
+      Optional absolute path to a trusted Node supervisor entry point. After
+      daemon/provider setup, run this instead of a single daemon. The supervisor
+      receives ADAPTIVE_DAEMON_BIN and owns its child workers and lifetime.
+    required: false
+    default: ''
   task-types:
     description: 'Comma-separated task types to claim in drain mode.'
     required: false
@@ -192,6 +199,9 @@ inputs:
     required: false
     default: '24'
 outputs:
+  skip:
+    description: Whether the supervised review was ineligible.
+    value: ${{ steps.run.outputs.skip }}
   spend-report:
     description: Sanitized JSON spend report, including failed attempts.
     value: ${{ steps.spend.outputs.report }}
@@ -1447,6 +1457,7 @@ runs:
         MAX_POLL_INTERVAL_MS: ${{ inputs.max-poll-interval-ms }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         DAEMON_MODE: ${{ inputs.mode }}
+        SUPERVISOR_ENTRY: ${{ inputs.supervisor-entry }}
         RUNTIME_MODULE: ${{ inputs.runtime-module }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
         PROJECT_ID: ${{ inputs.project-id }}
@@ -1555,7 +1566,15 @@ runs:
           daemon_args+=(--team "$MOLTNET_TEAM_ID")
         fi
 
-        "${daemon_cmd[@]}" "${daemon_args[@]}" 2>&1 | tee "$ACTION_TEMP/daemon.log"
+        if [ -n "${SUPERVISOR_ENTRY:-}" ]; then
+          if [[ "$SUPERVISOR_ENTRY" != /* ]] || [ ! -f "$SUPERVISOR_ENTRY" ]; then
+            echo '::error::supervisor-entry must name an existing trusted absolute path' >&2
+            exit 1
+          fi
+          ADAPTIVE_DAEMON_BIN="$AGENT_BIN" node "$SUPERVISOR_ENTRY" 2>&1 | tee "$ACTION_TEMP/daemon.log"
+        else
+          "${daemon_cmd[@]}" "${daemon_args[@]}" 2>&1 | tee "$ACTION_TEMP/daemon.log"
+        fi
 
     - name: Report agent spend
       id: spend

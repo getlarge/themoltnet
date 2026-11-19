@@ -56,7 +56,7 @@ jobs:
       - name: Resolve trusted review runtime
         id: runtime
         env:
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository || 'getlarge/themoltnet' }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
         run: |

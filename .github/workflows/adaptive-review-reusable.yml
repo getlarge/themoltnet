@@ -51,7 +51,7 @@ on:
         type: string
         default: shadow
       execution-mode:
-        description: durable requires persistent Postgres; ephemeral provisions disposable Postgres per coordinator job and cannot resume lost jobs.
+        description: durable requires persistent Postgres; ephemeral provisions disposable Postgres for the complete workflow and cannot resume lost jobs.
         type: string
         default: durable
       retention-completed-days:
@@ -81,9 +81,9 @@ on:
         default: ''
     outputs:
       skip:
-        value: ${{ jobs.prepare.outputs.skip }}
+        value: ${{ jobs.review.outputs.skip }}
       correlation-id:
-        value: ${{ jobs.prepare.outputs.correlation }}
+        value: ${{ jobs.review.outputs.correlation }}
     secrets:
       ADAPTIVE_DATABASE_URL:
         description: Required in durable mode; initialized persistent Absurd Postgres accessible to the coordinator. Unused in ephemeral mode.
@@ -112,8 +112,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare:
-    # Enforce comment authorization here as well as in the caller.
+  review:
+    # Actions supplies infrastructure. The Absurd task owns the domain graph.
     if: |
       (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'issue_comment' &&
@@ -122,6 +122,12 @@ jobs:
         github.event.comment.body == '/review' &&
         github.event.comment.user.type == 'User' &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: read
     services:
       absurd:
         image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
@@ -134,598 +140,138 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
           --health-interval 5s --health-timeout 3s --health-retries 10
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: ${{ inputs.environment }}
+    outputs:
+      skip: ${{ steps.run.outputs.skip }}
+      correlation: ${{ steps.intent.outputs.correlation }}
     env:
-      ADAPTIVE_RETENTION_COMPLETED_DAYS: ${{ inputs.retention-completed-days }}
-      ADAPTIVE_RETENTION_UNFINISHED_DAYS: ${{ inputs.retention-unfinished-days }}
       ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
       ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
       ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      # Fail closed: only an explicit pin verdict of false lets the review run.
-      skip: ${{ steps.pin.outputs.skip != 'false' || steps.plan.outputs.review-enabled != 'true' }}
-      prepared: ${{ steps.pin.outputs.prepared }}
-      base: ${{ steps.pin.outputs.base }}
-      head: ${{ steps.pin.outputs.head }}
-      correlation: ${{ steps.pin.outputs.correlation }}
-      classifier-needed: ${{ steps.plan.outputs.classifier-needed }}
-      review-enabled: ${{ steps.plan.outputs.review-enabled }}
-      daemon-version: ${{ steps.worker.outputs.daemon-version }}
-      runtime-repository: ${{ steps.runtime.outputs.repository }}
-      runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
-      action-digest: ${{ steps.bundle.outputs.digest }}
-      action-artifact-id: ${{ steps.action-artifact.outputs.artifact-id }}
+      ADAPTIVE_RETENTION_COMPLETED_DAYS: ${{ inputs.retention-completed-days }}
+      ADAPTIVE_RETENTION_UNFINISHED_DAYS: ${{ inputs.retention-unfinished-days }}
+      ADAPTIVE_REPOSITORY: ${{ github.repository }}
+      ADAPTIVE_PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+      ADAPTIVE_MODE: ${{ inputs.mode }}
+      ADAPTIVE_PUBLICATION: github
+      ADAPTIVE_INLINE_FINDINGS: ${{ inputs.inline-findings }}
+      ADAPTIVE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
+      ADAPTIVE_TASK_BUDGETS: ${{ inputs.task-budgets }}
+      ADAPTIVE_CLASSIFIER_PROFILE: ${{ inputs.classifier-profile }}
+      ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
+      ADAPTIVE_DOCS_PROFILE: ${{ inputs.docs-profile }}
+      ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
+      ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
+      PROTECTED_PATHS: ${{ inputs.protected-paths }}
+      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+      MOLTNET_PROJECT_ID: ${{ inputs.project-id }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
-      - name: Resolve trusted review runtime
-        id: runtime
+      - name: Resolve trusted runtime and review intent
+        id: intent
         env:
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository || 'getlarge/themoltnet' }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
-          PROVIDERS: ${{ inputs.providers }}
         run: |
           set -euo pipefail
-          case "$ADAPTIVE_EXECUTION_MODE" in
-            durable) : "${ADAPTIVE_DATABASE_URL:?ADAPTIVE_DATABASE_URL is required in durable mode}" ;;
-            ephemeral) ;;
-            *) echo '::error::execution-mode must be durable or ephemeral' >&2; exit 1 ;;
-          esac
-          if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
-            echo '::error::providers needs at least one provider definition' >&2
-            exit 1
-          fi
-          if [ -z "$WORKFLOW_REPOSITORY" ]; then
-            echo '::error::job.workflow_repository is required' >&2
-            exit 1
-          fi
           runtime_ref="${RUNTIME_REF:-$WORKFLOW_SHA}"
           if ! [[ "$runtime_ref" =~ ^[0-9a-f]{40}$ ]]; then
-            echo '::error::runtime-ref or job.workflow_sha must be a full commit SHA' >&2
+            echo '::error::set runtime-ref to the immutable review bundle SHA when workflow identity context is unavailable' >&2
             exit 1
           fi
           echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "ref=$runtime_ref" >> "$GITHUB_OUTPUT"
-      # A comment event names the pull request only by number; read the
-      # facts the pull_request event would carry from the API.
-      - name: Resolve commented pull request
-        id: pr
-        if: github.event_name == 'issue_comment'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.issue.number }}
-        run: |
-          set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '
-            "base=\(.base.sha)",
-            "head-repository=\(.head.repo.full_name // "")",
-            "author=\(.user.login)"' >> "$GITHUB_OUTPUT"
-      # The event's base commit is the one the eligibility step pins.
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          import { appendFileSync } from 'node:fs';
+          const attempt = process.env.ADAPTIVE_EXECUTION_MODE === 'ephemeral' ? `:${process.env.GITHUB_RUN_ATTEMPT}` : '';
+          const hex = createHash('sha256').update(`${process.env.ADAPTIVE_REPOSITORY}:${process.env.GITHUB_RUN_ID}${attempt}`).digest('hex');
+          const correlation = `${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`;
+          appendFileSync(process.env.GITHUB_OUTPUT, `correlation=${correlation}\n`);
+          appendFileSync(process.env.GITHUB_ENV, `ADAPTIVE_EXECUTION_ID=${correlation}\n`);
+          JS
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}
-          fetch-depth: 1
+          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          repository: ${{ steps.runtime.outputs.repository }}
-          ref: ${{ steps.runtime.outputs.ref }}
+          repository: ${{ steps.intent.outputs.repository }}
+          ref: ${{ steps.intent.outputs.ref }}
           path: .adaptive-review-runtime
           persist-credentials: false
-      - name: Pin runtime commit
-        id: runtime-pin
-        run: echo "sha=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      # Fork and Dependabot PRs are ineligible from the event alone; skip them
-      # before the install. The pin step still applies every eligibility rule.
-      - name: Screen pull request source
-        id: screen
-        env:
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || steps.pr.outputs.head-repository }}
-          AUTHOR: ${{ github.event.pull_request.user.login || steps.pr.outputs.author }}
-        run: |
-          if [ "$HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
-            echo '::notice::Adaptive review skipped: fork pull requests are not reviewed'
-            echo 'eligible=false' >> "$GITHUB_OUTPUT"
-          elif [ "$AUTHOR" = 'dependabot[bot]' ]; then
-            echo '::notice::Adaptive review skipped: Dependabot pull requests are not reviewed'
-            echo 'eligible=false' >> "$GITHUB_OUTPUT"
-          else
-            echo 'eligible=true' >> "$GITHUB_OUTPUT"
-          fi
       - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
-        if: steps.screen.outputs.eligible == 'true'
-      - name: Resolve packaged worker version
+      - name: Resolve bundled worker version
         id: worker
-        if: steps.screen.outputs.eligible == 'true'
         env:
-          REQUESTED_DAEMON_VERSION: ${{ inputs.daemon-version }}
+          DAEMON_OVERRIDE: ${{ inputs.daemon-version }}
         run: |
           node --input-type=module <<'JS'
           import { readFileSync, appendFileSync } from 'node:fs';
-          const release = JSON.parse(readFileSync('.adaptive-review-runtime/packages/adaptive-review-action/dist/release-dependencies.json', 'utf8'));
-          if (release.schemaVersion !== 1 || !/^\d+\.\d+\.\d+$/.test(release.daemonVersion)) {
-            throw new Error('Invalid packaged review dependency manifest');
-          }
-          const version = process.env.REQUESTED_DAEMON_VERSION || release.daemonVersion;
-          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('daemon-version must be an exact stable version (major.minor.patch)');
-          appendFileSync(process.env.GITHUB_OUTPUT, `daemon-version=${version}\n`);
+          const metadata = JSON.parse(readFileSync('.adaptive-review-runtime/packages/adaptive-review-action/dist/release-dependencies.json', 'utf8'));
+          const version = process.env.DAEMON_OVERRIDE || metadata.daemonVersion;
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('daemon-version must be an exact stable version');
+          appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           JS
       - name: Configure review database
-        if: steps.screen.outputs.eligible == 'true'
         env:
           ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
           ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
         run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
-      - name: Pin reviewed PR and protect the runtime
-        id: pin
-        if: steps.screen.outputs.eligible == 'true'
-        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PROTECTED_PATHS: ${{ inputs.protected-paths }}
-        with:
-          step: prepare
-      - name: Fetch reviewed head as inert Git data
-        if: steps.pin.outputs.skip == 'false'
-        env:
-          BASE_SHA: ${{ steps.pin.outputs.base }}
-          HEAD_SHA: ${{ steps.pin.outputs.head }}
-          GH_TOKEN: ${{ github.token }}
-        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
-      - name: Write pinned planner input
-        if: steps.pin.outputs.skip == 'false'
-        env:
-          PREPARED_JSON: ${{ steps.pin.outputs.prepared }}
+      - name: Restore bundled worker action
         run: |
-          node -e "require('node:fs').writeFileSync('adaptive-prepared.json', process.env.PREPARED_JSON, {mode: 0o600})"
-      - name: Check classifier work budget
-        id: plan
-        if: steps.pin.outputs.skip == 'false'
-        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+          mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
+          cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
+          echo "ADAPTIVE_RUNTIME_SHA=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Install optional focused runtime
+        id: diary-runtime
+        if: inputs.focused-diary-ids != '[]'
         env:
-          GH_TOKEN: ${{ github.token }}
-          ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
-        with:
-          step: plan
-      # Later jobs run this bundle instead of reinstalling the workspace; the
-      # digest output lets them check they run exactly what was built here.
-      - name: Record the review action bundle
-        id: bundle
-        if: steps.plan.outputs.review-enabled == 'true'
-        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh .adaptive-review-runtime/packages/adaptive-review-action/dist >> "$GITHUB_OUTPUT"
-      - name: Upload the review action bundle
-        id: action-artifact
-        if: steps.plan.outputs.review-enabled == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}
-          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-          if-no-files-found: error
-          retention-days: 14
-
-  route:
-    needs: prepare
-    if: needs.prepare.outputs.skip == 'false' && needs.prepare.outputs.review-enabled == 'true'
-    services:
-      absurd:
-        image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
-        env:
-          POSTGRES_USER: issue_lifecycle
-          POSTGRES_PASSWORD: issue_lifecycle_secret
-          POSTGRES_DB: issue_lifecycle
-        ports:
-          - 5432
-        options: >-
-          --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
-          --health-interval 5s --health-timeout 3s --health-retries 10
-    runs-on: ubuntu-latest
-    timeout-minutes: 55
-    environment: ${{ inputs.environment }}
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      specialists: ${{ steps.route.outputs.specialists }}
-      has-specialists: ${{ steps.route.outputs.has-specialists }}
-      route-artifact-id: ${{ steps.route-artifact.outputs.artifact-id }}
-    env:
-      ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
-      ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
-      ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
-      ADAPTIVE_MODE: ${{ inputs.mode }}
-      ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
-      ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
-      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
-      ADAPTIVE_CLASSIFIER_PROFILE: ${{ inputs.classifier-profile }}
-      ADAPTIVE_DOCS_PROFILE: ${{ inputs.docs-profile }}
-      ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
-      ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
-      ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
-      ADAPTIVE_TASK_BUDGETS: ${{ inputs.task-budgets }}
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-      MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
-      MOLTNET_PROJECT_ID: ${{ inputs.project-id }}
-      ADAPTIVE_RUNTIME_SHA: ${{ needs.prepare.outputs.runtime-sha }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ needs.prepare.outputs.runtime-repository }}
-          ref: ${{ needs.prepare.outputs.runtime-sha }}
-          path: .adaptive-review-runtime
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-      - name: Download the review action bundle
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
-          merge-multiple: true
-          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Verify the review action bundle
-        env:
-          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
-        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Fetch reviewed head as inert Git data
-        env:
-          BASE_SHA: ${{ needs.prepare.outputs.base }}
-          HEAD_SHA: ${{ needs.prepare.outputs.head }}
-          GH_TOKEN: ${{ github.token }}
-        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
-      - name: Write pinned review input
-        env:
-          PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
+          RUNNER_TEMP: ${{ runner.temp }}
+          DAEMON_VERSION: ${{ steps.worker.outputs.version }}
+          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
         run: |
-          node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
-      - name: Configure review database
-        env:
-          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
-          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
-        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
-      - name: Classify and route the review
-        id: route
-        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
-        env:
-          GH_TOKEN: ${{ github.token }}
-        with:
-          step: route
-      - name: Upload routing decision
-        id: route-artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}
-          path: ${{ env.ADAPTIVE_ROUTE }}
-          retention-days: 14
-
-  review:
-    needs: [prepare, route]
-    if: needs.route.result == 'success'
-    services:
-      absurd:
-        image: ${{ inputs.execution-mode == 'ephemeral' && 'postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a' || '' }}
-        env:
-          POSTGRES_USER: issue_lifecycle
-          POSTGRES_PASSWORD: issue_lifecycle_secret
-          POSTGRES_DB: issue_lifecycle
-        ports:
-          - 5432
-        options: >-
-          --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
-          --health-interval 5s --health-timeout 3s --health-retries 10
-    runs-on: ubuntu-latest
-    timeout-minutes: 55
-    environment: ${{ inputs.environment }}
-    permissions:
-      contents: read
-      pull-requests: read
-    env:
-      ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
-      ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
-      ADAPTIVE_RETRY_FAILED: ${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}
-      ADAPTIVE_MODE: ${{ inputs.mode }}
-      ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
-      ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
-      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
-      ADAPTIVE_CLASSIFIER_PROFILE: ${{ inputs.classifier-profile }}
-      ADAPTIVE_DOCS_PROFILE: ${{ inputs.docs-profile }}
-      ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
-      ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
-      ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
-      ADAPTIVE_TASK_BUDGETS: ${{ inputs.task-budgets }}
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-      MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
-      MOLTNET_PROJECT_ID: ${{ inputs.project-id }}
-      ADAPTIVE_RUNTIME_SHA: ${{ needs.prepare.outputs.runtime-sha }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ needs.prepare.outputs.runtime-repository }}
-          ref: ${{ needs.prepare.outputs.runtime-sha }}
-          path: .adaptive-review-runtime
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-      - name: Download the review action bundle
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
-          merge-multiple: true
-          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Verify the review action bundle
-        env:
-          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
-        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Fetch reviewed head as inert Git data
-        env:
-          BASE_SHA: ${{ needs.prepare.outputs.base }}
-          HEAD_SHA: ${{ needs.prepare.outputs.head }}
-          GH_TOKEN: ${{ github.token }}
-        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
-      - name: Write pinned review input
-        env:
-          PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
-        run: |
-          node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
-      - name: Download routing decision
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          artifact-ids: ${{ needs.route.outputs.route-artifact-id }}
-          merge-multiple: true
-          path: ${{ github.workspace }}
-      # Resolve the publisher identity before reading its prior discussions.
-      # Mint the write token later so long reviews cannot exhaust its lifetime.
-      - name: Resolve reviewer App identity
-        id: reviewer-app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
-          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ github.event.repository.name }}
-          permission-pull-requests: read
-      - name: Configure review database
-        env:
-          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
-          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
-        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
-      - name: Run selected review lanes
-        id: review
-        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ADAPTIVE_APP_LOGIN: ${{ steps.reviewer-app.outputs.app-slug }}[bot]
-        with:
-          step: review
-      - name: Detect review report
-        id: report-file
-        if: always()
-        run: |
-          if test -s "$ADAPTIVE_REPORT"; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Upload review report
-        if: always() && steps.report-file.outputs.exists == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}
-          path: ${{ env.ADAPTIVE_REPORT }}
-          retention-days: 14
-      - name: Mint LeGreffier comment token
+          bash .adaptive-review-runtime/tools/setup-adaptive-review-diary-runtime.sh .adaptive-review-runtime
+      - name: Mint reviewer App token
         id: app-token
-        if: always() && steps.report-file.outputs.exists == 'true'
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
           permission-pull-requests: write
-      - name: Upsert PR comment
-        if: always() && steps.app-token.outcome == 'success'
-        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+          permission-contents: read
+      - name: Run the complete durable review
+        id: run
+        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
-          ADAPTIVE_INLINE_FINDINGS: ${{ inputs.inline-findings }}
-          ADAPTIVE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ADAPTIVE_GITHUB_APP_ID: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          ADAPTIVE_FOCUSED_RUNTIME: ${{ steps.diary-runtime.outputs.module }}
         with:
-          step: publish
-
-  classifier-worker:
-    needs: prepare
-    if: needs.prepare.outputs.classifier-needed == 'true'
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: ${{ inputs.environment }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ job.workflow_repository }}
-          ref: ${{ needs.prepare.outputs.runtime-sha }}
-          path: .adaptive-review-runtime
-          persist-credentials: false
-      - name: Fetch reviewed head as inert Git data
-        env:
-          BASE_SHA: ${{ needs.prepare.outputs.base }}
-          HEAD_SHA: ${{ needs.prepare.outputs.head }}
-          GH_TOKEN: ${{ github.token }}
-        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-      - name: Download review and worker bundle
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
-          merge-multiple: true
-          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Verify review and worker bundle
-        env:
-          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
-        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Restore bundled worker action
-        run: |
-          mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
-          cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
-      - name: Drain this review's tasks
-        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
-        env:
-          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        with:
-          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           mode: drain
-          task-types: classify
-          correlation-id: ${{ needs.prepare.outputs.correlation }}
-          project-id: ${{ inputs.project-id }}
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           profile: ${{ inputs.classifier-profile }}
-          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
-          wait-for-first-task-sec: '900'
-          wait-after-task-sec: '120'
-          max-poll-interval-ms: '3000'
+          supervisor-entry: ${{ github.workspace }}/.adaptive-review-runtime/packages/adaptive-review-action/dist/run.js
+          daemon-version: ${{ steps.worker.outputs.version }}
           providers: ${{ inputs.providers }}
-
-  specialist-workers:
-    name: 'Specialist ${{ matrix.profile }} #${{ matrix.worker }}'
-    needs: [prepare, route]
-    if: needs.route.outputs.has-specialists == 'true'
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.route.outputs.specialists) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    environment: ${{ inputs.environment }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Upload review report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 1
-          persist-credentials: false
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: ${{ job.workflow_repository }}
-          ref: ${{ needs.prepare.outputs.runtime-sha }}
-          path: .adaptive-review-runtime
-          persist-credentials: false
-      - name: Fetch reviewed head as inert Git data
-        env:
-          BASE_SHA: ${{ needs.prepare.outputs.base }}
-          HEAD_SHA: ${{ needs.prepare.outputs.head }}
-          GH_TOKEN: ${{ github.token }}
-        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-      - name: Download review and worker bundle
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
-          merge-multiple: true
-          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Verify review and worker bundle
-        env:
-          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
-        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
-      - name: Restore bundled worker action
-        run: |
-          mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
-          cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
-      - name: Install optional review runtime
-        id: diary-runtime
-        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
-        env:
-          DAEMON_VERSION: ${{ needs.prepare.outputs.daemon-version }}
-          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
-        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-diary-runtime.sh .adaptive-review-runtime
-      - name: Drain selected review tasks
-        if: inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile
-        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
-        env:
-          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        with:
-          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          mode: drain
-          task-types: freeform
-          correlation-id: ${{ needs.prepare.outputs.correlation }}
-          project-id: ${{ inputs.project-id }}
-          profile: ${{ matrix.profile }}
-          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
-          wait-for-first-task-sec: '900'
-          wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
-          max-poll-interval-ms: '3000'
-          providers: ${{ inputs.providers }}
-      - name: Drain diary-enabled focused review tasks
-        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
-        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
-        env:
-          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
-          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        with:
-          runtime-module: ${{ steps.diary-runtime.outputs.module }}
-          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          mode: drain
-          task-types: freeform
-          correlation-id: ${{ needs.prepare.outputs.correlation }}
-          project-id: ${{ inputs.project-id }}
-          profile: ${{ matrix.profile }}
-          daemon-version: ${{ needs.prepare.outputs.daemon-version }}
-          wait-for-first-task-sec: '900'
-          wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
-          max-poll-interval-ms: '3000'
-          providers: ${{ inputs.providers }}
+          name: adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}
+          path: ${{ env.ADAPTIVE_REPORT }}
+          if-no-files-found: ignore
+          retention-days: 14

@@ -85,11 +85,14 @@ export async function main({
     }
   }
   for (const { file, source, prefix, sha: current } of callers) {
-    if (current === sha) continue;
-    await writeFile(
-      join(root, file),
-      source.replace(`${prefix}${current}`, `${prefix}${sha}`),
-    );
+    const updated = source
+      .replace(`${prefix}${current}`, `${prefix}${sha}`)
+      .replace(
+        /^(\s+runtime-ref:\s*)[a-f0-9]{40}/m,
+        (_match, indent) => `${indent}${sha}`,
+      );
+    if (updated === source) continue;
+    await writeFile(join(root, file), updated);
     process.stdout.write(`Updated ${file} to ${tag} bundle ${sha}\n`);
   }
 }
