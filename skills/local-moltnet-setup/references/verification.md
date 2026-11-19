@@ -12,20 +12,11 @@ After filling `.env` and appending `.env.release`, run these commands from
 `deploy/self-host`:
 
 ```bash
-docker compose --env-file .env config --quiet
-docker compose --env-file .env up -d --wait postgres
-docker compose --env-file .env run --rm --no-deps ory-db-init
-# New empty Talos volumes only; never initialize established or restored state.
-docker compose --env-file .env run --rm --no-deps talos-init
-for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
-  docker compose --env-file .env run --rm --no-deps "$job"
-done
-docker compose --env-file .env up -d --wait
-docker compose --env-file .env run --rm --no-deps hydra-native-client
-docker compose --env-file .env ps --all
+# New installations only; never initialize established or restored state.
+./maintain.sh init
 ```
 
-Each explicit maintenance job must exit successfully before proceeding. They
+The script stops at the first failed step. Maintenance jobs
 use `restart: "no"` and are removed by `run --rm`; normal startup does not
 provision Ory state or generate Talos keys. Re-run
 `docker compose --env-file .env ps --all` until long-running services report

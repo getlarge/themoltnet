@@ -75,7 +75,8 @@ node "$repo_root/tools/release/self-host-smoke-prepare.mjs" "$bundle_root" "$tem
 cd "$bundle_root/deploy/self-host"
 export MOLTNET_SMOKE_ENV="$temporary/self-host-smoke.env"
 export MOLTNET_SMOKE_CADDYFILE="$temporary/Caddyfile.smoke"
-compose=(docker compose -p "$project_name" --env-file "$temporary/self-host-smoke.env" --env-file .env.release -f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
+compose_options=(-p "$project_name" --env-file "$temporary/self-host-smoke.env" --env-file .env.release -f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
+compose=(docker compose "${compose_options[@]}")
 
 if [ "$cleanup_only" = true ]; then
   echo "Removing self-host smoke Compose project: $project_name"
@@ -89,14 +90,8 @@ printf '%q ' "${compose[@]}" down -v
 printf ')\n'
 
 stack_started=true
-"${compose[@]}" up -d --wait --wait-timeout 120 postgres
-"${compose[@]}" run --rm --no-deps ory-db-init
-"${compose[@]}" run --rm --no-deps talos-init
-for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
-  "${compose[@]}" run --rm --no-deps "$job"
-done
-"${compose[@]}" up -d --wait --wait-timeout 300
-"${compose[@]}" run --rm --no-deps hydra-native-client
+# The shipped operator script is the installation path under test.
+./maintain.sh init "${compose_options[@]}"
 "${compose[@]}" cp caddy:/data/caddy/pki/authorities/local/root.crt "$temporary/local-ca.crt"
 "${compose[@]}" exec -T postgres sh -ec '
   set -a

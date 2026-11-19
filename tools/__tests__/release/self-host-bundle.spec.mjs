@@ -9,6 +9,7 @@ import {
   readdirSync,
   realpathSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import os from 'node:os';
@@ -28,6 +29,21 @@ const repoRoot = path.resolve(
   '../../..',
 );
 const script = path.join(repoRoot, 'tools/release/self-host-bundle.mjs');
+
+// Required Compose variables, filled with placeholders; image pins come from .env.release.
+function composeEnvironment(composeDir) {
+  const compose = ['compose.yaml', '../ory/compose.yaml']
+    .map((file) => readFileSync(path.join(composeDir, file), 'utf8'))
+    .join('\n');
+  return {
+    ...process.env,
+    ...Object.fromEntries(
+      [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g)]
+        .filter(([, name]) => !name.endsWith('_IMAGE'))
+        .map(([, name]) => [name, 'test-secret']),
+    ),
+  };
+}
 
 const nativeClient = JSON.parse(
   readFileSync(
@@ -269,6 +285,11 @@ test('builds an installable source archive with current component versions', () 
       existsSync(path.join(composeDir, 'compose.tracing.yaml')),
       true,
     );
+    // Operators run the shipped sequence directly, so it must stay executable.
+    assert.equal(
+      statSync(path.join(composeDir, 'maintain.sh')).mode & 0o111,
+      0o111,
+    );
     assert.equal(
       existsSync(
         path.join(output, 'infra/ory/oauth2-clients/moltnet-native.json'),
@@ -295,21 +316,7 @@ test('builds an installable source archive with current component versions', () 
       {
         cwd: composeDir,
         encoding: 'utf8',
-        env: {
-          ...process.env,
-          ...Object.fromEntries(
-            [
-              ...['compose.yaml', '../ory/compose.yaml']
-                .map((file) =>
-                  readFileSync(path.join(composeDir, file), 'utf8'),
-                )
-                .join('\n')
-                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
-            ]
-              .filter(([, name]) => !name.endsWith('_IMAGE'))
-              .map(([, name]) => [name, 'test-secret']),
-          ),
-        },
+        env: composeEnvironment(composeDir),
       },
     );
     assert.equal(config.status, 0, config.stderr);
@@ -332,21 +339,7 @@ test('builds an installable source archive with current component versions', () 
       {
         cwd: composeDir,
         encoding: 'utf8',
-        env: {
-          ...process.env,
-          ...Object.fromEntries(
-            [
-              ...['compose.yaml', '../ory/compose.yaml']
-                .map((file) =>
-                  readFileSync(path.join(composeDir, file), 'utf8'),
-                )
-                .join('\n')
-                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
-            ]
-              .filter(([, name]) => !name.endsWith('_IMAGE'))
-              .map(([, name]) => [name, 'test-secret']),
-          ),
-        },
+        env: composeEnvironment(composeDir),
       },
     );
     assert.equal(tracingConfig.status, 0, tracingConfig.stderr);
@@ -365,7 +358,7 @@ test('builds an installable source archive with current component versions', () 
     for (const name of ['kratos', 'hydra', 'keto']) {
       const dsn = new URL(tracingServices[name].environment.DSN);
       assert.equal(dsn.searchParams.get('max_conns'), '10');
-      assert.equal(dsn.searchParams.get('max_idle_conns'), '2');
+      assert.equal(dsn.searchParams.get('max_idle_conns'), '5');
     }
     assert.equal(tracingServices.talos.command[0], 'serve');
     assert.equal(tracingServices.talos.depends_on, undefined);
@@ -389,21 +382,7 @@ test('builds an installable source archive with current component versions', () 
       {
         cwd: composeDir,
         encoding: 'utf8',
-        env: {
-          ...process.env,
-          ...Object.fromEntries(
-            [
-              ...['compose.yaml', '../ory/compose.yaml']
-                .map((file) =>
-                  readFileSync(path.join(composeDir, file), 'utf8'),
-                )
-                .join('\n')
-                .matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
-            ]
-              .filter(([, name]) => !name.endsWith('_IMAGE'))
-              .map(([, name]) => [name, 'test-secret']),
-          ),
-        },
+        env: composeEnvironment(composeDir),
       },
     );
     for (const name of [
@@ -729,6 +708,85 @@ esac
       'cleanup-failure',
     ])
       assert.ok(result.stderr.includes(`synthetic-${marker}`));
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test('maintenance script runs each sequence in order and stops at a failed step', () => {
+  // Arrange
+  const temporary = mkdtempSync(path.join(os.tmpdir(), 'maintain-test-'));
+  const bin = path.join(temporary, 'bin');
+  const log = path.join(temporary, 'calls.log');
+  mkdirSync(bin);
+  writeFileSync(
+    path.join(bin, 'docker'),
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "${log}"
+case " $* " in *" \${FAIL_ON:-none} "*) exit 1 ;; esac
+`,
+    { mode: 0o755 },
+  );
+  const maintain = (args, failOn) => {
+    rmSync(log, { force: true });
+    const result = spawnSync(
+      'bash',
+      [path.join(repoRoot, 'deploy/self-host/maintain.sh'), ...args],
+      {
+        encoding: 'utf8',
+        env: {
+          PATH: `${bin}:${process.env.PATH}`,
+          ...(failOn ? { FAIL_ON: failOn } : {}),
+        },
+      },
+    );
+    const calls = existsSync(log)
+      ? readFileSync(log, 'utf8').trim().split('\n')
+      : [];
+    return { status: result.status, calls };
+  };
+  try {
+    // Act
+    const init = maintain(['init', '-p', 'demo']);
+    const upgrade = maintain(['upgrade']);
+    const stopped = maintain(['init'], 'talos-init');
+    const usage = maintain(['repair']);
+
+    // Assert
+    assert.equal(init.status, 0);
+    assert.deepEqual(init.calls, [
+      'compose -p demo config --quiet',
+      'compose -p demo up -d --wait --wait-timeout 300 postgres',
+      'compose -p demo run --rm --no-deps ory-db-init',
+      'compose -p demo run --rm --no-deps talos-init',
+      'compose -p demo run --rm --no-deps kratos-migrate',
+      'compose -p demo run --rm --no-deps hydra-migrate',
+      'compose -p demo run --rm --no-deps keto-migrate',
+      'compose -p demo run --rm --no-deps talos-migrate',
+      'compose -p demo up -d --wait --wait-timeout 300',
+      'compose -p demo run --rm --no-deps hydra-native-client',
+      'compose -p demo ps --all',
+    ]);
+    assert.equal(upgrade.status, 0);
+    assert.equal(upgrade.calls[0], 'compose --env-file .env config --quiet');
+    assert.ok(
+      !upgrade.calls.some((call) => /ory-db-init|talos-init/.test(call)),
+    );
+    assert.ok(
+      upgrade.calls.indexOf(
+        'compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos',
+      ) <
+        upgrade.calls.indexOf(
+          'compose --env-file .env run --rm --no-deps kratos-migrate',
+        ),
+    );
+    assert.notEqual(stopped.status, 0);
+    assert.equal(
+      stopped.calls.at(-1),
+      'compose --env-file .env run --rm --no-deps talos-init',
+    );
+    assert.equal(usage.status, 2);
+    assert.deepEqual(usage.calls, []);
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }

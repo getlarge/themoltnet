@@ -26,20 +26,17 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
    `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field.
 4. If using a release archive, append `.env.release` to `.env` so its digest
    pins override the example tags.
-5. Validate and start the stack:
+5. Validate, initialize, and start the stack:
 
    ```bash
-   docker compose --env-file .env config --quiet
-   docker compose --env-file .env up -d --wait postgres
-   docker compose --env-file .env run --rm --no-deps ory-db-init
-   docker compose --env-file .env run --rm --no-deps talos-init
-   for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
-     docker compose --env-file .env run --rm --no-deps "$job"
-   done
-   docker compose --env-file .env up -d --wait
-   docker compose --env-file .env run --rm --no-deps hydra-native-client
-   docker compose --env-file .env ps
+   ./maintain.sh init
    ```
+
+   The script validates the configuration, starts PostgreSQL, provisions the
+   Ory databases, initializes Talos, runs every migration job, starts the
+   stack, and reconciles OAuth clients, stopping at the first failure. Pass
+   your own Compose options after the mode, for example
+   `./maintain.sh init --env-file .env -f compose.yaml -f compose.tracing.yaml`.
 
 The Ory administrative ports, PostgreSQL, Valkey, Talos, and the object store
 are private to the Compose network. Only Caddy publishes host ports.
@@ -86,21 +83,17 @@ keys.
 
 Verify a fresh backup and review the new release and overrides first. Preserve
 the existing Compose project name, volumes, secrets, and domains; update the
-image pins in `.env` from the new `.env.release`. From `deploy/self-host`, run
-each step below only after the previous one succeeds. PostgreSQL remains running
-while the application and Ory serves are stopped:
+image pins in `.env` from the new `.env.release`. Then, from `deploy/self-host`,
+run the upgrade sequence. PostgreSQL keeps running while the application and Ory
+serves are stopped:
 
 ```bash
-docker compose --env-file .env config --quiet
-docker compose --env-file .env --profile maintenance pull
-docker compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos
-for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
-  docker compose --env-file .env run --rm --no-deps "$job" || exit 1
-done
-docker compose --env-file .env up -d --wait
-docker compose --env-file .env run --rm --no-deps hydra-native-client
-docker compose --env-file .env ps --all
+./maintain.sh upgrade
 ```
+
+It validates the configuration, pulls the pinned images, stops the application
+and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
+clients, stopping at the first failure.
 
 `up` also runs the application's `db-migrate` dependency before starting REST.
 Verify `/health/ready`, login, OAuth, REST and MCP before retiring the previous

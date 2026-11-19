@@ -97,14 +97,14 @@ function assertRepositoryPath(source) {
   return relative;
 }
 
-function validationEnvironment(withImages = true) {
+function validationEnvironment({ includeImages }) {
   const compose = ['deploy/self-host/compose.yaml', 'deploy/ory/compose.yaml']
     .map((file) => readFileSync(path.join(repoRoot, file), 'utf8'))
     .join('\n');
   const required = [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g)];
   return Object.fromEntries(
     required
-      .filter(([, name]) => withImages || !name.endsWith('_IMAGE'))
+      .filter(([, name]) => includeImages || !name.endsWith('_IMAGE'))
       .map(([, name]) => [name, 'bundle-validation-secret']),
   );
 }
@@ -126,7 +126,11 @@ function discoverBindSources() {
       '--format',
       'json',
     ],
-    { capture: true, cwd: sourceDir, env: validationEnvironment() },
+    {
+      capture: true,
+      cwd: sourceDir,
+      env: validationEnvironment({ includeImages: true }),
+    },
   );
   const model = JSON.parse(rendered);
   const sources = new Set();
@@ -240,10 +244,46 @@ function validateBundle(bundleRoot) {
       ],
       {
         cwd: path.join(bundleRoot, 'deploy/self-host'),
-        env: validationEnvironment(false),
+        env: validationEnvironment({ includeImages: false }),
       },
     );
   }
+}
+
+function writeImageManifest(bundleRoot, skipDigests) {
+  const rendered = run(
+    'docker',
+    [
+      'compose',
+      '--env-file',
+      '.env.example',
+      '--env-file',
+      '.env.release',
+      '--profile',
+      '*',
+      'config',
+      '--format',
+      'json',
+    ],
+    {
+      capture: true,
+      cwd: path.join(bundleRoot, 'deploy/self-host'),
+      env: validationEnvironment({ includeImages: false }),
+    },
+  );
+  const images = [
+    ...new Set(
+      Object.values(JSON.parse(rendered).services).map(
+        (service) => service.image,
+      ),
+    ),
+  ].sort();
+  if (
+    !skipDigests &&
+    images.some((image) => !/@sha256:[a-f0-9]{64}$/.test(image))
+  )
+    throw new Error('Every effective bundle image must be digest pinned');
+  writeFileSync(path.join(bundleRoot, 'images.txt'), images.join('\n') + '\n');
 }
 
 function main() {
@@ -263,6 +303,7 @@ function main() {
     'README.md',
     'compose.yaml',
     'compose.tracing.yaml',
+    'maintain.sh',
   ]) {
     cpSync(path.join(sourceDir, name), path.join(bundleSource, name));
   }
@@ -288,35 +329,7 @@ function main() {
     args.imageTag,
   );
   validateBundle(bundleRoot);
-  const rendered = run(
-    'docker',
-    [
-      'compose',
-      '--env-file',
-      '.env.example',
-      '--env-file',
-      '.env.release',
-      '--profile',
-      '*',
-      'config',
-      '--format',
-      'json',
-    ],
-    { capture: true, cwd: bundleSource, env: validationEnvironment(false) },
-  );
-  const images = [
-    ...new Set(
-      Object.values(JSON.parse(rendered).services).map(
-        (service) => service.image,
-      ),
-    ),
-  ].sort();
-  if (
-    !args.skipDigests &&
-    images.some((image) => !/@sha256:[a-f0-9]{64}$/.test(image))
-  )
-    throw new Error('Every effective bundle image must be digest pinned');
-  writeFileSync(path.join(bundleRoot, 'images.txt'), images.join('\n') + '\n');
+  writeImageManifest(bundleRoot, args.skipDigests);
   process.stdout.write(`${bundleRoot}\n`);
 }
 

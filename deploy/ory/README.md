@@ -2,7 +2,8 @@
 
 `compose.yaml` is the service source shared by the standalone bundle and
 consumer overlays. Extend the needed services by name; Compose resolves bind
-paths relative to this module. Keep the extracted archive directory structure.
+paths relative to this module. Keep the extracted archive directory structure:
+the module binds configuration from `../../infra/ory` and its own directory.
 No service publishes a host port. Expose public APIs through a reverse proxy;
 keep administrative endpoints on private networks.
 
@@ -20,12 +21,14 @@ every effective image, including maintenance jobs.
 
 Set `ORY_DB_HOST` (default `postgres`), `ORY_DB_PORT` (5432),
 `ORY_DB_SSLMODE` (`disable` on a private Docker network or `verify-full`),
-`ORY_DB_MAX_CONNECTIONS` (10), `ORY_DB_MAX_IDLE_CONNECTIONS` (2),
+`ORY_DB_MAX_CONNECTIONS` (10), `ORY_DB_MAX_IDLE_CONNECTIONS` (5),
 `ORY_DB_ADMIN_USER` (`postgres`), `ORY_DB_ADMIN_PASSWORD`, and independent
 `KRATOS_DB_PASSWORD`, `HYDRA_DB_PASSWORD`, `KETO_DB_PASSWORD`. Use URL-safe
 passwords for the Compose DSNs. Pool limits are supported
 [Ory DSN query parameters](https://www.ory.com/docs/oss/deployment), applied
-to Kratos, Hydra, and Keto serves and migration jobs. The administrator password is used only by
+to Kratos, Hydra, and Keto serves and migration jobs. At the defaults, the
+three serves can hold 30 connections together; size the server's
+`max_connections` for that plus the application. The administrator password is used only by
 `ory-db-init`; serves receive only their own database credential. Run the
 provisioner against a healthy database explicitly. It creates only missing
 Ory roles/databases, preserves existing passwords and app ownership, and rejects
@@ -43,10 +46,14 @@ The other configuration variables match `../self-host/.env.example`.
 `IDENTITY_DOMAIN` and `OAUTH_DOMAIN` remain independent for standalone ingress;
 a consumer with one auth host sets both to that hostname and routes Kratos/UI
 paths separately from Hydra discovery and OAuth paths. `TALOS_PUBLIC_ISSUER`
-defaults to `https://${API_DOMAIN}`. Override environment fields in an overlay
-for internal application hook endpoints or a different public URL layout.
+defaults to `https://${API_DOMAIN}`. Kratos calls the application's hooks at
+`ORY_HOOK_BASE_URL` (default `http://rest-api:8080`, on the `identity`
+network). Override other environment fields in an overlay for a different
+public URL layout.
 
-Run `ory-db-init`, `talos-init` (new empty volumes only), then
+The standalone bundle runs the sequences below with
+`deploy/self-host/maintain.sh init|upgrade`. Other consumers run the jobs
+themselves: `ory-db-init`, `talos-init` (new empty volumes only), then
 `kratos-migrate`, `hydra-migrate`, `keto-migrate`, and `talos-migrate` explicitly
 with `docker compose run --rm --no-deps SERVICE`. Start serves, then run
 `hydra-native-client` to reconcile clients. All jobs use profile `maintenance`
@@ -57,6 +64,11 @@ database; migrations require existing keys and never replace them.
 Back up and restore the complete Talos volume, including `talos.db`,
 `jwks.json`, and `hmac-secret`. Do not delete it to retry initialization.
 Keep administrator API credentials and generated keys out of logs and archives.
+
+The development stack (`docker-compose.base.yaml`) defines its own Ory
+services with development flags and per-service databases. It is
+intentionally separate from this module; the self-host smoke tests exercise
+this module's lifecycle.
 
 Data migration and live promotion procedures are separate from this runtime
 bundle and are maintained privately.

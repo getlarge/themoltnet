@@ -7,13 +7,31 @@ x-restart: &restart
       max-size: 10m
       max-file: '3'
 
+# Each database has one DSN, shared by its migration job and serve.
+x-dsn:
+  kratos: &kratos-dsn postgres://kratos:${KRATOS_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/kratos?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+  hydra: &hydra-dsn postgres://hydra:${HYDRA_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/hydra?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+  keto: &keto-dsn postgres://keto:${KETO_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/keto?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+
+# Serve, init, and migrate must see the same Talos state and configuration.
+x-talos: &talos
+  networks: [credentials]
+  entrypoint: [/bin/sh, /etc/config/talos/talos.sh]
+  environment:
+    DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
+    CREDENTIALS_ISSUER: ${TALOS_PUBLIC_ISSUER:-https://${API_DOMAIN}}
+  volumes:
+    - ./talos.yaml:/etc/config/talos/talos.yaml:ro
+    - ./talos.sh:/etc/config/talos/talos.sh:ro
+    - talos-data:/var/lib/talos
+
 services:
   kratos-migrate:
     image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
     networks: [database]
     command: migrate sql -e --yes
     environment:
-      DSN: postgres://kratos:${KRATOS_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/kratos?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *kratos-dsn
     restart: 'no'
     profiles: [maintenance]
 
@@ -25,7 +43,7 @@ services:
     environment:
       # Native recovery must return continue_with session-token transitions.
       FEATURE_FLAGS_USE_CONTINUE_WITH_TRANSITIONS: 'true'
-      DSN: postgres://kratos:${KRATOS_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/kratos?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *kratos-dsn
       SECRETS_COOKIE: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
       SECRETS_CIPHER: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
       SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
@@ -50,20 +68,20 @@ services:
       SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
-      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
-      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-registration
       SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
-      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
-      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-login
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
-      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
-      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
-      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
-      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-settings
       SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED: 'true'
       SELFSERVICE_FLOWS_VERIFICATION_ENABLED: 'true'
       SELFSERVICE_FLOWS_VERIFICATION_USE: code
@@ -107,7 +125,7 @@ services:
     networks: [database]
     command: migrate sql up -e --yes
     environment:
-      DSN: postgres://hydra:${HYDRA_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/hydra?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *hydra-dsn
     restart: 'no'
     profiles: [maintenance]
 
@@ -117,7 +135,7 @@ services:
     networks: [ingress, database, services, identity]
     command: serve all --config /etc/config/hydra/hydra.yaml
     environment:
-      DSN: postgres://hydra:${HYDRA_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/hydra?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *hydra-dsn
       SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
       OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:?set OIDC_PAIRWISE_SALT}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
@@ -167,7 +185,7 @@ services:
     networks: [database]
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
-      DSN: postgres://keto:${KETO_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/keto?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *keto-dsn
     volumes:
       - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
@@ -180,7 +198,7 @@ services:
     networks: [database, services]
     command: serve --config /etc/config/keto/keto.yaml
     environment:
-      DSN: postgres://keto:${KETO_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/keto?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-2}
+      DSN: *keto-dsn
     volumes:
       - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
@@ -191,18 +209,9 @@ services:
       retries: 12
 
   talos:
-    <<: *restart
+    <<: [*restart, *talos]
     image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
-    networks: [credentials]
-    entrypoint: [/bin/sh, /etc/config/talos/talos.sh]
     command: [serve]
-    environment:
-      DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
-      CREDENTIALS_ISSUER: ${TALOS_PUBLIC_ISSUER:-https://${API_DOMAIN}}
-    volumes:
-      - ./talos.yaml:/etc/config/talos/talos.yaml:ro
-      - ./talos.sh:/etc/config/talos/talos.sh:ro
-      - talos-data:/var/lib/talos
     healthcheck:
       test: [CMD, wget, --spider, -q, 'http://localhost:4422/health/alive']
       interval: 10s
@@ -210,34 +219,18 @@ services:
       retries: 12
 
   talos-init:
+    <<: *talos
     image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
-    networks: [credentials]
-    entrypoint: [/bin/sh, /etc/config/talos/talos.sh]
     command: [init]
     restart: 'no'
     profiles: [maintenance]
-    environment:
-      DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
-      CREDENTIALS_ISSUER: ${TALOS_PUBLIC_ISSUER:-https://${API_DOMAIN}}
-    volumes:
-      - ./talos.yaml:/etc/config/talos/talos.yaml:ro
-      - ./talos.sh:/etc/config/talos/talos.sh:ro
-      - talos-data:/var/lib/talos
 
   talos-migrate:
+    <<: *talos
     image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
-    networks: [credentials]
-    entrypoint: [/bin/sh, /etc/config/talos/talos.sh]
     command: [migrate]
     restart: 'no'
     profiles: [maintenance]
-    environment:
-      DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
-      CREDENTIALS_ISSUER: ${TALOS_PUBLIC_ISSUER:-https://${API_DOMAIN}}
-    volumes:
-      - ./talos.yaml:/etc/config/talos/talos.yaml:ro
-      - ./talos.sh:/etc/config/talos/talos.sh:ro
-      - talos-data:/var/lib/talos
 
   ory-db-init:
     image: ${ORY_TOOLS_IMAGE:?set ORY_TOOLS_IMAGE}

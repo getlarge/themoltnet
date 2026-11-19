@@ -47,7 +47,8 @@ example fields. Keep `.env`, overrides, and backup credentials out of Git.
 
 Before startup, check Compose configuration and the selected image references.
 Use `docker compose --env-file .env config --quiet`, then start with the bundled
-README's explicit initialization/migration sequence before starting serves.
+README's `./maintain.sh init` for a new installation (`./maintain.sh upgrade`
+for an existing one).
 Run `talos-init` only for a new empty volume; an existing deployment must keep
 its complete Talos state and use `talos-migrate` for schema changes. Do not run `down -v` on a deployment with data. If
 startup fails, inspect only the affected service's status and bounded logs;
