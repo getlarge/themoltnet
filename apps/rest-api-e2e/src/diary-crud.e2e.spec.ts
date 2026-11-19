@@ -586,8 +586,8 @@ describe('Diary CRUD', () => {
 
   // ── Search ──────────────────────────────────────────────────
 
-  it('searches entries by text', async () => {
-    await createDiaryEntry({
+  it('eventually ranks a newly created entry first in text search', async () => {
+    const { data: created, error: createError } = await createDiaryEntry({
       client,
       auth: () => agent.accessToken,
       path: { diaryId: agent.privateDiaryId },
@@ -596,20 +596,31 @@ describe('Diary CRUD', () => {
           'The quantum entanglement experiment yielded surprising results',
       },
     });
+    expect(createError).toBeUndefined();
+    expect(created).toBeDefined();
 
-    const { data, error } = await searchDiary({
-      client,
-      auth: () => agent.accessToken,
-      body: { query: 'quantum entanglement', diaryId: agent.privateDiaryId },
-    });
-
-    expect(error).toBeUndefined();
-    const searchResult = data as unknown as {
-      results: Array<{ content: string }>;
-      total: number;
-    };
-    expect(searchResult.results.length).toBeGreaterThanOrEqual(1);
-    expect(searchResult.results[0].content).toContain('quantum entanglement');
+    // Creation durably schedules indexing; semantic ranking may still reflect
+    // older vectors until the new entry's background enrichment completes.
+    await expect
+      .poll(
+        async () => {
+          const { data, error } = await searchDiary({
+            client,
+            auth: () => agent.accessToken,
+            body: {
+              query: 'quantum entanglement',
+              diaryId: agent.privateDiaryId,
+            },
+          });
+          expect(error).toBeUndefined();
+          const searchResult = data as unknown as {
+            results: Array<{ id: string }>;
+          };
+          return searchResult.results[0]?.id;
+        },
+        { timeout: 20_000, interval: 100 },
+      )
+      .toBe(created!.id);
   });
 
   // ── Cross-agent isolation ───────────────────────────────────

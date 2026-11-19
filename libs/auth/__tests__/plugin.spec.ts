@@ -1090,7 +1090,7 @@ describe('declarative route scope enforcement', () => {
             }
           },
         },
-      ),
+      ) as FastifyBaseLogger,
     });
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,

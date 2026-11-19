@@ -26,6 +26,7 @@ import {
   createEntryRelationRepository,
   diaries,
   diaryEntries,
+  enqueueWorkflowInCurrentTransaction,
   getDataSource,
   initDBOS,
   launchDBOS,
@@ -248,6 +249,8 @@ describe('DiaryService (integration)', () => {
 
     // Wire diary workflow deps (transaction runner available now; deps are lazy)
     setDiaryWorkflowDeps({
+      enqueueWorkflowInCurrentTransaction: (input) =>
+        enqueueWorkflowInCurrentTransaction(setup.db, input),
       diaryEntryRepository: setup.repo,
       relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,

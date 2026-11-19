@@ -57,11 +57,13 @@ import type {
 } from '../src/index.js';
 import {
   initDiaryWorkflows,
+  registerDiaryEmbeddingQueue,
   setDiaryWorkflowDeps,
 } from '../src/workflows/diary-workflows.js';
 
 describe('DiaryService (DBOS integration)', () => {
   let service: DiaryService;
+  let embeddingMock: ReturnType<typeof vi.fn>;
   let db: Awaited<ReturnType<typeof setupDatabase>>['db']['db'];
   let transactionRunner: Awaited<
     ReturnType<typeof setupDBOS>
@@ -111,7 +113,6 @@ describe('DiaryService (DBOS integration)', () => {
     // otherwise unreadable.
     configureDBOS(url, false, 'error');
     await initDBOS({ databaseUrl: url, systemDatabaseUrl: url });
-    await launchDBOS();
 
     const dataSource = getDataSource();
     return {
@@ -271,16 +272,25 @@ describe('DiaryService (DBOS integration)', () => {
     const dbosSetup = await setupDBOS(databaseUrl);
     transactionRunner = dbosSetup.transactionRunner;
 
-    const embeddingService = createNoopEmbeddingService();
+    const embeddingService = {
+      ...createNoopEmbeddingService(),
+      embedPassage: vi.fn().mockResolvedValue(Array(384).fill(0.1)),
+    };
+    embeddingMock = embeddingService.embedPassage;
 
     // Wire diary workflow deps through the DBOS-backed transaction runner.
     setDiaryWorkflowDeps({
+      enqueueWorkflowInCurrentTransaction: (input) =>
+        enqueueWorkflowInCurrentTransaction(db, input),
       diaryEntryRepository: dbSetup.repo,
       relationshipWriter:
         mockRelationshipWriter as unknown as RelationshipWriter,
       embeddingService,
       transactionRunner: dbosSetup.transactionRunner,
     });
+
+    await launchDBOS();
+    await registerDiaryEmbeddingQueue(2);
 
     service = createDiaryService({
       diaryRepository: dbSetup.diaryRepo,
@@ -303,12 +313,9 @@ describe('DiaryService (DBOS integration)', () => {
   }, 60_000);
 
   afterEach(async () => {
-    // Clean up only entries for our test diary to avoid cross-test interference
-    if (DIARY_ID) {
-      await db
-        .delete(tables.diaryEntries)
-        .where(eq(tables.diaryEntries.diaryId, DIARY_ID));
-    }
+    // This suite owns an isolated database. TRUNCATE bypasses signed-entry
+    // deletion protection when cleaning immutable signed fixtures.
+    await db.execute(sql`TRUNCATE diary_entries CASCADE`);
     vi.clearAllMocks();
   });
 
@@ -345,6 +352,162 @@ describe('DiaryService (DBOS integration)', () => {
   });
 
   // ── Atomicity Tests ────────────────────────────────────────────────────
+
+  describe('background enrichment', () => {
+    const vector = Array(384).fill(0.25);
+    async function readVector(id: string) {
+      const [row] = await db
+        .select()
+        .from(diaryEntries)
+        .where(eq(diaryEntries.id, id));
+      return row?.embedding;
+    }
+    async function create(content: string) {
+      return service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content,
+        },
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
+    }
+
+    it('acknowledges creation before inference and eventually persists the vector', async () => {
+      let release!: (value: number[]) => void;
+      embeddingMock.mockImplementationOnce(
+        () =>
+          new Promise<number[]>((resolve) => {
+            release = resolve;
+          }),
+      );
+      const entry = await create('deferred inference');
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'), {
+        timeout: 10000,
+      });
+      expect(await readVector(entry.id)).toBeNull();
+      release(vector);
+      await vi.waitFor(
+        async () => expect(await readVector(entry.id)).toEqual(vector),
+        { timeout: 10000 },
+      );
+    });
+
+    it('rejects stale results after edits and clears old vectors atomically', async () => {
+      const entry = await create('old content');
+      await vi.waitFor(
+        async () => expect(await readVector(entry.id)).not.toBeNull(),
+        { timeout: 10000 },
+      );
+      let release!: (value: number[]) => void;
+      embeddingMock.mockImplementationOnce(
+        () =>
+          new Promise<number[]>((resolve) => {
+            release = resolve;
+          }),
+      );
+      const first = await service.updateEntry(
+        entry.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+        { content: 'intermediate content' },
+      );
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'), {
+        timeout: 10000,
+      });
+      expect(await readVector(entry.id)).toBeNull();
+      await service.updateEntry(entry.id, OWNER_ID, KetoNamespace.Agent, {
+        title: 'Newest title',
+        tags: ['new'],
+      });
+      await vi.waitFor(
+        async () => expect(await readVector(entry.id)).not.toBeNull(),
+        { timeout: 10000 },
+      );
+      release(vector);
+      const repo = createDiaryEntryRepository(db);
+      expect(
+        await repo.saveEmbedding(
+          {
+            id: entry.id,
+            content: first!.content,
+            title: first!.title,
+            tags: first!.tags,
+          },
+          vector,
+        ),
+      ).toBe(false);
+      expect(await readVector(entry.id)).toEqual(Array(384).fill(0.1));
+    });
+
+    it('retries a failed attempt from the durable delayed queue', async () => {
+      embeddingMock.mockRejectedValueOnce(
+        new Error('temporary inference failure'),
+      );
+      const entry = await create('retry inference');
+      await vi.waitFor(
+        async () => expect(await readVector(entry.id)).not.toBeNull(),
+        { timeout: 12000 },
+      );
+      expect(
+        embeddingMock.mock.calls.filter(([text]) => text === 'retry inference'),
+      ).toHaveLength(2);
+    }, 15000);
+
+    it('does not resurrect a deleted entry when inference completes', async () => {
+      let release!: (value: number[]) => void;
+      embeddingMock.mockImplementationOnce(
+        () =>
+          new Promise<number[]>((resolve) => {
+            release = resolve;
+          }),
+      );
+      const entry = await create('deleted during inference');
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'), {
+        timeout: 10000,
+      });
+      await service.deleteEntry(entry.id, OWNER_ID, KetoNamespace.Agent);
+      release(vector);
+      const repo = createDiaryEntryRepository(db);
+      expect(await repo.saveEmbedding(entry, vector)).toBe(false);
+      expect(await readVector(entry.id)).toBeUndefined();
+    });
+
+    it('enriches signed entries without changing signed content', async () => {
+      const entry = await service.createEntry(
+        {
+          diaryId: DIARY_ID,
+          creator: { kind: 'agent', id: OWNER_ID },
+          content: 'Signed content stays immutable',
+          contentSignature: 'test-signature-background-enrichment',
+        },
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
+      await vi.waitFor(
+        async () => expect(await readVector(entry.id)).not.toBeNull(),
+        { timeout: 10000 },
+      );
+      const [saved] = await db
+        .select()
+        .from(diaryEntries)
+        .where(eq(diaryEntries.id, entry.id));
+      expect(saved.contentSignature).toBe(entry.contentSignature);
+      expect(saved.contentHash).toBe(entry.contentHash);
+      expect(saved.content).toBe(entry.content);
+      expect(saved.title).toBe(entry.title);
+      expect(saved.tags).toEqual(entry.tags);
+    });
+
+    it('persists the queue concurrency configuration', async () => {
+      const rows = await db.execute(
+        sql`SELECT concurrency, polling_interval_sec FROM dbos.queues WHERE name = 'diary-embeddings'`,
+      );
+      expect(Number(rows.rows[0]?.concurrency)).toBe(2);
+      expect(Number(rows.rows[0]?.polling_interval_sec)).toBe(0.05);
+    });
+  });
 
   describe('atomicity', () => {
     it('commits an app transaction and its DBOS enqueue together', async () => {

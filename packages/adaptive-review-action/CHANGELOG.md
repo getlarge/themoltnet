@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.4.0...adaptive-review-action-v0.4.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **adaptive-review-action:** adopt published consumer pins ([bf6c8a5](https://github.com/getlarge/themoltnet/commit/bf6c8a54a3dddfe9568143224912c272c1564e93))
+* **adaptive-review-action:** adopt published consumer pins ([fac7119](https://github.com/getlarge/themoltnet/commit/fac7119edd811f47b8f41b263e29df2d7eb240cf))
+* **adaptive-review-action:** honor Nx build dependencies ([16e3213](https://github.com/getlarge/themoltnet/commit/16e32139ac1a1f54ee7d6d306343ad2b3bb2533b))
+* **adaptive-review-action:** publish bundled workers with daemon updates ([eb1eae7](https://github.com/getlarge/themoltnet/commit/eb1eae78c8e5d3a377487e922211528797e13c53))
+* **adaptive-review-action:** publish bundled workers with daemon updates ([601c951](https://github.com/getlarge/themoltnet/commit/601c951538809fb171cb7f61d805bddc7bc40925))
+* **adaptive-review-action:** validate worker versions and consumer ownership ([f77d75b](https://github.com/getlarge/themoltnet/commit/f77d75bfedeb620171ead9ff129eb147fa30bc4c))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.3.2...adaptive-review-action-v0.4.0) (2026-11-10)
 
 

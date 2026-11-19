@@ -74,6 +74,8 @@ function createMockDiaryEntryRepository(): {
   [K in keyof DiaryEntryRepository]: ReturnType<typeof vi.fn>;
 } {
   return {
+    needsEmbedding: vi.fn(),
+    saveEmbedding: vi.fn(),
     create: vi.fn(),
     findById: vi.fn(),
     list: vi.fn(),

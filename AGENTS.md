@@ -186,10 +186,10 @@ groups non-major npm dev tooling into one PR.
 **UI-affecting PRs must include screenshots and/or recordings before being
 marked ready for review.** Follow the canonical
 [visual evidence policy](CONTRIBUTING.md#visual-evidence-for-ui-changes) and fill
-in the PR template's Visual evidence section. Scope this by user-visible
-impact, not only frontend file paths: shared components, UI copy, interaction
-behavior, documentation layouts, and backend changes that alter UI states can
-qualify.
+in the PR template's Visual evidence / architecture diagram section. Scope this
+by user-visible impact, not only frontend file paths: shared components, UI copy,
+interaction behavior, documentation layouts, and backend changes that alter UI
+states can qualify.
 
 Capture and inspect the implemented result; refresh the evidence when later
 commits change it. Use a recording when static images cannot demonstrate the
@@ -200,6 +200,23 @@ Do not claim a UI PR is review-ready while this requirement is unmet.
 Adaptive review's reviewer criteria live in
 [REVIEW.md](REVIEW.md#ui-visual-evidence), loaded from the pinned PR base; keep
 author instructions and the reviewer criteria consistent.
+
+### Diagrams for architecture and workflow review
+
+For changes involving workflows, architecture, state transitions, or multiple
+services, consider whether a diagram would make review materially easier.
+When useful, include a rendered diagram showing the final behavior,
+responsibilities, boundaries, and relevant failure paths. Inspect it for
+accuracy and readability, keep its editable source alongside it, and refresh
+it when the implementation changes. Inline Mermaid can serve as both source
+and rendered diagram.
+
+Follow the [diagram guidance](CONTRIBUTING.md#diagrams-for-architecture-and-workflow-review)
+and fill in the PR template's Visual evidence / architecture diagram section;
+briefly explain when neither applies. Skip visuals that merely repeat a short
+explanation. Diagrams are discretionary for non-UI changes; reviewer guidance
+in [REVIEW.md](REVIEW.md#architecture-and-workflow-diagrams) requires a concrete
+review need before suggesting one.
 
 ## This Repository Is Public
 
@@ -455,7 +472,7 @@ this: it reads source imports, not the bundle.
 | `MOLTNET_SKIP_NX_SYNC=1` | Skips `nx sync` in `tools/postinstall.mjs` (no nx binary in `--prod` install) | Dockerfiles, CI minimal-install jobs |
 | `HUSKY=0` (or `CI=true`) | Skips husky bootstrap in `tools/prepare.mjs` (husky is dev-only)              | Dockerfiles, CI                      |
 
-Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--ignore-scripts` to `pnpm install` — that also blocks legitimate native-module postinstalls (e.g. `onnxruntime-node`'s no-op CUDA check, `protobufjs`).
+Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--ignore-scripts` to `pnpm install` — that also blocks legitimate native-module postinstalls. Which packages may run build scripts is decided per package in `allowBuilds` in `pnpm-workspace.yaml`.
 
 ### To add a new image
 
@@ -581,10 +598,16 @@ these rules.
 - **The Node.js toolchain is pinned once, in `.tool-versions`.** Every
   `actions/setup-node` step uses `node-version-file: .tool-versions` (or the
   trusted checkout's copy in jobs that run trusted tooling from a subpath).
-  `FROM node:` lines in Dockerfiles use the same version, and Renovate updates
-  both in one "Node.js toolchain" PR. Published composite actions
+  `FROM node:` lines in Dockerfiles, `.nvmrc` (kept for nvm/fnm users) and the
+  musl download in `sandbox.json` use the same version, and Renovate updates
+  them in one "Node.js toolchain" group. Published composite actions
   (`packages/*-action/action.yml`) run in other repositories and keep a literal
-  version.
+  version. `pnpm run check:node-toolchain` (CI: Orchestrator) fails on any
+  drift. Each Renovate datasource clears the release-age gate on its own
+  schedule, so a group branch can first bump `.tool-versions` before the
+  Docker Hub tag is eligible; the check keeps that branch red until the
+  Dockerfile update lands on it. Do not merge a Node.js toolchain PR past a
+  failing check.
 - **Pin Docker base images by digest with a literal `FROM`** line
   (`FROM node:24.14.1-slim@sha256:…`). Renovate cannot pin or update a `FROM`
   that interpolates an `ARG`.

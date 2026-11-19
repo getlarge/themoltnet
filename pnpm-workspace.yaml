@@ -36,7 +36,11 @@ allowBuilds:
   isolated-vm: true
   node-hid: true
   nx: true
-  onnxruntime-node: true
+  # Its install script only downloads the optional Linux x64 CUDA provider
+  # from the onnxruntime GitHub release; the CPU binaries ship in the npm
+  # package. Nothing here uses CUDA, and the download fails when that
+  # release asset is unavailable.
+  onnxruntime-node: false
   protobufjs: false
   sharp: false
   ssh2: false
@@ -55,8 +59,6 @@ overrides:
   'path-to-regexp': '>=8.4.2'
   'yaml': '>=2.8.3 <3'
   'ajv@8': '>=8.18.0'
-  'protobufjs@7': '>=7.6.5 <8'
-  'protobufjs@8': '>=8.6.6 <9'
   'fast-jwt': '>=6.3.0 <7'
   'sharp': '>=0.35.4 <0.36'
   '@opentelemetry/core': '>=2.8.0 <3'
@@ -69,6 +71,7 @@ auditConfig:
   ignoreGhsas:
     - GHSA-848j-6mx2-7j84
 catalog:
+  workerpool: 10.0.3
   '@andersmyrmel/vard': '^1.2.0'
   '@axe-core/webdriverio': '^4.13.0'
   '@commitlint/cli': '^20.1.0'
@@ -76,7 +79,7 @@ catalog:
   '@dbos-inc/dbos-sdk': '4.27.6'
   '@dbos-inc/drizzle-datasource': '4.27.6'
   absurd-sdk: '^0.4.0'
-  '@earendil-works/gondolin': '^0.12.0'
+  '@earendil-works/gondolin': '^0.14.0'
   '@dotenvx/dotenvx': '^1.59.1'
   '@eslint/js': '^9.39.4'
   globals: '^17.12.0'

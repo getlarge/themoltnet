@@ -6,6 +6,35 @@ it is not committed on `main`. This guide explains how a source version becomes
 a usable action, how consumer pins advance, and how to recover an interrupted
 release without changing its identity.
 
+## Release a daemon change for review consumers
+
+Adaptive review ships its coordinator and worker action together. Its release
+records the exact daemon version the workers download; callers adopt the
+released bundle SHA rather than building from `main`. Publishing the daemon
+alone does not update existing review callers.
+
+1. Merge the implementation with the relevant runtime locks refreshed. Release
+   Please's `node-workspace` plugin uses workspace dependencies to plan
+   dependent releases. Adaptive review depends on both the daemon and its worker
+   action, so inspect the generated release PR for those version changes.
+2. Mark the draft release PR ready, let CI validate it, and merge it. The
+   release workflow publishes the daemon package and signed platform assets,
+   then finalizes the daemon release. The adaptive-review publisher waits for
+   that job and checks the exact daemon version recorded in its source tag.
+3. Inspect the published adaptive-review release's `Action bundle commit:` and
+   `Review worker:` lines. If its daemon dependency is not published, recover
+   the daemon first, then retry the action release as described below.
+4. Review the consumer pin update. Synchronization updates an open Release
+   Please PR when available; otherwise it reuses an open generated consumer PR
+   or creates a draft `automation/published-consumer-pins-*` PR. Mark a new
+   draft ready, let CI run, and merge it to activate the release in this
+   repository. External repositories update their own caller SHA separately.
+
+These are separate maintainer merge points: the release PR authorizes artifact
+publication, and the consumer PR adopts an already published artifact. They can
+share an existing release PR when one is open, but publication never writes new
+consumer pins directly to `main` or automatically merges a PR.
+
 ## Inspect or retry a release
 
 The **Release** workflow reconciles action publications on eligible pushes to
@@ -71,9 +100,9 @@ gh release view "$ACTION_TAG" --repo getlarge/themoltnet --json isDraft,body,url
 The ref's SHA must match the `Action bundle commit:` line in the notes, and
 `isDraft` must be `false`. These checks complement the publisher's source and
 bundle validation; a published GitHub release alone is not evidence of complete
-publication. Consumer adoption is a separate checkpoint: inspect the open
-Release Please PR and its pin changes, or the sync logs explaining why it kept
-the existing pins.
+publication. Consumer adoption is a separate checkpoint: inspect the release or
+consumer PR and its pin changes, or the sync logs explaining why it kept the
+existing pins.
 
 ## Publication contract
 
@@ -92,21 +121,39 @@ no compiled `dist/` and cannot be substituted for a bundle SHA.
 
 ```mermaid
 flowchart TD
-    A[Release Please: source tag and draft release] --> R[Reconciler selects action versions]
-    T[Eligible main push or explicit legacy dispatch] --> R
-    R --> B[Publisher builds and validates original source]
-    B --> P[Atomic push: exact bundle and retention tags]
-    P --> N[Record bundle SHA in release notes]
-    N --> F[Finalize GitHub release]
-    F --> C[Consumer sync after all pin producers finish]
-    CLI[CLI platform packages and wrapper published] --> C
-    D[Daemon signed assets and release finalized] --> C
-    C --> PR[Update pins in an existing release PR]
+    M[Maintainer merges release PR] --> R[Release Please creates source tags and drafts]
+    R --> D[Daemon publisher: npm and signed assets]
+    D --> F[Finalize exact daemon release]
+    R --> A[Action reconciler selects source versions]
+    F --> G[Review publisher checks its exact daemon dependency]
+    A --> G
+    G --> B[Build review and worker action from source tag]
+    B --> P[Push immutable bundle; record notes; finalize release]
+    P --> C[Consumer sync proposes verified bundle SHA]
+    CLI[CLI publication completes] --> C
+    C --> PR[Existing release PR or generated draft consumer PR]
+    PR --> U[Maintainer validates and merges caller updates]
 ```
 
-The atomic push also promotes the moving major alias when it would not downgrade
-that alias. Consumer sync waits for action publication, CLI wrapper publication
-(which depends on platform packages), and daemon release finalization. Failed or
+[Download the diagram as a PNG](./assets/action-release-flow.png).
+
+Adaptive review includes the worker action's built files in its own bundle. The
+standalone daemon action has its own release for other consumers. Release Please
+uses workspace dependencies to plan versions; the publisher enforces publication
+order. Its gate requires the exact source daemon's published stable release and
+nonempty, uploaded installer, Linux archive, checksum, and signature assets. It
+checks asset metadata, not their downloaded contents or signatures.
+
+The bundle includes `dist/worker-action/` and `dist/release-dependencies.json`.
+The manifest records `daemonVersion` and `workerActionVersion` from the source
+tree. All review jobs receive and verify the same bundle artifact digest;
+workers restore the bundled action before launching it. The daemon executable is
+still downloaded separately at the recorded version. Optional diary workers also
+install exact daemon and pi-runtime npm versions; those dependencies are not
+made self-contained by bundling the worker action.
+
+Consumer sync waits for action publication, CLI wrapper publication (which
+depends on platform packages), and daemon release finalization. Failed or
 skipped producers do not suppress synchronization: it can adopt other eligible
 publications while one release awaits recovery.
 
@@ -122,6 +169,12 @@ configuration come from the source tag. This allows a fixed controller to
 recover historical releases. The publisher requires a clean tracked checkout
 before creating the bundle commit; only `dist/` is added to that detached
 commit.
+
+The reconciler derives required bundle entries and the daemon publication gate
+from the source manifest. Source tags with a bundled-worker dependency require
+the worker files and a published daemon release. Older tags retain their
+original entry requirements and independently pinned worker contract when
+retried.
 
 A retry reuses an existing exact bundle, even if a rebuild produces different
 bytes. It can adopt the legacy major-tag bundle for the same version after
@@ -141,47 +194,51 @@ workflow runs are serialized, and action jobs run one at a time.
 Consumer synchronization is a separate job after all pin producers finish. It
 runs on the same legacy triggers, including an exact-version manual retry, and
 can still run when discovery or publication fails. Cancelled runs do not
-synchronize pins. It updates an existing open Release Please PR; if none exists,
-it waits for a later run rather than creating a release PR or publishing
-directly to `main`.
+synchronize pins. It prefers an existing open Release Please PR, then an open
+`automation/published-consumer-pins-*` PR. Reused PRs must belong to this
+repository and be authored by the configured Release App. If neither exists and
+eligible pins change, it creates a draft consumer PR from `main`. It creates no
+PR when there is nothing to update. If a push succeeds but PR creation is
+interrupted, a retry regenerates the update from `main` and checks that the
+pushed commit has exactly that tree and parent before opening the missing draft.
+A mismatch stops synchronization for manual inspection; a matching retry creates
+no extra commit or release.
 
-| Consumer family         | Candidate and eligibility                                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI                     | npm's stable CLI version, available as wrapper and both Linux platform packages                                                              |
-| Daemon/action pair      | Highest published stable daemon version with Linux archive, checksum and signature assets, paired with the action version in its source tree |
-| Adaptive-review callers | Highest published stable adaptive-review action in major zero, with a verified immutable bundle                                              |
+| Consumer family         | Candidate and eligibility                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| CLI                     | npm's stable CLI version, available as wrapper and both Linux platform packages                 |
+| Adaptive-review callers | Highest published stable adaptive-review action in major zero, with a verified immutable bundle |
 
-The daemon check requires the three expected asset names; it does not download
-or cryptographically verify them. If the highest published daemon version lacks
-an asset, the synchronizer keeps the current pair rather than selecting an older
+Adaptive-review callers adopt the daemon version packaged with their review
 release. A new adaptive-review major requires a deliberate caller update.
 
 Exact action lookup uses `bundles/<component>-v<version>`, independently of the
 moving major alias. It validates the package version, source parent and required
 files. Missing publication keeps the current pins and emits a warning; a present
-but inconsistent mapping fails closed. Daemon and action pins advance together,
-never independently or backward.
+but inconsistent mapping fails closed. Caller pins never move backward.
 
-These edits reach consumers only after the release PR merges. The job attempts
-each family independently, refreshes runtime locks after all successful changes,
-and pushes to the same open release PR only if its head has not changed. One
-failed family does not discard successful independent updates. The job reports
-those failures after committing, so they remain visible. Release Please itself
-no longer fails because a consumer candidate is unavailable.
+These edits reach consumers only after their PR merges. The job attempts each
+family independently, refreshes runtime locks after all successful changes, and
+pushes to an existing PR only if its head has not changed. One failed family
+does not discard successful independent updates. The job reports those failures
+after committing, so they remain visible. Release Please runs independently of
+consumer synchronization; an unavailable consumer candidate does not block it.
 
-`packages/adaptive-review-action/runtime.lock` tracks external files shipped
-with that action. Changes to those files need a refreshed lock in a `fix` or
-`feat` commit to trigger the component release. Refresh the lock again when
-preparing a release PR after generated version changes; the consumer sync job
-also refreshes locks before its commit. When that changes the adaptive-review
-lock, the job uses `fix(adaptive-review-action): sync published runtime pins`
-instead of a `chore(release)` commit. This makes the change eligible for an
-action release even if Release Please has not selected that component in the
-current PR; the version bump may arrive in the next release cycle. Keeping the
-lock current does not mean the current PR already includes an action version
-bump. CI checks every lock on the merged tree; publication checks only the
-component being released. Never repair a historical source tag's unrelated lock
-by rewriting the tag.
+`packages/adaptive-review-action/runtime.lock` hashes runtime inputs outside the
+action package, including `.github/workflows/adaptive-review-reusable.yml`,
+worker-action sources, and `apps/agent-daemon/package.json`. Refresh the lock
+after workflow edits or daemon version bumps as well as changes to shipped
+runtime files. Include the refreshed lock in a `fix` or `feat` commit to trigger
+the component release. Refresh the lock again when preparing a release PR after
+generated version changes; the consumer sync job also refreshes locks before its
+commit. When that changes the adaptive-review lock, the job uses
+`fix(adaptive-review-action): sync published runtime pins` instead of a
+`chore(release)` commit. This makes the change eligible for an action release
+even if Release Please has not selected that component in the current PR; the
+version bump may arrive in the next release cycle. Keeping the lock current does
+not mean the current PR already includes an action version bump. CI checks every
+lock on the merged tree; publication checks only the component being released.
+Never repair a historical source tag's unrelated lock by rewriting the tag.
 
 With the repository's Git hooks installed, each commit refreshes and stages
 runtime locks after lint-staged formats the source files. The `--stage` mode
@@ -222,7 +279,8 @@ publication.
 | Legacy release published without bundle                    | Create its exact bundle using the current controller, then complete publication metadata |
 | Older release needs recovery after major advanced          | Retain the older exact bundle; preserve the newer alias                                  |
 | API/authentication failure or inconsistent existing bundle | Fail visibly; correct the cause rather than overwrite an immutable ref                   |
-| No open release PR                                         | Keep consumer pins; synchronize when a release PR is available                           |
+| No open release PR                                         | Reuse or create a draft consumer PR; a maintainer still validates and merges it          |
+| Review action awaits its exact daemon release              | Recover that daemon publication, then retry the same review action source tag            |
 
 The reconciler considers the highest stable-semver release of each action,
 including drafts, and the action required by the newest published daemon. It

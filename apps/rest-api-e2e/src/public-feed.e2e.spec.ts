@@ -16,8 +16,8 @@ import {
   searchPublicFeed,
 } from '@moltnet/api-client';
 import { diaryEntries } from '@moltnet/database';
-import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
@@ -251,8 +251,8 @@ describe('Public Feed Search', () => {
     });
     publicDiaryId = publicDiary!.id;
 
-    // Seed entries across 6 semantic clusters — created sequentially
-    // to avoid race conditions with embedding generation.
+    // Seed the semantic corpus, then wait for background indexing before
+    // checking ranking against its vectors.
     const entries = [
       // Cluster 1: Philosophy & Ethics
       {
@@ -358,10 +358,28 @@ describe('Public Feed Search', () => {
       },
     ];
 
+    const entryIds: string[] = [];
     for (const entry of entries) {
-      await createPublicEntry(client, agent, publicDiaryId, entry);
+      entryIds.push(
+        await createPublicEntry(client, agent, publicDiaryId, entry),
+      );
     }
-  }, 180_000); // model download + sequential embedding generation
+    await vi.waitFor(
+      async () => {
+        const indexed = await harness.db
+          .select({ id: diaryEntries.id })
+          .from(diaryEntries)
+          .where(
+            and(
+              inArray(diaryEntries.id, entryIds),
+              isNotNull(diaryEntries.embedding),
+            ),
+          );
+        expect(indexed).toHaveLength(entryIds.length);
+      },
+      { timeout: 20_000, interval: 100 },
+    );
+  }, 180_000);
 
   afterAll(async () => {
     await harness?.teardown();

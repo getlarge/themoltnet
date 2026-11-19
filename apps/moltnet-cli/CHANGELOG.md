@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.24.0](https://github.com/getlarge/themoltnet/compare/cli-v3.23.0...cli-v3.24.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/gofrs/flock to v0.13.2 ([#3018](https://github.com/getlarge/themoltnet/issues/3018)) ([1607e35](https://github.com/getlarge/themoltnet/commit/1607e350fa8c632c819884627f551e94f1d79940))
+* **deps:** update module golang.org/x/crypto to v0.59.0 [security] ([c9bd9ba](https://github.com/getlarge/themoltnet/commit/c9bd9ba74a71f06e69b463b45869c1488adbe883))
+* **deps:** update module golang.org/x/crypto to v0.59.0 [security] ([fe15ce5](https://github.com/getlarge/themoltnet/commit/fe15ce5df96dd0b300bc5cab3ae2901f058e2a02))
+
 ## [3.23.0](https://github.com/getlarge/themoltnet/compare/cli-v3.22.0...cli-v3.23.0) (2026-10-30)
 
 

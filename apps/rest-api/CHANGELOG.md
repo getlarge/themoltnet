@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.70.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.69.1...rest-api-v0.70.0) (2026-11-16)
+
+
+### Features
+
+* **diary:** generate embeddings in durable background workflows ([d751cd4](https://github.com/getlarge/themoltnet/commit/d751cd4ff0bc5c65ab71b8cd36b8a171fb7e36b0))
+* **diary:** generate embeddings in the background with a bounded process pool ([7d45842](https://github.com/getlarge/themoltnet/commit/7d45842a55f68fe5b6decd304e8a9bc3d78b71ee))
+* **embedding-service:** bound inference with process workers ([6d33536](https://github.com/getlarge/themoltnet/commit/6d33536e1f0a39da517ff21110b0d168489cccde))
+
+
+### Bug Fixes
+
+* **diary:** make enrichment handoff atomic and retries finite ([8ec9635](https://github.com/getlarge/themoltnet/commit/8ec96356c2419e015268cdfb4a432c9bdbdd9a25))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.19.0
+
 ## [0.69.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.69.0...rest-api-v0.69.1) (2026-11-10)
 
 

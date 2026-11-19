@@ -511,13 +511,7 @@ export type CreateRuntimeProfileBody = {
       provider: string;
       temperature?: null | number;
       thinkingLevel?:
-        | 'off'
-        | 'minimal'
-        | 'low'
-        | 'medium'
-        | 'high'
-        | 'xhigh'
-        | null;
+        'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
       topK?: number | null;
       topP?: null | number;
     };
@@ -886,10 +880,7 @@ export type EntryVerifyResult = {
 };
 
 export type ExecutorTrustLevel =
-  | 'selfDeclared'
-  | 'agentSigned'
-  | 'releaseVerifiedTool'
-  | 'sandboxAttested';
+  'selfDeclared' | 'agentSigned' | 'releaseVerifiedTool' | 'sandboxAttested';
 
 export type ExpandedPackEntry = {
   compressionLevel: 'full' | 'summary' | 'keywords';
@@ -1285,8 +1276,7 @@ export type PreviewSignChallenge = {
 };
 
 export type PreviewSignChallengeOperation =
-  | 'credential-registration'
-  | 'signing-request';
+  'credential-registration' | 'signing-request';
 
 export type PreviewSignChallengeValidation = {
   valid: true;
@@ -2078,13 +2068,7 @@ export type RuntimeProfile = {
       provider: string;
       temperature?: null | number;
       thinkingLevel?:
-        | 'off'
-        | 'minimal'
-        | 'low'
-        | 'medium'
-        | 'high'
-        | 'xhigh'
-        | null;
+        'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
       topK?: number | null;
       topP?: null | number;
     };
@@ -2159,13 +2143,7 @@ export type RuntimeProfileListResponse = {
         provider: string;
         temperature?: null | number;
         thinkingLevel?:
-          | 'off'
-          | 'minimal'
-          | 'low'
-          | 'medium'
-          | 'high'
-          | 'xhigh'
-          | null;
+          'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
         topK?: number | null;
         topP?: null | number;
       };
@@ -2314,6 +2292,12 @@ export type RuntimeSlotListResponse = {
       worktreePath: string;
     } | null;
   }>;
+};
+
+export type RuntimeStoreInfo = {
+  format: 'pi-durable.v1';
+  headSeq: number;
+  storeId: string;
 };
 
 export type RuntimeWorkspace = {
@@ -2534,10 +2518,7 @@ export type Task = {
     taskId: string | null;
   }>;
   requiredExecutorTrustLevel:
-    | 'selfDeclared'
-    | 'agentSigned'
-    | 'releaseVerifiedTool'
-    | 'sandboxAttested';
+    'selfDeclared' | 'agentSigned' | 'releaseVerifiedTool' | 'sandboxAttested';
   runningTimeoutSec: number | null;
   status:
     | 'waiting'
@@ -3139,13 +3120,7 @@ export type UpdateRuntimeProfileBody = {
       provider: string;
       temperature?: null | number;
       thinkingLevel?:
-        | 'off'
-        | 'minimal'
-        | 'low'
-        | 'medium'
-        | 'high'
-        | 'xhigh'
-        | null;
+        'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
       topK?: number | null;
       topP?: null | number;
     };
@@ -9833,11 +9808,7 @@ export type GetRuntimeStoreForAttemptResponses = {
   /**
    * Default Response
    */
-  200: {
-    format: 'pi-durable.v1';
-    headSeq: number;
-    storeId: string;
-  } | null;
+  200: RuntimeStoreInfo | null;
 };
 
 export type GetRuntimeStoreForAttemptResponse =

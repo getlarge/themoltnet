@@ -34,6 +34,22 @@
       "type:feature",
       "scope:diary",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "test:recovery": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "{projectRoot}",
+          "command": "vitest run __tests__/embedding-recovery.integration.spec.ts"
+        }
+      },
+      "test-ci--__tests__/embedding-recovery.integration.spec.ts": {
+        "cache": false
+      },
+      "test": {
+        "cache": false
+      }
+    }
   }
 }
