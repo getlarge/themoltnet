@@ -93,25 +93,33 @@ test('daemon callers scope read-only App tokens to the shared release lookup', (
   );
 });
 
-test('actionlint compatibility exception still rejects other concurrency keys', () => {
-  const result = spawnSync(
-    'pnpm',
-    [
-      'run',
-      '-s',
-      'actionlint',
-      '-shellcheck=',
-      '-pyflakes=',
-      '-stdin-filename',
-      path,
-      '-',
-    ],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      input: source.replaceAll('queue: max', 'queues: max'),
-    },
-  );
-  assert.equal(result.status, 1, result.stderr);
-  assert.match(result.stdout + result.stderr, /unexpected key "queues"/);
-});
+// This starts pnpm and Go's pinned actionlint; a cold Go build is not a unit test.
+// Bound the subprocess as well as the test, without changing its assertions.
+test(
+  'actionlint compatibility exception still rejects other concurrency keys',
+  { timeout: 65_000 },
+  () => {
+    const result = spawnSync(
+      'pnpm',
+      [
+        'run',
+        '-s',
+        'actionlint',
+        '-shellcheck=',
+        '-pyflakes=',
+        '-stdin-filename',
+        path,
+        '-',
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 60_000,
+        input: source.replaceAll('queue: max', 'queues: max'),
+      },
+    );
+    assert.ifError(result.error);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stdout + result.stderr, /unexpected key "queues"/);
+  },
+);

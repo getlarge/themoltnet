@@ -295,6 +295,19 @@
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
     },
+    "check:build-assets": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tools/check-build-assets.mjs"
+      ],
+      "options": {
+        "command": "node tools/check-build-assets.mjs {projectRoot}"
+      }
+    },
     "check:externals": {
       "cache": true,
       "dependsOn": ["build"],

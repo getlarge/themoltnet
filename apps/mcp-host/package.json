@@ -46,7 +46,8 @@
           }
         }
       },
-      "check:externals": {}
+      "check:externals": {},
+      "check:build-assets": {}
     }
   }
 }

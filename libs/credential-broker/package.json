@@ -40,6 +40,9 @@
   },
   "nx": {
     "projectType": "library",
+    "targets": {
+      "check:build-assets": {}
+    },
     "tags": [
       "type:feature",
       "scope:credentials",
