@@ -63,6 +63,8 @@ describeIntegration('governed Gondolin execution integration', () => {
       const deniedAuth: (string | null)[] = [];
       const diagnostics: VmDiagnostic[] = [];
       let scopedValueRegistered = false;
+      let guestFailure: string | undefined;
+      let guestPlaceholder: string | undefined;
 
       const requirements = parseCredentialRequirements([
         {
@@ -195,10 +197,8 @@ describeIntegration('governed Gondolin execution integration', () => {
             managed.vm,
             `
 set -eu
-case "$FIXTURE_API_TOKEN" in
-  GONDOLIN_SECRET_*) ;;
-  *) echo invalid-placeholder; exit 1 ;;
-esac
+test -n "$FIXTURE_API_TOKEN"
+printf 'guest-placeholder:%s\\n' "$FIXTURE_API_TOKEN"
 curl -fsS --max-time 20 \\
   -H "Authorization: Bearer $FIXTURE_API_TOKEN" \\
   ${ALLOWED_ORIGIN}/authorized
@@ -217,10 +217,21 @@ echo governed-exec-done
               },
             },
           );
+          guestPlaceholder = /^guest-placeholder:(.+)$/m.exec(
+            chunks.join(''),
+          )?.[1];
           if (
             result.exitCode !== 0 ||
             !chunks.join('').includes('governed-exec-done')
           ) {
+            guestFailure = JSON.stringify({
+              result,
+              output: chunks
+                .join('')
+                .replaceAll(SENTINEL, '[redacted]')
+                .replaceAll(BINDING_KEY, '[redacted]'),
+              diagnostics,
+            });
             return {
               controls: [
                 {
@@ -251,14 +262,18 @@ echo governed-exec-done
       );
 
       expect(scopedValueRegistered).toBe(true);
-      expect(allowedAuth).toHaveLength(1);
-      expect(allowedAuth[0]).toMatch(/^Bearer GONDOLIN_SECRET_/);
+      expect(guestFailure, 'governed guest command failed').toBeUndefined();
+      // Placeholder spelling is owned by Gondolin. Verify the guest-to-host
+      // boundary rather than a prefix that can change between releases.
+      expect(guestPlaceholder).toBeTruthy();
+      expect(guestPlaceholder).not.toContain(SENTINEL);
+      expect(guestPlaceholder).not.toContain(BINDING_KEY);
+      expect(allowedAuth).toEqual([`Bearer ${guestPlaceholder}`]);
       expect(allowedAuth).not.toContain(`Bearer ${SENTINEL}`);
       // Host-origin fixtures run before Gondolin's outbound substitution.
       // Even the denied path can observe the placeholder, but never the value;
       // the origin policy then rejects the request before any network delivery.
-      expect(deniedAuth).toHaveLength(1);
-      expect(deniedAuth[0]).toMatch(/^Bearer GONDOLIN_SECRET_/);
+      expect(deniedAuth).toEqual([`Bearer ${guestPlaceholder}`]);
       expect(deniedAuth).not.toContain(`Bearer ${SENTINEL}`);
       expect(diagnostics).toContainEqual(
         expect.objectContaining({
