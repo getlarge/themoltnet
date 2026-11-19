@@ -26,6 +26,16 @@ function requireThat(condition: unknown): asserts condition {
   if (!condition) throw new Error('Transfer precondition failed');
 }
 
+// Rehearsal may copy a moving permission snapshot, never changing identities.
+export function verifySourceStability(
+  identitiesUnchanged: boolean,
+  permissionsUnchanged: boolean,
+  rehearsal = false,
+) {
+  requireThat(identitiesUnchanged && (permissionsUnchanged || rehearsal));
+  return identitiesUnchanged && permissionsUnchanged;
+}
+
 export interface Principal {
   kind: 'agent' | 'human';
   id: string;
@@ -216,7 +226,9 @@ async function main() {
   try {
     const args = process.argv.slice(2);
     requireThat(
-      args.every((arg) => ['--apply', '--reenroll-mfa'].includes(arg)),
+      args.every((arg) =>
+        ['--apply', '--reenroll-mfa', '--rehearsal'].includes(arg),
+      ),
     );
     let input = '';
     for await (const chunk of process.stdin) {
@@ -389,13 +401,14 @@ async function main() {
         [...tuples.keys()].sort(),
       ),
     );
-    requireThat(
+    const sourceUnchanged = verifySourceStability(
+      isDeepStrictEqual(currentSource, original),
       isDeepStrictEqual(
         [...currentTuples.keys()].sort(),
         [...tuples.keys()].sort(),
       ),
+      args.includes('--rehearsal'),
     );
-    requireThat(isDeepStrictEqual(currentSource, original));
     requireThat((await identities(target)).length === original.length);
     phase = 'rebind';
     const client = await connection.pool.connect();
@@ -441,7 +454,8 @@ async function main() {
     }
     print({
       mode: 'applied',
-      sourceUnchanged: true,
+      sourceUnchanged,
+      rehearsal: args.includes('--rehearsal'),
       admissionRequired: true,
       ...summary,
     });

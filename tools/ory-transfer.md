@@ -18,6 +18,13 @@ Identity schema definitions must match. Source requests are GET-only; output
 contains counts and fixed phases only. Permissions are compared as complete
 sets. Source drift or changed application bindings aborts the transfer.
 
+For an isolated rehearsal only, `--rehearsal` permits source permission changes
+between snapshot and readback, reporting the actual `sourceUnchanged` result.
+Source identities must still stay unchanged, and target permissions must match
+the copied snapshot exactly. Never promote this rehearsal copy: freeze source
+writers and repeat the final transfer from a fresh database restore without
+`--rehearsal`.
+
 The released Kratos import API preserves password hashes and OIDC subjects,
 but does not accept all credential types. The command rejects unsupported
 credential material by default. Only after an explicit re-enrolment decision,

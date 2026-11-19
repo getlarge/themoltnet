@@ -5,6 +5,7 @@ import {
   importIdentity,
   planBindings,
   type Principal,
+  verifySourceStability,
 } from '../src/ory-transfer.js';
 
 const sourceId = '11111111-1111-4111-8111-111111111111';
@@ -166,5 +167,23 @@ describe('application identity bindings', () => {
       planBindings([sourceAgent], [{ ...agent, kind: 'human' }]),
     ).toThrow();
     expect(() => planBindings([sourceAgent, sourceAgent], [agent])).toThrow();
+  });
+});
+
+describe('source stability gate', () => {
+  it('requires stable identities and permissions by default', () => {
+    expect(verifySourceStability(true, true)).toBe(true);
+    expect(() => verifySourceStability(true, false)).toThrow();
+    expect(() => verifySourceStability(false, true)).toThrow();
+  });
+
+  it('reports permission drift in an explicit rehearsal', () => {
+    expect(verifySourceStability(true, false, true)).toBe(false);
+    expect(verifySourceStability(true, true, true)).toBe(true);
+  });
+
+  it('still rejects identity drift during a rehearsal', () => {
+    expect(() => verifySourceStability(false, true, true)).toThrow();
+    expect(() => verifySourceStability(false, false, true)).toThrow();
   });
 });
