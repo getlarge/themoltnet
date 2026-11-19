@@ -10,6 +10,7 @@ export interface ReviewWorkerSpec {
   profile: string;
   taskType: 'classify' | 'freeform';
   runtime?: string;
+  strategy: 'none' | 'git-worktree';
 }
 
 /** Model workers do not need the coordinator's GitHub publication authority. */
@@ -33,17 +34,35 @@ export function reviewWorkerSpecs(
   focusedRuntime?: string,
 ): ReviewWorkerSpec[] {
   return [
-    { profile: input.profiles.classifier, taskType: 'classify' as const },
+    {
+      profile: input.profiles.classifier,
+      taskType: 'classify' as const,
+      strategy: 'none' as const,
+    },
     ...Object.entries(input.profiles).flatMap(([pool, profile]) =>
       pool === 'classifier' || !profile
         ? []
-        : Array.from({ length: pool === 'focused' ? 4 : 1 }, () => ({
-            profile,
-            taskType: 'freeform' as const,
-            ...(pool === 'focused' && focusedRuntime
-              ? { runtime: focusedRuntime }
-              : {}),
-          })),
+        : Array.from(
+            {
+              length:
+                pool === 'focused'
+                  ? 4
+                  : input.projectId && pool === 'docs'
+                    ? 2
+                    : 1,
+            },
+            (_, index) => ({
+              profile,
+              taskType: 'freeform' as const,
+              strategy:
+                pool === 'complexity' || (pool === 'docs' && index === 0)
+                  ? ('none' as const)
+                  : ('git-worktree' as const),
+              ...(pool === 'focused' && focusedRuntime
+                ? { runtime: focusedRuntime }
+                : {}),
+            }),
+          ),
     ),
   ];
 }
@@ -73,8 +92,13 @@ export function reviewWorkerArgs(
     '--max-poll-interval-ms',
     '3000',
     ...(bindingFile
-      ? ['--config-file', bindingFile, '--binding', 'adaptive-review']
-      : ['--team', input.teamId]),
+      ? [
+          '--config-file',
+          bindingFile,
+          '--binding',
+          `adaptive-review-${worker.strategy}`,
+        ]
+      : ['--general', '--team', input.teamId]),
     ...(worker.runtime ? ['--runtime', worker.runtime] : []),
   ];
 }
@@ -117,16 +141,14 @@ export async function withReviewWorkers<T>(args: {
         bindingFile,
         JSON.stringify({
           version: 1,
-          bindings: [
-            {
-              name: 'adaptive-review',
-              apiUrl: args.env.MOLTNET_API_URL ?? 'https://api.themolt.net',
-              teamId: args.input.teamId,
-              projectId: args.input.projectId,
-              source: args.cwd,
-              strategy: 'existing',
-            },
-          ],
+          bindings: (['none', 'git-worktree'] as const).map((strategy) => ({
+            name: `adaptive-review-${strategy}`,
+            apiUrl: args.env.MOLTNET_API_URL ?? 'https://api.themolt.net',
+            teamId: args.input.teamId,
+            projectId: args.input.projectId,
+            ...(strategy === 'git-worktree' ? { source: args.cwd } : {}),
+            strategy,
+          })),
         }),
         { mode: 0o600 },
       );
