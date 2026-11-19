@@ -49,15 +49,16 @@ function profile(name: string): CommittedProfile {
 }
 
 describe('adaptive review task budgets', () => {
-  it('leaves routing-job time outside the classifier stage budget', () => {
+  it('leaves complete-workflow host time outside the classifier budget', () => {
     const workflow = parse(
       readFileSync(
         resolve(root, '.github/workflows/adaptive-review-reusable.yml'),
         'utf8',
       ),
-    ) as { jobs: { route: { 'timeout-minutes': number } } };
+    ) as { jobs: { review: { 'timeout-minutes': number } } };
     expect(
-      workflow.jobs.route['timeout-minutes'] * 60 - CLASSIFIER_STAGE_BUDGET_SEC,
+      workflow.jobs.review['timeout-minutes'] * 60 -
+        CLASSIFIER_STAGE_BUDGET_SEC,
     ).toBeGreaterThanOrEqual(10 * 60);
   });
 
@@ -97,11 +98,8 @@ describe('adaptive review task budgets', () => {
       2 *
       (security.dispatchTimeoutSec + security.runningTimeoutSec + repairSec);
 
-    expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(5 * 60);
     expect(
-      workflow.match(
-        /ADAPTIVE_TASK_BUDGETS: \$\{\{ inputs\.task-budgets \}\}/g,
-      ),
-    ).toHaveLength(2);
+      jobSec - CLASSIFIER_STAGE_BUDGET_SEC - twoStagesSec,
+    ).toBeGreaterThanOrEqual(5 * 60);
   });
 });

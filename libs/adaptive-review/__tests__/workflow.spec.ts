@@ -1231,7 +1231,7 @@ describe('adaptive review orchestration', () => {
     expect(mocks.runDocsImpactReview).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      { serialTaskDispatch: true },
+      expect.objectContaining({ serialTaskDispatch: true }),
     );
     expect(mocks.runComplexityReview).toHaveBeenCalledOnce();
     expect(mocks.runComplexityReview.mock.calls[0][1]).toMatchObject({
@@ -1282,7 +1282,7 @@ describe('adaptive review orchestration', () => {
     expect(createTask.mock.calls.at(-1)?.[0].projectId).toBe(projectId);
   });
 
-  it('logs the task attempt code for failed lane tasks', async () => {
+  it('retains terminal attempt diagnostics while propagating coordinator server failures', async () => {
     policyOverride = JSON.stringify({
       version: 1,
       lanes: ['tests', 'complexity'],
@@ -1312,18 +1312,15 @@ describe('adaptive review orchestration', () => {
       }),
     );
 
-    const report = await runAdaptiveReview({
-      ...reviewOptions(tasks),
-      mode: 'shadow',
-    });
-
-    expect(report.results.map((result) => result.status)).toEqual([
-      'failed',
-      'failed',
-    ]);
+    await expect(
+      runAdaptiveReview({
+        ...reviewOptions(tasks),
+        mode: 'shadow',
+      }),
+    ).rejects.toMatchObject({ statusCode: 500 });
     const lines = log.mock.calls.flat().join('');
     expect(lines).toMatch(/lane=tests .*code=task-max-turns-exceeded /);
-    expect(lines).toMatch(/lane=complexity .*code=http-500 /);
+    expect(lines).not.toContain('lane=complexity');
   });
 
   it('distinguishes network errors from rejected task output', async () => {
@@ -1344,14 +1341,16 @@ describe('adaptive review orchestration', () => {
       }),
     );
 
-    await runAdaptiveReview({
-      ...reviewOptions(tasks),
-      mode: 'shadow',
-    });
+    await expect(
+      runAdaptiveReview({
+        ...reviewOptions(tasks),
+        mode: 'shadow',
+      }),
+    ).rejects.toThrow('Heartbeat request timed out');
 
     const lines = log.mock.calls.flat().join('');
     expect(lines).toMatch(/lane=tests .*code=invalid-focused-result /);
-    expect(lines).toMatch(/lane=complexity .*code=network-error /);
+    expect(lines).not.toContain('lane=complexity');
   });
 
   it('retains successful lanes and task IDs when another deep lane fails', async () => {

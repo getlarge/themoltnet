@@ -242,6 +242,37 @@ describe('run step with project-id', () => {
 
   const daemonArgs = () => readFileSync(callLog, 'utf8').trim().split('\n');
 
+  it('runs a trusted supervisor with the resolved daemon instead of starting a task worker', () => {
+    const bin = installFakeDaemon();
+    const supervisor = resolve(root, 'review supervisor.cjs');
+    writeFileSync(
+      supervisor,
+      "require('node:fs').writeFileSync(process.env.FAKE_CALL_LOG, process.env.ADAPTIVE_DAEMON_BIN);",
+    );
+    const result = runStep('run', {
+      ...runEnv(bin),
+      PROJECT_ID: '',
+      RUNTIME_MODULE: '',
+      DAEMON_MODE: 'drain',
+      SUPERVISOR_ENTRY: supervisor,
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(callLog, 'utf8')).toBe(bin);
+  });
+
+  it('rejects a relative supervisor path before starting either supervisor or daemon', () => {
+    const result = runStep('run', {
+      ...runEnv(installFakeDaemon()),
+      PROJECT_ID: '',
+      RUNTIME_MODULE: '',
+      DAEMON_MODE: 'drain',
+      SUPERVISOR_ENTRY: 'relative.js',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('existing trusted absolute path');
+    expect(existsSync(callLog)).toBe(false);
+  });
+
   it('forwards a trusted runtime module as one argument without shell expansion', () => {
     const bin = installFakeDaemon();
     const runtimeModule = '/trusted runtime/$(touch should-not-exist).js';

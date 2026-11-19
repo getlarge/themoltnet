@@ -169,3 +169,18 @@ test('retains both callers while the exact release bundle is unavailable', async
   await main(f);
   assert.deepEqual(await f.contents(), f.originals);
 });
+
+test('updates the explicit runtime pin together with the reusable workflow pin', async (t) => {
+  const f = await fixture(t);
+  for (const [index, file] of pinFiles.entries()) {
+    await writeFile(
+      join(f.root, file),
+      f.originals[index] + `    with:\n      runtime-ref: ${oldSha}\n`,
+    );
+  }
+  await main(f);
+  for (const source of await f.contents()) {
+    assert.ok(source.includes(`@${bundleSha} # adaptive-review-action-v0`));
+    assert.ok(source.includes(`runtime-ref: ${bundleSha}`));
+  }
+});
