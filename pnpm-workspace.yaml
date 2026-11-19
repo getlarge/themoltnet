@@ -36,7 +36,11 @@ allowBuilds:
   isolated-vm: true
   node-hid: true
   nx: true
-  onnxruntime-node: true
+  # Its install script only downloads the optional Linux x64 CUDA provider
+  # from the onnxruntime GitHub release; the CPU binaries ship in the npm
+  # package. Nothing here uses CUDA, and the download fails when that
+  # release asset is unavailable.
+  onnxruntime-node: false
   protobufjs: false
   sharp: false
   ssh2: false

@@ -472,7 +472,7 @@ this: it reads source imports, not the bundle.
 | `MOLTNET_SKIP_NX_SYNC=1` | Skips `nx sync` in `tools/postinstall.mjs` (no nx binary in `--prod` install) | Dockerfiles, CI minimal-install jobs |
 | `HUSKY=0` (or `CI=true`) | Skips husky bootstrap in `tools/prepare.mjs` (husky is dev-only)              | Dockerfiles, CI                      |
 
-Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--ignore-scripts` to `pnpm install` — that also blocks legitimate native-module postinstalls (e.g. `onnxruntime-node`'s no-op CUDA check, `protobufjs`).
+Both Dockerfiles set these via `ENV` in the `base` stage. **Do NOT** add `--ignore-scripts` to `pnpm install` — that also blocks legitimate native-module postinstalls. Which packages may run build scripts is decided per package in `allowBuilds` in `pnpm-workspace.yaml`.
 
 ### To add a new image
 
