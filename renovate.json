@@ -28,6 +28,16 @@
         "https://unofficial-builds\\.nodejs\\.org/download/release/v(?<currentValue>\\d+\\.\\d+\\.\\d+)/node-v\\d+\\.\\d+\\.\\d+"
       ],
       "versioningTemplate": "node"
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "go",
+      "depNameTemplate": "github.com/rhysd/actionlint",
+      "description": "actionlint runs through `go run <pkg>@<version>` in the root actionlint script",
+      "managerFilePatterns": ["/^package\\.json$/"],
+      "matchStrings": [
+        "github\\.com/rhysd/actionlint/cmd/actionlint@(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ]
     }
   ],
   "dependencyDashboard": true,
