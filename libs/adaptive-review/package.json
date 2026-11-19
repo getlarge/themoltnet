@@ -21,6 +21,10 @@
     "./outcomes": {
       "import": "./src/outcomes.ts",
       "types": "./src/outcomes.ts"
+    },
+    "./run": {
+      "import": "./src/run-main.ts",
+      "types": "./src/run-main.ts"
     }
   },
   "scripts": {

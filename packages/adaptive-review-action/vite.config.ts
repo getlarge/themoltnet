@@ -50,6 +50,7 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         review: 'src/review.ts',
+        run: 'src/run.ts',
         publish: 'src/publish.ts',
         outcomes: 'src/outcomes.ts',
         'diary-runtime': 'src/diary-runtime.ts',
