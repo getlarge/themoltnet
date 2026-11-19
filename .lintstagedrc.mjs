@@ -135,7 +135,7 @@ export default {
       `nx format:write --files=${list(files)}`,
       ...(targets.length > 0
         ? [
-            `node tools/src/actionlint.ts -shellcheck= -pyflakes= ${targets.join(' ')}`,
+            `pnpm run -s actionlint -shellcheck= -pyflakes= ${targets.join(' ')}`,
           ]
         : []),
     ];

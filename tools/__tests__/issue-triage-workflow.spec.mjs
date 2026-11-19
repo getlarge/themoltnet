@@ -95,9 +95,11 @@ test('daemon callers scope read-only App tokens to the shared release lookup', (
 
 test('actionlint compatibility exception still rejects other concurrency keys', () => {
   const result = spawnSync(
-    process.execPath,
+    'pnpm',
     [
-      resolve(root, 'tools/src/actionlint.ts'),
+      'run',
+      '-s',
+      'actionlint',
       '-shellcheck=',
       '-pyflakes=',
       '-stdin-filename',

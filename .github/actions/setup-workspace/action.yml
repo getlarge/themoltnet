@@ -29,8 +29,6 @@ inputs:
       libs/moltnet-api-client/go.sum
       libs/moltnet-authn/go.mod
       libs/moltnet-authn/go.sum
-      tools/actionlint/go.mod
-      tools/actionlint/go.sum
   rust:
     description: Install the Rust version declared in .tool-versions.
     default: 'false'
