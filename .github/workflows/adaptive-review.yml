@@ -33,7 +33,7 @@ jobs:
     # Pinned to the released bundle commit, so the prepare job runs the built
     # action without installing the workspace. Bump it with each
     # adaptive-review-action release.
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@1ad2f13346ddbd9c28a3d8d5550426e41536b3a1 # adaptive-review-action-v0
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@12ab937584b0b58dae0d10f41b13c437aa7524ad # adaptive-review-action-v0
     permissions:
       actions: read
       contents: read
