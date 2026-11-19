@@ -173,10 +173,11 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "description": "Pi packages are released in lockstep and pin each other exactly; updating one alone installs a second copy of chord and pi-telemetry",
+      "description": "Pi packages are released in lockstep and pin each other exactly; updating one alone installs a second copy of chord and pi-telemetry. Replace keeps the published pi-runtime and pi-extension peer pins exact instead of widening them",
       "groupName": "Pi",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["@earendil-works/chord", "@earendil-works/pi-*"]
+      "matchPackageNames": ["@earendil-works/chord", "@earendil-works/pi-*"],
+      "rangeStrategy": "replace"
     },
     {
       "description": "Keep React runtime and type declarations aligned",
