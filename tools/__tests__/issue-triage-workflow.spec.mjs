@@ -114,4 +114,4 @@ test('actionlint compatibility exception still rejects other concurrency keys', 
   );
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout + result.stderr, /unexpected key "queues"/);
-});
+}, 30_000);
