@@ -148,3 +148,18 @@ test('Compose stacks use Mailpit and never package the retired reference UI', ()
     /^axllent\/mailpit:v[\d.]+@sha256:[a-f0-9]{64}$/,
   );
 });
+
+// Hosted UI branding and return targets must not reintroduce Account Experience.
+test('Network uses Console screens without Account Experience deployment', () => {
+  assert.equal(project.services.account_experience, undefined);
+  assert.deepEqual(
+    network.allowed_return_urls.filter((url) =>
+      url.startsWith('${ORY_PROJECT_URL}/'),
+    ),
+    ['${ORY_PROJECT_URL}/oauth2/sessions/logout'],
+  );
+  assert.doesNotMatch(
+    read('infra/ory/deploy.mjs'),
+    /normalized\/projects|account_experience_theme_variables/,
+  );
+});
