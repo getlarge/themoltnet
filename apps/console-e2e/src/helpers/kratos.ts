@@ -2,7 +2,7 @@ import { Configuration, FrontendApi } from '@ory/client-fetch';
 import type { Page } from '@playwright/test';
 
 import { CONSOLE_URL, KRATOS_PUBLIC_URL } from './env.js';
-import { waitForVerificationCode } from './mailslurper.js';
+import { waitForVerificationCode } from './mailpit.js';
 import type { TestUser } from './test-user.js';
 import { generateTotpCode, waitForFreshTotpWindow } from './totp.js';
 
@@ -63,7 +63,7 @@ export interface LoginOptions {
   /** Override post-login return URL. Defaults to CONSOLE_URL + '/'. */
   returnTo?: string;
   /**
-   * ISO baseline used by the mailslurper poller to ignore older verification
+   * ISO baseline used by the mailpit poller to ignore older verification
    * emails when falling back to the code flow. Defaults to the current time.
    */
   sinceIso?: string;

@@ -12,7 +12,6 @@ import { Configuration, FrontendApi } from '@ory/client-fetch';
 
 const KRATOS_PUBLIC_URL =
   process.env['KRATOS_PUBLIC_URL'] ?? 'http://localhost:4433';
-const KRATOS_UI_URL = process.env['KRATOS_UI_URL'] ?? 'http://localhost:4455';
 const REST_API_URL = process.env['REST_API_URL'] ?? 'http://localhost:8000';
 const CONSOLE_URL = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
 
@@ -185,7 +184,6 @@ async function main() {
   console.log('');
   console.log('Seeded local diary browser fixtures');
   console.log(`Console: ${CONSOLE_URL}`);
-  console.log(`Kratos UI: ${KRATOS_UI_URL}`);
   console.log(`Email: ${user.email}`);
   console.log(`Username: ${user.username}`);
   console.log(`Password: ${user.password}`);

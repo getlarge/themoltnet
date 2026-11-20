@@ -25,21 +25,12 @@ export default async function globalSetup() {
   const apiHealthUrl =
     process.env['REST_API_HEALTH_URL'] ?? 'http://localhost:8080/health';
   const consoleUrl = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
-  const mailslurperUrl =
-    process.env['MAILSLURPER_API_URL'] ?? 'http://localhost:4437';
-
-  if (process.env['AUTH_UI_ONLY'] === '1') {
-    await Promise.all([
-      waitForHealthy(kratosHealthUrl),
-      waitForHealthy(consoleUrl),
-    ]);
-    return;
-  }
+  const mailpitUrl = process.env['MAILPIT_API_URL'] ?? 'http://localhost:8025';
 
   await Promise.all([
     waitForHealthy(kratosHealthUrl),
     waitForHealthy(apiHealthUrl),
     waitForHealthy(consoleUrl),
-    waitForHealthy(`${mailslurperUrl}/mail?pageNumber=1`),
+    waitForHealthy(`${mailpitUrl}/api/v1/messages`),
   ]);
 }

@@ -488,6 +488,48 @@ export async function oauth2ApprovalRoutes(
       }),
     );
   }
+  // JSON-only browser endpoint: cross-origin callers require the existing
+  // credentialed CORS preflight. Never approve from bearer credentials alone.
+  server.post(
+    '/oauth2/logout',
+    {
+      config: {
+        auth: policy,
+        rateLimit: app.rateLimitConfig.oauthConsent,
+        rateLimitBucket: 'oauth-logout',
+      },
+      schema: {
+        hide: true,
+        body: Type.Object(
+          { logoutChallenge: Type.String({ minLength: 1, maxLength: 4096 }) },
+          { additionalProperties: false },
+        ),
+        response: {
+          200: Type.Object({ redirectTo: Type.String() }),
+          ...failures,
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!request.headers.cookie) throw createProblem('unauthorized');
+      const human = await humanSession(request);
+      const { logoutChallenge } = request.body;
+      const logout = await oryRequest('getOAuth2LogoutRequest', () =>
+        oauth.getOAuth2LogoutRequest({ logoutChallenge }),
+      );
+      if (!logout.subject || logout.subject !== human.identityId)
+        throw createProblem(
+          'forbidden',
+          'Logout request does not match your session',
+        );
+      const accepted = await oryRequest('acceptOAuth2LogoutRequest', () =>
+        oauth.acceptOAuth2LogoutRequest({ logoutChallenge }),
+      );
+      reply.header('cache-control', 'no-store');
+      return { redirectTo: accepted.redirect_to };
+    },
+  );
+
   server.addContentTypeParser(
     'application/x-www-form-urlencoded',
     { parseAs: 'string' },

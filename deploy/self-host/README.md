@@ -57,8 +57,8 @@ not delete an existing client. Disable or remove it through Hydra administration
 if this login method is no longer wanted.
 
 The Console serves self-service authentication at `/auth/*`. The identity
-hostname routes public API paths to Kratos and retains the reference UI for
-Hydra logout challenges; see `../ory/README.md` for the shared route contract. To export traces, attach an OTLP HTTP Collector to
+hostname routes public API paths to Kratos and redirects legacy UI paths to
+Console. Console also confirms Hydra logout challenges; see `../ory/README.md` for the shared route contract. To export traces, attach an OTLP HTTP Collector to
 the `services` network, set `OTLP_ENDPOINT=http://otel-collector:4318`, and
 start with `-f compose.yaml -f compose.tracing.yaml`. This enables tracing for
 Kratos, Hydra, and Keto alongside REST and MCP. The pinned Talos OSS image does

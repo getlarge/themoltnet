@@ -36,9 +36,9 @@ urls:
     public: http://localhost:4444/
   # Hydra sends the browser to the REST API for consent. The browser-facing
   # localhost URL is required here, not the container's rest-api hostname.
-  consent: http://localhost:8080/oauth2/consent
+  consent: http://localhost:8000/oauth2/consent
   login: http://localhost:5174/auth/login
-  logout: http://localhost:4455/logout
+  logout: http://localhost:5174/auth/logout
   error: http://localhost:5174/auth/error
   post_logout_redirect: http://localhost:3000/
 

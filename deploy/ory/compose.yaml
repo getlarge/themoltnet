@@ -102,24 +102,6 @@ services:
       timeout: 5s
       retries: 12
 
-  kratos-ui:
-    <<: *restart
-    image: oryd/kratos-selfservice-ui-node:v26.2.0@sha256:46a7bac1ad0c67c692b37d0380613fd4618fd751afac2c5314aa8d3ae77ef1f0
-    networks: [ingress, identity]
-    environment:
-      PORT: '4455'
-      SECURITY_MODE: standalone
-      KRATOS_PUBLIC_URL: http://kratos:4433/
-      KRATOS_ADMIN_URL: http://kratos:4434/
-      HYDRA_ADMIN_URL: http://hydra:4445/
-      KRATOS_BROWSER_URL: https://${IDENTITY_DOMAIN}/
-      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:?set KRATOS_UI_COOKIE_SECRET}
-      CSRF_COOKIE_NAME: ory_csrf_ui
-      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_SECRET:?set KRATOS_UI_CSRF_SECRET}
-    depends_on:
-      kratos:
-        condition: service_healthy
-
   hydra-migrate:
     image: oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9
     networks: [database]
@@ -149,7 +131,7 @@ services:
       URLS_SELF_PUBLIC: https://${OAUTH_DOMAIN}/
       URLS_CONSENT: https://${API_DOMAIN}/oauth2/consent
       URLS_LOGIN: https://${CONSOLE_DOMAIN}/auth/login
-      URLS_LOGOUT: https://${IDENTITY_DOMAIN}/logout
+      URLS_LOGOUT: https://${CONSOLE_DOMAIN}/auth/logout
       URLS_ERROR: https://${CONSOLE_DOMAIN}/auth/error
       URLS_POST_LOGOUT_REDIRECT: https://${CONSOLE_DOMAIN}/
       OAUTH2_TOKEN_HOOK_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}

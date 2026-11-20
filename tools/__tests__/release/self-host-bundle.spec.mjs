@@ -798,7 +798,7 @@ case " $* " in *" \${FAIL_ON:-none} "*) exit 1 ;; esac
     );
     assert.ok(
       upgrade.calls.indexOf(
-        'compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos',
+        'compose --env-file .env stop caddy console mcp-server rest-api kratos hydra keto talos',
       ) <
         upgrade.calls.indexOf(
           'compose --env-file .env run --rm --no-deps kratos-migrate',

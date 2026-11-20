@@ -1,142 +1,162 @@
 # Console authentication browser validation
 
-`e2e-auth` runs `src/auth-self-service.e2e.spec.ts` against a real Ory
-Kratos endpoint and the Console. Use the disposable self-hosted fixture below,
-or provision a separate non-production endpoint with the same capabilities.
-The suite creates an identity, changes its password when mail tests are enabled,
-and enrolls TOTP. Do not point it at production or a database snapshot reserved
-for migration testing.
+`e2e-auth` runs `src/auth-self-service.e2e.spec.ts` against the Console's
+self-service authentication UI and real Ory Kratos browser flows. Local
+validation uses the existing `docker-compose.e2e.yaml` stack, including the
+MoltNet REST API, registration/settings hooks and Mailpit. There is no separate
+authentication stack or test-only runtime configuration override.
 
-Run commands from the repository root. Install workspace dependencies with
-`pnpm install` if needed, then install the browser:
+The suite creates a synthetic identity, verifies its email, resets its password,
+and enrolls and removes TOTP. Use disposable self-hosted infrastructure or a
+separately provisioned non-production environment. Do not run it against
+production or a database snapshot reserved for migration testing.
+
+## Run against the E2E stack
+
+Run these commands from the repository root. Install workspace dependencies with
+`pnpm install` if needed, then install the browser and build the application
+images from your current checkout:
 
 ```bash
 pnpm --dir apps/console-e2e exec playwright install chromium
+pnpm run e2e:build
+COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml up -d console
 ```
 
-## Run the disposable fixture
+Starting `console` also starts its backend dependencies. The Console image
+serves the current built UI at `http://localhost:5174`, with runtime configuration
+pointing to Kratos at `http://localhost:4433` and the API at
+`http://localhost:8080`. Mailpit is available at `http://localhost:8025`.
+Rebuild images after changing application source, then rerun the Compose command
+to replace affected containers.
 
-You need Docker Compose and free ports 24433, 24434, 24437 and 25174. This
-fixture uses SQLite in a named Docker volume and captures synthetic mail; it
-does not start the MoltNet REST API or the full application stack.
+The explicit Compose project name isolates containers and cleanup. Published
+host ports remain fixed by the Compose files, so another development/E2E stack
+cannot use those ports simultaneously. Use `localhost` consistently; changing
+only some URLs to `127.0.0.1` changes origins and cookie behavior.
 
 ```bash
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f apps/console-e2e/fixtures/auth/compose.yaml run --rm migrate
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f apps/console-e2e/fixtures/auth/compose.yaml up -d mail kratos
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @moltnet/console-e2e:e2e-auth
 ```
 
-Start the Console in a separate terminal and leave it running:
+The target enables `AUTH_UI_TESTS=1` and `AUTH_UI_MAIL_TESTS=1`. Global setup
+waits for Kratos, the REST API, the Console and Mailpit; it starts none of them.
+Keep the suite serial: later cases depend on the identity registered earlier.
+The environment flag prevents Nx from loading the encrypted root `.env` into
+test processes.
+
+To work on the same UI with Vite instead of the built container, stop only this
+project's Console and start the development server in a separate terminal:
 
 ```bash
-NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @moltnet/console:dev --port=25174 --strictPort
-```
-
-Run the suite from another terminal:
-
-```bash
+COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml stop console
 NX_LOAD_DOT_ENV_FILES=false \
-CONSOLE_BASE_URL=http://localhost:25174 \
-KRATOS_PUBLIC_URL=http://localhost:24433 \
-KRATOS_HEALTH_URL=http://localhost:24433/health/alive \
-MAILSLURPER_API_URL=http://localhost:24437 \
-AUTH_UI_INJECT_CONFIG=1 \
-AUTH_UI_MAIL_TESTS=1 \
-AUTH_UI_EXPIRY_TESTS=1 \
-pnpm exec nx run @moltnet/console-e2e:e2e-auth
+VITE_KRATOS_URL=http://localhost:4433 \
+VITE_API_BASE_URL=http://localhost:8080 \
+VITE_CONSOLE_URL=http://localhost:5174 \
+pnpm exec nx run @moltnet/console:dev --port=5174 --strictPort
 ```
 
-The target sets `AUTH_UI_TESTS=1` and `AUTH_UI_ONLY=1`. Global setup waits for
-Kratos and the Console, but starts neither. In this mode it does not wait for
-the API or mailbox; the mail test itself polls the mailbox. Keep the suite
-serial: later tests depend on the identity created by the registration test.
-Use `localhost` consistently; replacing only some URLs with `127.0.0.1` changes
-origins and cookie behavior.
-
-For a built Console artifact, use `@moltnet/console:preview` instead of `:dev`
-with the same port flags; its Nx target builds the Console first. The test's
-`AUTH_UI_INJECT_CONFIG=1` intercepts `/config.js` in each Playwright page and
-supplies the selected Kratos and Console URLs, plus `REST_API_URL` (default
-`http://localhost:8080`). This works for development and built artifacts, but
-only inside the test browser.
-
-Stop the Console with Ctrl-C. Remove the disposable identities and captured
-mail by removing the fixture containers and database volume:
+Run the same `e2e-auth` command while that server is running. Stop Vite with
+Ctrl-C when finished. Remove only this project's containers and volumes:
 
 ```bash
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f apps/console-e2e/fixtures/auth/compose.yaml down -v
+COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml down -v
 ```
 
-## Use a separately provisioned non-production endpoint
+## Optional checks
 
-Start or deploy the Console and provision the backend before invoking the
-suite. Replace the URLs below with your isolated environment:
+`AUTH_UI_VISUAL_TESTS=1` enables desktop/mobile and light/dark login screenshots,
+a missing-flow notice screenshot, and an enrolled-TOTP settings screenshot:
+
+```bash
+NX_LOAD_DOT_ENV_FILES=false AUTH_UI_VISUAL_TESTS=1 pnpm exec nx run @moltnet/console-e2e:e2e-auth
+```
+
+Committed screenshot filenames target macOS (`darwin`). Match the baseline
+platform and browser; `PLAYWRIGHT_CHANNEL` selects an installed browser channel.
+Other platforms need reviewed baselines. A screenshot comparison is not evidence
+of an untested browser or deployment.
+
+`AUTH_UI_EXPIRY_TESTS=1` enables an additional expired-login-flow case. It requires
+a backend login-flow lifespan short enough to expire within the test's 30-second
+polling window. The standard self-hosted configuration uses one hour, so leave
+this flag unset for the commands above. Configure a disposable backend with a
+short lifespan before enabling it; missing-flow and CSRF-restart cases run
+without this flag.
+
+## Use a separately provisioned non-production environment
+
+Provision the Console, API, identity service and captured mail before running
+the suite. Replace these example endpoints with the isolated environment's URLs:
 
 ```bash
 NX_LOAD_DOT_ENV_FILES=false \
 CONSOLE_BASE_URL=https://console.auth.example.test \
 KRATOS_PUBLIC_URL=https://identity.auth.example.test \
 KRATOS_HEALTH_URL=https://identity.auth.example.test/health/alive \
+REST_API_URL=https://api.auth.example.test \
+REST_API_HEALTH_URL=https://api.auth.example.test/health \
+MAILPIT_API_URL=https://mail.auth.example.test \
 pnpm exec nx run @moltnet/console-e2e:e2e-auth
 ```
 
-`KRATOS_HEALTH_URL` must return a successful status to the test runner; it can
-be a separate reachable readiness endpoint. Configure the Console's real
-`/config.js` with `kratosUrl`, `consoleUrl` and `apiBaseUrl`. Development mode
-also supports `VITE_KRATOS_URL`, `VITE_CONSOLE_URL` and `VITE_API_BASE_URL`;
-production requires runtime configuration. Set `AUTH_UI_INJECT_CONFIG=1` only
-when deliberately testing an artifact against alternate endpoints; such a run
-does not validate its served runtime configuration.
+Health URLs must return a successful status to the runner. The Console's served
+`/config.js` must contain matching `kratosUrl`, `consoleUrl` and `apiBaseUrl`
+values. Development mode also supports `VITE_KRATOS_URL`, `VITE_CONSOLE_URL` and
+`VITE_API_BASE_URL`; production requires runtime configuration. Test environment
+variables select runner endpoints; they do not rewrite the Console's config.
 
 The backend must provide:
 
 - Browser-flow CORS with credentials for the Console origin, working cookies,
   and UI URLs for `/auth/login`, `/auth/registration`, `/auth/settings`,
   `/auth/recovery`, `/auth/verification` and `/auth/error`.
-- Password registration and login using `traits.email` as an identifier. The
-  suite generates a unique `auth-ui-…@example.com` address and password; it
-  optionally fills `traits.username` when that input is present. Other required
-  traits or registration gates need a different fixture or test adaptation.
-- Registration without automatic login, redirecting to `/auth/login`; logout
-  returning to that route; `/auth/logout` allowed as a browser return URL; and
-  rejection of `https://untrusted.example.test/` as a return URL.
-- Settings with TOTP enrollment enabled and the secret exposed in the settings
-  flow's `totp_secret_key` node. The runner generates codes from this synthetic
-  secret and checks that subsequent login produces an `aal2` session.
-- For `AUTH_UI_MAIL_TESTS=1`: code-based email verification and recovery, a
-  Mailslurper-compatible API at `MAILSLURPER_API_URL`, and delivery of generated
-  recipients' mail into that fixture. The helper reads `/mail?pageNumber=1`,
-  matches recipient and send time, and extracts a six-digit code. Ordinary
-  email delivery alone does not satisfy this requirement.
-- For `AUTH_UI_EXPIRY_TESTS=1`: login flows that expire within the test's
-  30-second polling window. The supplied fixture uses 15 seconds.
+- Password registration and login using email as an identifier. The suite
+  generates a unique `auth-ui-…@example.com` address and password, filling
+  `traits.email` and, when present, `traits.username`. Additional required traits
+  or registration gates need an appropriate fixture or test adaptation.
+- Registration without automatic login, returning to `/auth/login`; logout
+  leading to a usable login form; `/auth/logout` allowed as a browser return URL;
+  and rejection of `https://untrusted.example.test/` as a return URL. Configure
+  the application's registration/login/settings hooks as required by the
+  intended integration.
+- Settings with TOTP enrollment and removal enabled, with its secret exposed in
+  the settings flow's `totp_secret_key` node. The runner generates codes from
+  this synthetic secret and checks a subsequent login produces an `aal2` session.
+- Code-based email verification and recovery, plus delivery of generated
+  recipients' mail into Mailpit. Its API must support `/api/v1/messages`,
+  `/api/v1/search` and `/api/v1/message/{id}`. The helper matches recipient and
+  receive time and extracts a six-digit code. Ordinary email delivery alone
+  does not meet this requirement.
 
-Mail and expiry cases are skipped unless their flags equal `1`; basic runs
-still require TOTP. There are no pre-provisioned user credentials to supply.
-External identities are not deleted by the suite: the environment owner must
-remove the generated users and captured mail or dispose of that environment.
+No pre-provisioned user credentials are supplied. External identities and mail
+are not deleted by the suite; the environment owner must remove them or dispose
+of the environment after testing.
 
 ## Interpret the result
 
-The suite exercises registration without auto-login, invalid credentials,
-session persistence, logout, missing-flow recovery, unsafe return URL
-rejection, reauthentication, settings, TOTP enrollment and second-factor login.
-The opt-in cases also exercise expiry recovery, email verification, account
-recovery and password reset. Set `AUTH_UI_VISUAL_TESTS=1` to include the reusable desktop/mobile, light/dark
-login screenshot checks. Baselines were captured with Chrome on macOS; use the
-same browser/platform or review deliberate baseline updates.
+The target exercises registration without auto-login, invalid credentials,
+session persistence, logout, missing-flow recovery, unsafe return URL rejection,
+CSRF recovery while preserving the return destination, reauthentication,
+verification, account recovery, password reset, settings, TOTP enrollment,
+second-factor login and TOTP removal. `AUTH_UI_OAUTH_TESTS=1` additionally
+creates and deletes a synthetic Hydra client and checks challenge
+reauthentication, REST API consent, the authorization-code callback and
+RP-initiated logout. It requires `HYDRA_ADMIN_URL` (default
+`http://localhost:4445`) and `HYDRA_PUBLIC_URL` (default
+`http://localhost:4444`) for the same disposable stack. CI enables this case
+and the core/mail cases; local `e2e-auth` enables core/mail cases by default.
+Expiry and screenshots are separate opt-ins. Failures retain Playwright traces according to `playwright.config.ts`.
 
-Failures retain Playwright traces according to
-`playwright.config.ts`.
-
-A successful fixture run demonstrates those paths for that Console artifact,
-Kratos version and fixture configuration. It does not establish compatibility
-with every Ory configuration, an actual deployment's proxy/TLS/cookie/CORS or
-served runtime configuration, or Ory Network acceptance. Validate the actual
-non-production integration separately with its intended configuration. Social
-providers, passkeys, other MFA methods, OAuth login challenges, application API
+A passing run demonstrates the asserted paths for the selected Console artifact,
+backend version and configuration. It does not establish compatibility with
+every Ory configuration, another deployment's proxy/TLS/cookie/CORS setup, or
+Ory Network acceptance. Validate the intended non-production deployment
+separately. Social providers, passkeys, other MFA methods, application API
 access and the full Console suite are outside this target's assertions.
 
-See [self-hosted identity configuration](../../docs/deploy/index.md) and
-[the Console runtime configuration loader](../console/src/config.ts) for the
-broader deployment context. This README describes the test procedure; it is
-not a record of a passing run or deployment status.
+See [deployment guidance](../../docs/deploy/index.md),
+[the shared self-hosted Kratos configuration](../../infra/ory/kratos/kratos.yaml)
+and [the Console runtime loader](../console/src/config.ts). This README describes
+the procedure, not a record of test success or deployment status.

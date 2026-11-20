@@ -1,13 +1,16 @@
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+
 import {
   Configuration,
   FrontendApi,
+  OAuth2Api,
   type SettingsFlow,
 } from '@ory/client-fetch';
 import { expect, type Page, test } from '@playwright/test';
 
 import { CONSOLE_URL, KRATOS_PUBLIC_URL } from './helpers/env.js';
 import { submitKratosForm as submitMethod } from './helpers/kratos.js';
-import { waitForVerificationCode } from './helpers/mailslurper.js';
+import { waitForVerificationCode } from './helpers/mailpit.js';
 import { createTestUser } from './helpers/test-user.js';
 import { generateTotpCode, waitForFreshTotpWindow } from './helpers/totp.js';
 
@@ -22,23 +25,6 @@ test.describe.serial('Console self-service authentication', () => {
   const user = createTestUser({ prefix: 'auth-ui' });
   const returnTo = `${CONSOLE_URL}/auth/logout`;
   let totpSecret: string;
-
-  test.beforeEach(async ({ page }) => {
-    // Test-only runtime injection permits the exact same built artifact to run
-    // against another backend without rebuilding or changing frontend policy.
-    if (process.env['AUTH_UI_INJECT_CONFIG'] === '1') {
-      await page.route('**/config.js', (route) =>
-        route.fulfill({
-          contentType: 'application/javascript',
-          body: `window.__MOLTNET_CONFIG__=${JSON.stringify({
-            kratosUrl: KRATOS_PUBLIC_URL,
-            consoleUrl: CONSOLE_URL,
-            apiBaseUrl: process.env['REST_API_URL'] ?? 'http://localhost:8080',
-          })}`,
-        }),
-      );
-    }
-  });
 
   async function login(page: Page) {
     await page.goto(
@@ -350,5 +336,114 @@ test.describe.serial('Console self-service authentication', () => {
     }
     await remove.click();
     await expect(page.locator('input[name="totp_code"]')).toBeVisible();
+  });
+
+  test('completes OAuth consent, callback and confirmed RP logout through Console', async ({
+    page,
+  }) => {
+    test.skip(
+      process.env['AUTH_UI_OAUTH_TESTS'] !== '1',
+      'Requires disposable Hydra admin access',
+    );
+    const publicUrl =
+      process.env['HYDRA_PUBLIC_URL'] ?? 'http://localhost:4444';
+    const admin = new OAuth2Api(
+      new Configuration({
+        basePath: process.env['HYDRA_ADMIN_URL'] ?? 'http://localhost:4445',
+      }),
+    );
+    const id = `auth-ui-${randomUUID()}`;
+    const callback = `${CONSOLE_URL}/auth/logout`;
+    const signedOut = `${CONSOLE_URL}/auth/login`;
+    await admin.createOAuth2Client({
+      oAuth2Client: {
+        client_id: id,
+        client_name: 'Synthetic Console browser test',
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        token_endpoint_auth_method: 'none',
+        scope: 'openid profile email',
+        redirect_uris: [callback],
+        post_logout_redirect_uris: [signedOut],
+      },
+    });
+    try {
+      // TOTP was removed by the preceding case.
+      totpSecret = '';
+      await login(page);
+      const verifier = randomBytes(32).toString('base64url');
+      const state = randomUUID();
+      const auth = new URL('/oauth2/auth', publicUrl);
+      auth.search = new URLSearchParams({
+        client_id: id,
+        response_type: 'code',
+        redirect_uri: callback,
+        scope: 'openid profile email',
+        state,
+        code_challenge_method: 'S256',
+        code_challenge: createHash('sha256')
+          .update(verifier)
+          .digest('base64url'),
+      }).toString();
+      await page.goto(auth.href);
+      // A new Hydra login challenge requires explicit authentication even
+      // when a Kratos browser session already exists.
+      await expect(page.locator('input[name="password"]')).toBeVisible();
+      await page.locator('input[name="password"]').fill(user.password);
+      await submitMethod(page);
+      await expect(
+        page.getByRole('button', { name: 'Allow', exact: true }),
+      ).toBeVisible();
+      await page.getByRole('button', { name: 'Allow', exact: true }).click();
+      await page.waitForURL(
+        (url) =>
+          url.pathname === '/auth/logout' && url.searchParams.has('code'),
+        { timeout: 20_000 },
+      );
+      const result = new URL(page.url());
+      expect(result.searchParams.get('state')).toBe(state);
+      const code = result.searchParams.get('code');
+      if (!code) throw new Error('OAuth callback did not return a code');
+      // Token endpoint is an explicit raw-fetch exception in the E2E contract.
+      const exchange = await fetch(new URL('/oauth2/token', publicUrl), {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: id,
+          redirect_uri: callback,
+          code,
+          code_verifier: verifier,
+        }),
+      });
+      expect(exchange.status).toBe(200);
+      const tokens = (await exchange.json()) as { id_token?: string };
+      if (!tokens.id_token)
+        throw new Error('OAuth response did not include an identity token');
+      const logoutState = randomUUID();
+      const end = new URL('/oauth2/sessions/logout', publicUrl);
+      end.search = new URLSearchParams({
+        id_token_hint: tokens.id_token,
+        post_logout_redirect_uri: signedOut,
+        state: logoutState,
+      }).toString();
+      await page.goto(end.href);
+      await page.waitForURL(
+        (url) =>
+          url.pathname === '/auth/logout' &&
+          url.searchParams.has('logout_challenge'),
+        { timeout: 20_000 },
+      );
+      await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+      await expect(page.locator('input[name="identifier"]')).toBeVisible();
+      expect(new URL(page.url()).searchParams.get('state')).toBe(logoutState);
+      expect(
+        (
+          await page.request.get(`${KRATOS_PUBLIC_URL}/sessions/whoami`)
+        ).status(),
+      ).toBe(401);
+    } finally {
+      await admin.deleteOAuth2Client({ id });
+    }
   });
 });

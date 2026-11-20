@@ -28,6 +28,7 @@ import {
   flowSearch,
   type LoadedFlow,
   loadFlow,
+  logoutOAuthSession,
   navigateToOryRedirect,
   rememberFlowRestart,
 } from './flows.js';
@@ -54,6 +55,7 @@ export function AuthPage({ page }: { page: PageKind }) {
   const { session, refreshSession, logout, error: sessionError } = useAuth();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const main = useRef<HTMLElement>(null);
   const config = getOryConfig();
@@ -245,7 +247,22 @@ export function AuthPage({ page }: { page: PageKind }) {
                 </Text>
               </div>
             )}
-            <Button onClick={() => void logout()}>Sign out</Button>
+            <Button
+              disabled={isLoggingOut}
+              onClick={() => {
+                setIsLoggingOut(true);
+                const challenge = new URLSearchParams(
+                  window.location.search,
+                ).get('logout_challenge');
+                void (challenge ? logoutOAuthSession(challenge) : logout())
+                  .catch(() =>
+                    setNotice('Sign-out could not complete. Please try again.'),
+                  )
+                  .finally(() => setIsLoggingOut(false));
+              }}
+            >
+              Sign out
+            </Button>
             <a href={getConfig().consoleUrl}>Return to console</a>
           </Stack>
         ) : state.kind === 'loading' ? (

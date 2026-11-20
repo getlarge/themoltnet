@@ -7,6 +7,7 @@ import {
   type VerificationFlow,
 } from '@ory/client-fetch';
 
+import { getConfig } from '../config.js';
 import { getKratosClient } from '../kratos.js';
 import type { AuthFlow } from './ory-config.js';
 
@@ -156,5 +157,36 @@ export function clearFlowRestart(): void {
     sessionStorage.removeItem(RESTART_KEY);
   } catch {
     /* Storage may be disabled. */
+  }
+}
+
+/** Complete the OAuth session only after explicit confirmation, then end the
+ * Kratos browser session before following Hydra's validated continuation.
+ */
+export async function logoutOAuthSession(
+  logoutChallenge: string,
+): Promise<void> {
+  const response = await fetch(
+    new URL('/oauth2/logout', getConfig().apiBaseUrl),
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logoutChallenge }),
+    },
+  );
+  if (!response.ok) throw new Error('OAuth sign-out could not complete');
+  const { redirectTo } = (await response.json()) as { redirectTo: string };
+  if (typeof redirectTo !== 'string')
+    throw new Error('Invalid logout continuation');
+  try {
+    const flow = await getKratosClient().createBrowserLogoutFlow({
+      returnTo: redirectTo,
+    });
+    navigateToOryRedirect(flow.logout_url);
+  } catch (error) {
+    const failure = await flowFailure(error);
+    if (failure?.status === 401) navigateToOryRedirect(redirectTo);
+    else throw error;
   }
 }

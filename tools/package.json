@@ -161,7 +161,9 @@
           "default",
           "{workspaceRoot}/apps/console/src/auth/routes.json",
           "{workspaceRoot}/infra/ory/**",
-          "{workspaceRoot}/deploy/ory/**"
+          "{workspaceRoot}/deploy/ory/**",
+          "{workspaceRoot}/docker-compose*.yaml",
+          "{workspaceRoot}/deploy/self-host/compose.yaml"
         ]
       }
     }

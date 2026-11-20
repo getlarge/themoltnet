@@ -13,7 +13,6 @@ serve:
     cors:
       enabled: true
       allowed_origins:
-        - http://localhost:4455
         - http://localhost:5173
         - http://localhost:5174
         - http://localhost:8000
@@ -49,7 +48,7 @@ selfservice:
   default_browser_return_url: http://localhost:5174/
   allowed_return_urls:
     - http://localhost:4433/
-    - http://localhost:4455/
+    - http://localhost:4444/
     - http://localhost:5173/
     - http://localhost:5174/
     - http://localhost:8000/
@@ -237,7 +236,7 @@ session:
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    connection_uri: smtp://mailpit:1025/?disable_starttls=true
     from_name: MoltNet
     from_address: noreply@localhost
 

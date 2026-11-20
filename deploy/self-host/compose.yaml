@@ -73,11 +73,6 @@ services:
       file: ../ory/compose.yaml
       service: kratos
 
-  kratos-ui:
-    extends:
-      file: ../ory/compose.yaml
-      service: kratos-ui
-
   hydra-migrate:
     extends:
       file: ../ory/compose.yaml
@@ -186,7 +181,7 @@ services:
       ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY:?set ORY_ACTION_API_KEY}
       RECOVERY_CHALLENGE_SECRET: ${RECOVERY_CHALLENGE_SECRET:?set RECOVERY_CHALLENGE_SECRET}
       RELEASE_SIGNER_PUBKEY: ${RELEASE_SIGNER_PUBKEY:?set RELEASE_SIGNER_PUBKEY}
-      CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN}
+      CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN},https://${API_DOMAIN}
       API_BASE_URL: https://${API_DOMAIN}
       # The API publishes no ports, so only peers on its private Docker
       # networks (Caddy on ingress) can reach it.

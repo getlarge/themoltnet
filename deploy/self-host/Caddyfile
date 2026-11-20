@@ -28,7 +28,9 @@
 	}
 
 	handle {
-		reverse_proxy kratos-ui:4455
+		@legacy path /login /registration /recovery /verification /settings /error /logout
+		redir @legacy https://{$CONSOLE_DOMAIN}/auth{uri} 302
+		redir https://{$CONSOLE_DOMAIN}/auth/login 302
 	}
 }
 

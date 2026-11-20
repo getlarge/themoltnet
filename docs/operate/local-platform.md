@@ -48,8 +48,7 @@ Default public ports:
 | Kratos public/admin      | `4433`, `4434`         |
 | Hydra public/admin       | `4444`, `4445`         |
 | Keto public/admin        | `4466`, `4467`         |
-| Kratos UI                | `4455`                 |
-| MailSlurper              | `1025`, `4436`, `4437` |
+| Mailpit                  | `1025`, `8025`         |
 | Redis                    | `6380`                 |
 | Issue lifecycle Postgres | `55434`                |
 
@@ -256,19 +255,14 @@ services:
       - '14434:4434'
     environment:
       SERVE_PUBLIC_BASE_URL: http://localhost:14433/
-      SELFSERVICE_ALLOWED_RETURN_URLS: http://localhost:14455/,http://localhost:15174/,http://localhost:18080/
-      SELFSERVICE_FLOWS_LOGIN_UI_URL: http://localhost:14455/login
-      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: http://localhost:14455/registration
-      SELFSERVICE_FLOWS_RECOVERY_UI_URL: http://localhost:14455/recovery
-      SELFSERVICE_FLOWS_SETTINGS_UI_URL: http://localhost:14455/settings
-      SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:14455/error
-      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:14455,http://localhost:15174,http://localhost:18080
-
-  kratos-selfservice-ui-node:
-    ports:
-      - '14455:4455'
-    environment:
-      KRATOS_BROWSER_URL: http://localhost:14433/
+      SELFSERVICE_ALLOWED_RETURN_URLS: http://localhost:15174/,http://localhost:18080/,http://localhost:14444/
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: http://localhost:15174/auth/login
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: http://localhost:15174/auth/registration
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: http://localhost:15174/auth/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: http://localhost:15174/auth/verification
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: http://localhost:15174/auth/settings
+      SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:15174/auth/error
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:15174,http://localhost:18080
 
   hydra:
     ports:
@@ -277,9 +271,9 @@ services:
     environment:
       URLS_SELF_ISSUER: http://localhost:14444/
       URLS_SELF_PUBLIC: http://localhost:14444/
-      URLS_LOGIN: http://localhost:14455/login
-      URLS_CONSENT: http://localhost:14455/consent
-      URLS_LOGOUT: http://localhost:14455/logout
+      URLS_LOGIN: http://localhost:15174/auth/login
+      URLS_CONSENT: http://localhost:18080/oauth2/consent
+      URLS_LOGOUT: http://localhost:15174/auth/logout
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:15174,http://localhost:18080
 
   keto:
@@ -287,11 +281,10 @@ services:
       - '14466:4466'
       - '14467:4467'
 
-  mailslurper:
+  mailpit:
     ports:
       - '11025:1025'
-      - '14436:4436'
-      - '14437:4437'
+      - '18025:8025'
 ```
 
 Start with:

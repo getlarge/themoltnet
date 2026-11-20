@@ -33,7 +33,7 @@ if [ "$mode" = init ]; then
 else
   compose --profile maintenance pull
   # PostgreSQL keeps running; nothing may use the Ory schemas while they migrate.
-  compose stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos
+  compose stop caddy console mcp-server rest-api kratos hydra keto talos
 fi
 for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
   compose run --rm --no-deps "$job"

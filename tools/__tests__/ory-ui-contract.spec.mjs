@@ -33,12 +33,31 @@ test('OAuth starts at the Console and consent stays with the REST API', () => {
   assert.equal(hydra.URLS_LOGIN, 'https://${CONSOLE_DOMAIN}' + routes.login);
   assert.equal(development.urls.login, 'http://localhost:5174' + routes.login);
   assert.equal(cloud.login, '${CONSOLE_BASE_URL}' + routes.login);
+  const e2e = parse(read('docker-compose.e2e.yaml')).services.hydra.environment;
+  assert.equal(e2e.URLS_LOGIN, 'http://localhost:5174' + routes.login);
+  assert.equal(e2e.URLS_CONSENT, 'http://localhost:8080/oauth2/consent');
+  assert.ok(
+    parse(read('docker-compose.e2e.yaml'))
+      .services['rest-api'].environment.CORS_ORIGINS.split(',')
+      .includes('http://localhost:8080'),
+  );
+  assert.ok(
+    parse(read('deploy/self-host/compose.yaml'))
+      .services['rest-api'].environment.CORS_ORIGINS.split(',')
+      .includes('https://${API_DOMAIN}'),
+  );
+  assert.equal(hydra.URLS_LOGOUT, 'https://${CONSOLE_DOMAIN}' + routes.logout);
+  assert.equal(
+    development.urls.logout,
+    'http://localhost:5174' + routes.logout,
+  );
+  assert.equal(cloud.logout, '${CONSOLE_BASE_URL}' + routes.logout);
   assert.equal(cloud.error, '${CONSOLE_BASE_URL}' + routes.error);
   assert.equal(cloud.registration, '${CONSOLE_BASE_URL}' + routes.registration);
   assert.equal(hydra.URLS_CONSENT, 'https://${API_DOMAIN}/oauth2/consent');
   assert.equal(
     development.urls.consent,
-    'http://localhost:8080/oauth2/consent',
+    'http://localhost:8000/oauth2/consent',
   );
 });
 
@@ -69,5 +88,28 @@ test('registration still requires explicit login for human onboarding', () => {
   assert.equal(
     project.services.oauth2.config.urls.consent,
     '${API_BASE_URL}/oauth2/consent',
+  );
+});
+
+// Shared development and integration stacks must exercise the product UI.
+test('Compose stacks use Mailpit and never package the retired reference UI', () => {
+  for (const file of [
+    'docker-compose.base.yaml',
+    'docker-compose.yaml',
+    'docker-compose.e2e.yaml',
+    'deploy/ory/compose.yaml',
+    'deploy/self-host/compose.yaml',
+  ]) {
+    const source = read(file);
+    assert.doesNotMatch(source, /kratos-selfservice-ui|kratos-ui|mailslurper/i);
+  }
+  const base = parse(read('docker-compose.base.yaml'));
+  assert.match(
+    base.services.mailpit.image,
+    /^axllent\/mailpit:v[\d.]+@sha256:[a-f0-9]{64}$/,
+  );
+  assert.equal(
+    parse(read('infra/ory/kratos/kratos.yaml')).courier.smtp.connection_uri,
+    'smtp://mailpit:1025/?disable_starttls=true',
   );
 });

@@ -67,17 +67,8 @@ services:
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
-      mailslurper:
+      mailpit:
         condition: service_started
-    restart: unless-stopped
-
-  kratos-selfservice-ui-node:
-    extends:
-      file: docker-compose.base.yaml
-      service: kratos-selfservice-ui-node
-    depends_on:
-      kratos:
-        condition: service_healthy
     restart: unless-stopped
 
   hydra-postgres:
@@ -146,10 +137,10 @@ services:
       service: otel-collector
     restart: unless-stopped
 
-  mailslurper:
+  mailpit:
     extends:
       file: docker-compose.base.yaml
-      service: mailslurper
+      service: mailpit
     restart: unless-stopped
 
   redis:
