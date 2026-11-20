@@ -13,7 +13,6 @@ serve:
     cors:
       enabled: true
       allowed_origins:
-        - http://localhost:4455
         - http://localhost:5173
         - http://localhost:5174
         - http://localhost:8000
@@ -44,15 +43,12 @@ identity:
       url: file:///etc/config/kratos/human-identity-schema.json
 
 selfservice:
-  # Default post-flow destination is the Console (5174), NOT the
-  # self-service UI node (4455). The UI node is a form-rendering shim for
-  # Kratos flows only — it should never be the resting place after
-  # registration/recovery/settings succeed. Flows that legitimately want to
-  # redirect to the UI set `return_to` explicitly.
+  # The Console owns both self-service screens and post-flow destinations.
+  # Keep these URLs aligned with apps/console/src/auth/routes.json.
   default_browser_return_url: http://localhost:5174/
   allowed_return_urls:
     - http://localhost:4433/
-    - http://localhost:4455/
+    - http://localhost:4444/
     - http://localhost:5173/
     - http://localhost:5174/
     - http://localhost:8000/
@@ -82,7 +78,7 @@ selfservice:
   flows:
     registration:
       enabled: true
-      ui_url: http://localhost:4455/registration
+      ui_url: http://localhost:5174/auth/registration
       lifespan: 1h
       after:
         oidc:
@@ -106,7 +102,7 @@ selfservice:
             # must log in explicitly so the login `after-login` webhook fires and
             # completes human onboarding (link identity_id, create personal team).
             # See diary: "post-registration auto-login skips human onboarding".
-          default_browser_return_url: http://localhost:4433/self-service/login/browser?return_to=http://localhost:5174/
+          default_browser_return_url: http://localhost:5174/auth/login
         password:
           hooks:
             - hook: web_hook
@@ -126,10 +122,10 @@ selfservice:
                 can_interrupt: true
             # No `session` hook — see the comment under registration.after.oidc.
             # Registration redirects to login; onboarding runs on after-login.
-          default_browser_return_url: http://localhost:4433/self-service/login/browser?return_to=http://localhost:5174/
+          default_browser_return_url: http://localhost:5174/auth/login
 
     login:
-      ui_url: http://localhost:4455/login
+      ui_url: http://localhost:5174/auth/login
       lifespan: 1h
       after:
         oidc:
@@ -170,18 +166,17 @@ selfservice:
     recovery:
       enabled: true
       use: code
-      ui_url: http://localhost:4455/recovery
+      ui_url: http://localhost:5174/auth/recovery
       lifespan: 15m
 
     verification:
       enabled: false
       # E2E enables verification through an environment override. Keep the UI
-      # destination here so every enabled local flow has the official Kratos
-      # self-service UI to render it.
-      ui_url: http://localhost:4455/verification
+      # destination here so every enabled local flow has a Console screen.
+      ui_url: http://localhost:5174/auth/verification
 
     settings:
-      ui_url: http://localhost:4455/settings
+      ui_url: http://localhost:5174/auth/settings
       lifespan: 1h
       privileged_session_max_age: 15m
       after:
@@ -221,7 +216,7 @@ selfservice:
           hooks: *after_settings_hooks
 
     error:
-      ui_url: http://localhost:4455/error
+      ui_url: http://localhost:5174/auth/error
 
     logout:
       after:
@@ -241,7 +236,7 @@ session:
 
 courier:
   smtp:
-    connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    connection_uri: smtp://mailpit:1025/?disable_starttls=true
     from_name: MoltNet
     from_address: noreply@localhost
 

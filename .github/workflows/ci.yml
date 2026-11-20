@@ -1724,7 +1724,9 @@ jobs:
           KRATOS_PUBLIC_URL: http://localhost:4433
           REST_API_URL: http://localhost:8080
           CONSOLE_BASE_URL: http://localhost:5174
-          MAILSLURPER_API_URL: http://localhost:4437
+          MAILPIT_API_URL: http://localhost:8025
+          AUTH_UI_TESTS: '1'
+          AUTH_UI_OAUTH_TESTS: '1'
           # task-continue.e2e provisions a real agent via @moltnet/bootstrap,
           # which talks directly to the Ory admin APIs and the app DB. Mirror
           # the host-port mappings the e2e Docker stack publishes (see

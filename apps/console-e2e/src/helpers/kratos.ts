@@ -1,13 +1,16 @@
 import { Configuration, FrontendApi } from '@ory/client-fetch';
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 import { CONSOLE_URL, KRATOS_PUBLIC_URL } from './env.js';
-import { waitForVerificationCode } from './mailslurper.js';
+import { waitForVerificationCode } from './mailpit.js';
 import type { TestUser } from './test-user.js';
 import { generateTotpCode, waitForFreshTotpWindow } from './totp.js';
 
 export async function submitKratosForm(page: Page): Promise<void> {
-  await page.locator('form button[type="submit"]').first().click();
+  await page
+    .locator('form button[type="submit"][name="method"]')
+    .first()
+    .click();
 }
 
 export interface RegisterOptions {
@@ -32,21 +35,37 @@ export async function registerViaBrowser(
   await page.locator('input[name="traits.username"]').fill(user.username);
 
   const passwordField = page.locator('input[name="password"]');
-  if (await passwordField.isVisible({ timeout: 1500 }).catch(() => false)) {
+  const passwordWasVisible = await passwordField
+    .isVisible({ timeout: 1500 })
+    .catch(() => false);
+  if (passwordWasVisible) {
     await passwordField.fill(user.password);
   }
 
   await submitKratosForm(page);
 
-  // Kratos may present registration in two steps:
-  // 1) traits (email/username), 2) credential selection (password/code).
-  const followupPasswordField = page.locator('input[name="password"]');
-  if (
-    await followupPasswordField.isVisible({ timeout: 3000 }).catch(() => false)
-  ) {
-    await followupPasswordField.fill(user.password);
+  // Only look for a second credential step when the first form had none.
+  // Re-reading the old password field immediately after clicking can submit
+  // the same in-flight form twice with the client-rendered Console UI.
+  if (!passwordWasVisible) {
+    const passwordChoice = page.getByRole('button', {
+      name: /^Password(?:\s|$)/,
+    });
+    await expect(passwordField.or(passwordChoice)).toBeVisible();
+    if (await passwordChoice.isVisible()) await passwordChoice.click();
+    await expect(passwordField).toBeVisible();
+    await passwordField.fill(user.password);
     await submitKratosForm(page);
   }
+
+  // Elements submits asynchronously. Navigating to login before the backend
+  // finishes registration aborts that request and leaves no usable account.
+  await expect(page).toHaveURL(
+    (url) =>
+      url.origin === new URL(CONSOLE_URL).origin &&
+      url.pathname === '/auth/login',
+  );
+  await expect(page.locator('input[name="identifier"]')).toBeVisible();
 
   // Registration does NOT auto-login: the `session` hook was removed from
   // kratos.yaml/project.json so that the `after-login` webhook (which completes
@@ -60,10 +79,23 @@ export interface LoginOptions {
   /** Override post-login return URL. Defaults to CONSOLE_URL + '/'. */
   returnTo?: string;
   /**
-   * ISO baseline used by the mailslurper poller to ignore older verification
+   * ISO baseline used by the mailpit poller to ignore older verification
    * emails when falling back to the code flow. Defaults to the current time.
    */
   sinceIso?: string;
+}
+
+async function waitForLoginResult(page: Page, returnTo: string): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        page.url() === new URL(returnTo).href ||
+        (await page.locator('input[name="totp_code"]').isVisible()),
+    )
+    .toBe(true);
+  // A caller may navigate immediately. Finish the redirected document first
+  // so that navigation cannot race the successful login's redirect.
+  await page.waitForLoadState('domcontentloaded');
 }
 
 export async function loginViaBrowser(
@@ -83,16 +115,38 @@ export async function loginViaBrowser(
   await page.locator('input[name="identifier"]').fill(user.email);
 
   const passwordField = page.locator('input[name="password"]');
-  if (await passwordField.isVisible({ timeout: 1500 }).catch(() => false)) {
-    await passwordField.fill(user.password);
+  const passwordChoice = page.getByRole('button', {
+    name: /^Password(?:\s|$)/,
+  });
+  const codeField = page.locator('input[name="code"]');
+  if (
+    !(await passwordField.isVisible()) &&
+    !(await passwordChoice.isVisible())
+  ) {
     await submitKratosForm(page);
+    await expect(passwordField.or(passwordChoice).or(codeField)).toBeVisible();
+  }
+  if (await passwordChoice.isVisible()) await passwordChoice.click();
+  if (await passwordField.isVisible()) {
+    await passwordField.fill(user.password);
+    // Await the first-factor response before callers abandon the MFA screen.
+    // A click alone does not wait for Elements' asynchronous SDK submission.
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/self-service/login',
+      ),
+      submitKratosForm(page),
+    ]);
+    await waitForLoginResult(page, returnTo);
     return;
   }
 
-  await submitKratosForm(page);
   const code = await waitForVerificationCode(user.email, { sinceIso });
-  await page.locator('input[name="code"]').fill(code);
+  await codeField.fill(code);
   await submitKratosForm(page);
+  await waitForLoginResult(page, returnTo);
 }
 
 interface KratosUiNode {
@@ -118,22 +172,18 @@ function findNodeValue(flow: KratosFlow, name: string): string | undefined {
 }
 
 /**
- * Enrols an authenticator app for the currently signed-in identity.
- *
- * Driven through the Kratos JSON API rather than the reference self-service UI:
- * the secret only exists inside the flow payload, and scraping it out of the
- * rendered QR code would couple this to that UI's markup.
+ * Reads a settings flow and its TOTP secret through the Kratos JSON API rather
+ * than the Console UI: the secret only exists inside the flow payload, and
+ * scraping it out of the rendered QR code would couple this to that UI's
+ * markup.
  *
  * `page.request` shares the browser context's cookie jar, so the session and
  * CSRF cookies established by the login flow apply here.
  */
-export async function enrollTotp(page: Page): Promise<string> {
-  await page.goto(`${KRATOS_PUBLIC_URL}/self-service/settings/browser`);
-  const flowId = new URL(page.url()).searchParams.get('flow');
-  if (!flowId) {
-    throw new Error(`Settings flow did not start; landed on ${page.url()}`);
-  }
-
+async function readSettingsFlow(
+  page: Page,
+  flowId: string,
+): Promise<{ flow: KratosFlow; secret: string }> {
   const flowResponse = await page.request.get(
     `${KRATOS_PUBLIC_URL}/self-service/settings/flows?id=${flowId}`,
     { headers: { accept: 'application/json' } },
@@ -154,7 +204,24 @@ export async function enrollTotp(page: Page): Promise<string> {
       'Settings flow exposed no TOTP secret — is the totp method enabled in kratos.yaml?',
     );
   }
+  return { flow, secret };
+}
 
+export async function readTotpSecret(
+  page: Page,
+  flowId: string,
+): Promise<string> {
+  return (await readSettingsFlow(page, flowId)).secret;
+}
+
+/** Enrols an authenticator app for the currently signed-in identity. */
+export async function enrollTotp(page: Page): Promise<string> {
+  await page.goto(`${KRATOS_PUBLIC_URL}/self-service/settings/browser`);
+  const flowId = new URL(page.url()).searchParams.get('flow');
+  if (!flowId) {
+    throw new Error(`Settings flow did not start; landed on ${page.url()}`);
+  }
+  const { flow, secret } = await readSettingsFlow(page, flowId);
   const csrfToken = findNodeValue(flow, 'csrf_token');
   await waitForFreshTotpWindow();
 

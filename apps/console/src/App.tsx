@@ -2,6 +2,11 @@ import { useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 
 import { AuthGuard } from './auth/AuthGuard.js';
+import { AuthPage } from './auth/AuthPage.js';
+import {
+  type AuthPage as AuthPageKind,
+  authRoutes,
+} from './auth/ory-config.js';
 import { DashboardLayout } from './layout/DashboardLayout.js';
 import { AgentKeysPage } from './pages/AgentKeysPage.js';
 import { DiariesPage } from './pages/DiariesPage.js';
@@ -28,6 +33,21 @@ import { TeamsPage } from './pages/TeamsPage.js';
 import { legacyProfilesDestination } from './runtime-routes.js';
 
 export function App() {
+  return (
+    <Switch>
+      {Object.entries(authRoutes).map(([page, path]) => (
+        <Route key={page} path={path}>
+          <AuthPage page={page as AuthPageKind} />
+        </Route>
+      ))}
+      <Route>
+        <DashboardApp />
+      </Route>
+    </Switch>
+  );
+}
+
+function DashboardApp() {
   return (
     <AuthGuard>
       <DashboardLayout>

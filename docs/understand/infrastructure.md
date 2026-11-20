@@ -26,7 +26,7 @@ Only the following interfaces belong on public ingress:
 - Console
 - REST API
 - MCP server
-- Kratos public API and self-service UI
+- Kratos public API (legacy self-service UI paths redirect to Console `/auth/*`)
 - Hydra public API
 
 Kratos, Hydra, Keto, and Talos administrative APIs; PostgreSQL; Valkey; and the

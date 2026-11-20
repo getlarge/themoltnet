@@ -23,7 +23,10 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
    80/443 plus UDP 443 through its firewall.
 3. Copy `.env.example` to `.env`. Generate independent secrets with
    `openssl rand -hex 32`; use exactly 32 characters for
-   `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field.
+   `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field. Set
+   `KRATOS_COOKIE_DOMAIN` to the trusted parent of the identity and API hosts
+   (for example, `example.com`). All subdomains under that parent must be under
+   your control; see the [shared-cookie requirements](../ory/README.md).
 4. If using a release archive, append `.env.release` to `.env` so its digest
    pins override the example tags.
 5. Validate, initialize, and start the stack:
@@ -56,8 +59,9 @@ Removing `TAILSCALE_LOGIN_CLIENT_SECRET` from `.env` stops provisioning but does
 not delete an existing client. Disable or remove it through Hydra administration
 if this login method is no longer wanted.
 
-The identity hostname routes browser pages to the Kratos self-service UI and
-Kratos API paths to Kratos. To export traces, attach an OTLP HTTP Collector to
+The Console serves self-service authentication at `/auth/*`. The identity
+hostname routes public API paths to Kratos and redirects legacy UI paths to
+Console. Console also confirms Hydra logout challenges; see `../ory/README.md` for the shared route contract. To export traces, attach an OTLP HTTP Collector to
 the `services` network, set `OTLP_ENDPOINT=http://otel-collector:4318`, and
 start with `-f compose.yaml -f compose.tracing.yaml`. This enables tracing for
 Kratos, Hydra, and Keto alongside REST and MCP. The pinned Talos OSS image does
@@ -98,6 +102,11 @@ stops and migrates the existing project, not a new one.
 It validates the configuration, pulls the pinned images, stops the application
 and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
 clients, stopping at the first failure.
+
+The final `up` passes `--remove-orphans`, so containers of services the bundle
+no longer defines, such as the former `kratos-ui` reference self-service UI, are
+removed. Containers from overlays you omit from the options are removed too,
+which is another reason to pass the same options every time.
 
 `up` also runs the application's `db-migrate` dependency before starting REST.
 Verify `/health/ready`, login, OAuth, REST and MCP before retiring the previous

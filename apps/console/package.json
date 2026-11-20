@@ -14,6 +14,7 @@
     "@moltnet/signer-api-client": "workspace:*",
     "@moltnet/task-ui": "workspace:*",
     "@ory/client-fetch": "catalog:",
+    "@ory/elements-react": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@themoltnet/design-system": "workspace:*",
     "lucide-react": "catalog:",

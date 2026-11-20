@@ -83,18 +83,8 @@ services:
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
-      mailslurper:
+      mailpit:
         condition: service_started
-
-  kratos-selfservice-ui-node:
-    extends:
-      file: docker-compose.base.yaml
-      service: kratos-selfservice-ui-node
-    environment:
-      KRATOS_PUBLIC_URL: http://kratos:4433/
-    depends_on:
-      kratos:
-        condition: service_healthy
 
   hydra-postgres:
     extends:
@@ -115,7 +105,6 @@ services:
       file: docker-compose.base.yaml
       service: hydra
     environment:
-      URLS_LOGIN: http://localhost:5174/oauth/login
       URLS_CONSENT: http://localhost:8080/oauth2/consent
       URLS_SELF_ISSUER: http://hydra:4444
       URLS_SELF_PUBLIC: http://localhost:4444
@@ -154,10 +143,10 @@ services:
     tmpfs:
       - /var/lib/talos:uid=65532,gid=65532,mode=0700
 
-  mailslurper:
+  mailpit:
     extends:
       file: docker-compose.base.yaml
-      service: mailslurper
+      service: mailpit
 
   redis:
     extends:
@@ -199,7 +188,7 @@ services:
       ORY_KETO_PERMISSION_CACHE_TTL_MS: '0'
       ORY_ACTION_API_KEY: local-dev-webhook-key
       RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
-      CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433'
+      CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433,http://localhost:8080'
       RATE_LIMIT_GLOBAL_AUTH: '10000'
       RATE_LIMIT_GLOBAL_ANON: '10000'
       # Distinct from GLOBAL_AUTH so the read/write-split e2e can assert the read
@@ -291,8 +280,6 @@ services:
       rest-api:
         condition: service_healthy
       kratos:
-        condition: service_healthy
-      kratos-selfservice-ui-node:
         condition: service_healthy
 
   mcp-server:

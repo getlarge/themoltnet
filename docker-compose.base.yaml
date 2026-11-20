@@ -97,36 +97,6 @@ services:
       retries: 5
       start_period: 20s
 
-  # Reference self-service UI for Kratos flows (registration, login, recovery,
-  # settings, error). Kratos delegates form rendering to an external app; this
-  # is the official Node.js reference implementation. Used by both dev and e2e
-  # so browser-based cookie auth (issue #753) works out of the box. Served on
-  # port 4455 — kratos.yaml points flow ui_url values here.
-  kratos-selfservice-ui-node:
-    image: oryd/kratos-selfservice-ui-node:v26.2.0@sha256:46a7bac1ad0c67c692b37d0380613fd4618fd751afac2c5314aa8d3ae77ef1f0
-    ports:
-      - '4455:4455'
-    environment:
-      PORT: '4455'
-      SECURITY_MODE: 'standalone'
-      # Server-side URL used by the UI container when it fetches flow state.
-      # This must use the Docker service name, not localhost.
-      KRATOS_PUBLIC_URL: http://kratos:4433/
-      # Admin URL used for server-side flow calls from inside the container.
-      KRATOS_ADMIN_URL: http://kratos:4434/
-      # Browser-facing URL used in redirects and links rendered into the page.
-      KRATOS_BROWSER_URL: http://localhost:4433/
-      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:-local-dev-cookie-secret-not-for-production}
-      CSRF_COOKIE_NAME: ory_csrf_ui
-      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_SECRET:-local-dev-csrf-secret-not-for-production}
-    healthcheck:
-      test:
-        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4455/health/alive']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-
   hydra-postgres:
     image: postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657
     environment:
@@ -256,12 +226,11 @@ services:
       talos:
         condition: service_healthy
 
-  mailslurper:
-    image: oryd/mailslurper:latest-smtps@sha256:d4b6583cc0f2715ca698c8ee2771b7d2e17d3c50f04070a1a1af63ba5867c615
+  mailpit:
+    image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
     ports:
       - '1025:1025'
-      - '4436:4436'
-      - '4437:4437'
+      - '8025:8025'
 
   redis:
     image: valkey/valkey:8-alpine@sha256:2602ace2be6569bc2bbb06f873776516ab9089821525be34f4305c67eb9db02a

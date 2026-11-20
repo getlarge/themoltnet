@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), nxReadySignal()],
+  server: { port: 5174, strictPort: true },
   build: {
     outDir: 'dist',
   },

@@ -787,7 +787,7 @@ case " $* " in *" \${FAIL_ON:-none} "*) exit 1 ;; esac
       'compose -p demo run --rm --no-deps hydra-migrate',
       'compose -p demo run --rm --no-deps keto-migrate',
       'compose -p demo run --rm --no-deps talos-migrate',
-      'compose -p demo up -d --wait --wait-timeout 300',
+      'compose -p demo up -d --remove-orphans --wait --wait-timeout 300',
       'compose -p demo run --rm --no-deps hydra-native-client',
       'compose -p demo ps --all',
     ]);
@@ -797,8 +797,13 @@ case " $* " in *" \${FAIL_ON:-none} "*) exit 1 ;; esac
       !upgrade.calls.some((call) => /ory-db-init|talos-init/.test(call)),
     );
     assert.ok(
+      upgrade.calls.includes(
+        'compose --env-file .env up -d --remove-orphans --wait --wait-timeout 300',
+      ),
+    );
+    assert.ok(
       upgrade.calls.indexOf(
-        'compose --env-file .env stop caddy console mcp-server rest-api kratos-ui kratos hydra keto talos',
+        'compose --env-file .env stop caddy console mcp-server rest-api kratos hydra keto talos',
       ) <
         upgrade.calls.indexOf(
           'compose --env-file .env run --rm --no-deps kratos-migrate',

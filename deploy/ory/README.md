@@ -15,8 +15,8 @@ protected volume name. The standalone consumer accepts `TALOS_DATA_VOLUME`.
 
 Set `ORY_TOOLS_IMAGE` independently from the application migration image. The
 release locks both to the same database-tools digest initially. It contains
-Node and pg. All first-party images are source-revision pinned; Ory,
-its UI, and Talos use the module's explicit digest pins.
+Node and pg. All first-party images are source-revision pinned; Ory
+and Talos use the module's explicit digest pins.
 
 Set `ORY_DB_HOST` (default `postgres`), `ORY_DB_PORT` (5432),
 `ORY_DB_SSLMODE` (`disable` on a private Docker network or `verify-full`),
@@ -41,9 +41,44 @@ For a database outside the private Docker network, explicitly use
 `ORY_DB_SSLMODE=verify-full` and a server certificate trusted by the containers;
 only `disable` and `verify-full` are supported by the provisioner.
 
+The Console serves authentication screens under `/auth/*`, using its existing
+`kratosUrl` and `consoleUrl` runtime settings for either Ory Network or this
+self-hosted module. The canonical routes live in
+`apps/console/src/auth/routes.json`; the configuration contract test checks the
+Network template, local configuration, and this module against them. Point
+Kratos flow UI URLs and Hydra login/registration/error URLs at those Console
+routes. Keep allowed return URLs, credentialed CORS, and same-site cookies
+aligned with the public origins. Include the API origin in its own CORS
+allowlist so browser consent form submissions are accepted. Registration returns to login so the login
+hook completes human onboarding. OAuth consent remains on REST API at
+`/oauth2/consent`.
+
+Hydra logout challenges also use Console at `/auth/logout`. After explicit
+confirmation, REST API validates that the challenge belongs to the current
+human session, accepts it through Hydra's admin API, and Console ends the
+Kratos session before following Hydra's continuation.
+
+Set `KRATOS_COOKIE_DOMAIN` to an explicit parent of the identity and API hosts
+(for example, `example.com` for `identity.example.com` and `api.example.com`).
+Use a domain only, without a scheme, port or leading dot, and never a public
+suffix such as `com` or `co.uk`. The module requires this value rather than
+inferring it from a hostname. The HTTPS-only, HttpOnly Kratos session cookie
+then accompanies browser requests to both services. Every subdomain beneath
+this parent is part of the session-cookie trust boundary: control all of them
+and do not host untrusted tenant applications there. Keep this domain as narrow
+as the host layout permits. Cookies remain `SameSite=Lax`; CORS and the REST
+API's session/subject checks still apply. After changing an existing cookie
+domain, clear the old identity-host cookie and sign in again to avoid sending
+both old and new cookies with the same name. Localhost development/E2E uses its
+own configuration and keeps host-only cookies.
+
+The browser test procedure and
+its validation limits are documented in `apps/console-e2e/README.md` in the
+source checkout. Do not change live project settings as part of packaging.
+
 The other configuration variables match `../self-host/.env.example`.
 `IDENTITY_DOMAIN` and `OAUTH_DOMAIN` remain independent for standalone ingress;
-a consumer with one auth host sets both to that hostname and routes Kratos/UI
+a consumer with one auth host sets both to that hostname and routes Kratos API
 paths separately from Hydra discovery and OAuth paths. `TALOS_PUBLIC_ISSUER`
 defaults to `https://${API_DOMAIN}`. Kratos calls the application's hooks at
 `ORY_HOOK_BASE_URL` (default `http://rest-api:8080`, on the `identity`

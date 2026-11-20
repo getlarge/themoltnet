@@ -1,0 +1,56 @@
+.auth-shell {
+  box-sizing: border-box;
+}
+
+.auth-shell a {
+  color: var(--auth-primary);
+  text-underline-offset: 0.2em;
+}
+
+.auth-shell a:focus-visible {
+  outline: 2px solid var(--auth-primary);
+  outline-offset: 3px;
+}
+
+.auth-shell .auth-skip {
+  position: absolute;
+  transform: translateY(-200%);
+}
+
+.auth-shell .auth-skip:focus {
+  position: relative;
+  transform: none;
+}
+
+.auth-shell .ory-elements {
+  max-width: 100%;
+  --font-sans-default: var(--auth-font);
+  --radius-cards: var(--auth-radius);
+  --interface-background-default-primary: var(--auth-surface);
+  --interface-background-default-primary-hover: var(--auth-elevated);
+  --interface-background-default-secondary: var(--auth-bg);
+  --interface-background-default-inverted: var(--auth-text);
+  --interface-background-brand-primary: var(--auth-primary);
+  --interface-background-brand-primary-hover: var(--auth-hover);
+  --interface-background-brand-secondary: var(--auth-subtle);
+  --interface-background-brand-secondary-hover: var(--auth-elevated);
+  --interface-background-disabled-disabled: var(--auth-elevated);
+  --interface-foreground-default-primary: var(--auth-text);
+  --interface-foreground-default-secondary: var(--auth-muted);
+  --interface-foreground-default-tertiary: var(--auth-muted);
+  --interface-foreground-default-inverted: var(--auth-bg);
+  --interface-foreground-brand-primary: var(--auth-primary);
+  --interface-foreground-brand-on-primary: var(--auth-inverse);
+  --interface-foreground-brand-on-secondary: var(--auth-primary);
+  --interface-foreground-disabled-on-disabled: var(--auth-muted);
+  --interface-foreground-disabled-disabled: var(--auth-muted);
+  --interface-border-default-primary: var(--auth-border);
+  --interface-border-brand-brand: var(--auth-primary);
+  --interface-border-disabled-disabled: var(--auth-border);
+  --ui-danger: var(--auth-error);
+  --ui-success: var(--auth-success);
+}
+
+.auth-shell main:focus {
+  outline: none;
+}

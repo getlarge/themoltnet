@@ -116,6 +116,7 @@
             "${DOCS_BASE_URL}/",
             "${ORY_PROJECT_URL}/error",
             "${ORY_PROJECT_URL}/login",
+            "${ORY_PROJECT_URL}/oauth2/sessions/logout",
             "${ORY_PROJECT_URL}/recovery",
             "${ORY_PROJECT_URL}/registration",
             "${ORY_PROJECT_URL}/settings",
@@ -124,7 +125,7 @@
           "default_browser_return_url": "${CONSOLE_BASE_URL}/",
           "flows": {
             "error": {
-              "ui_url": "/error"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/error"
             },
             "login": {
               "after": {
@@ -180,7 +181,7 @@
                 }
               },
               "lifespan": "1h",
-              "ui_url": "/login"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/login"
             },
             "logout": {
               "after": {
@@ -189,11 +190,12 @@
             },
             "recovery": {
               "enabled": true,
-              "ui_url": "/recovery"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/recovery"
             },
             "registration": {
               "after": {
                 "oidc": {
+                  "default_browser_return_url": "${CONSOLE_BASE_URL}/auth/login",
                   "hooks": [
                     {
                       "config": {
@@ -219,6 +221,7 @@
                   ]
                 },
                 "password": {
+                  "default_browser_return_url": "${CONSOLE_BASE_URL}/auth/login",
                   "hooks": [
                     {
                       "config": {
@@ -246,7 +249,7 @@
               },
               "enabled": true,
               "lifespan": "1h",
-              "ui_url": "/registration"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/registration"
             },
             "settings": {
               "after": {
@@ -345,11 +348,11 @@
               },
               "lifespan": "1h",
               "privileged_session_max_age": "15m",
-              "ui_url": "/settings"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/settings"
             },
             "verification": {
               "enabled": true,
-              "ui_url": "/verification"
+              "ui_url": "${CONSOLE_BASE_URL}/auth/verification"
             }
           },
           "methods": {
@@ -405,9 +408,21 @@
               },
               "enabled": true
             },
-            "profile": { "enabled": true },
-            "saml": { "config": { "providers": [] }, "enabled": false },
-            "totp": { "config": { "issuer": "MoltNet" }, "enabled": true }
+            "profile": {
+              "enabled": true
+            },
+            "saml": {
+              "config": {
+                "providers": []
+              },
+              "enabled": false
+            },
+            "totp": {
+              "config": {
+                "issuer": "MoltNet"
+              },
+              "enabled": true
+            }
           }
         },
         "session": {
@@ -494,11 +509,11 @@
         },
         "urls": {
           "consent": "${API_BASE_URL}/oauth2/consent",
-          "error": "${ORY_PROJECT_URL}/error",
-          "login": "${ORY_PROJECT_URL}/login",
-          "logout": "${ORY_PROJECT_URL}/logout",
+          "error": "${CONSOLE_BASE_URL}/auth/error",
+          "login": "${CONSOLE_BASE_URL}/auth/login",
+          "logout": "${CONSOLE_BASE_URL}/auth/logout",
           "post_logout_redirect": "${CONSOLE_BASE_URL}/",
-          "registration": "${ORY_PROJECT_URL}/registration",
+          "registration": "${CONSOLE_BASE_URL}/auth/registration",
           "self": {
             "issuer": "${ORY_PROJECT_URL}"
           }
