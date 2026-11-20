@@ -75,26 +75,17 @@ await expectStatus(api, '/health/ready', 200);
 await expectStatus(api, '/agents/whoami', 401);
 await expectStatus(api, '/hooks/hydra/token-exchange', 404);
 await expectStatus(settings.CONSOLE_DOMAIN, '/', 200);
-const login = await expectStatus(settings.IDENTITY_DOMAIN, '/login', 303);
-if (
-  !login.headers.location?.startsWith(
-    `https://${settings.IDENTITY_DOMAIN}/self-service/login/browser`,
-  )
-) {
-  throw new Error('Identity login did not route through Kratos');
-}
-for (const flow of ['registration', 'recovery']) {
+for (const flow of ['login', 'registration', 'recovery']) {
   const response = await expectStatus(
     settings.IDENTITY_DOMAIN,
     `/${flow}`,
-    303,
+    302,
   );
   if (
-    !response.headers.location?.startsWith(
-      `https://${settings.IDENTITY_DOMAIN}/self-service/${flow}/browser`,
-    )
+    response.headers.location !==
+    `https://${settings.CONSOLE_DOMAIN}/auth/${flow}`
   ) {
-    throw new Error(`Identity ${flow} did not route through Kratos`);
+    throw new Error(`Identity ${flow} did not redirect to the Console auth UI`);
   }
 }
 
