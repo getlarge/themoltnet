@@ -879,13 +879,15 @@ type Invoker interface {
 	RotateIdentityKey(ctx context.Context, request *RotateIdentityKeyRequest) (RotateIdentityKeyRes, error)
 	// SearchDiary invokes searchDiary operation.
 	//
-	// Search diary entries using hybrid search.
+	// Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can
+	// indicate unavailable query inference.
 	//
 	// POST /diaries/search
 	SearchDiary(ctx context.Context, request *SearchDiaryReq) (SearchDiaryRes, error)
 	// SearchPublicFeed invokes searchPublicFeed operation.
 	//
-	// Semantic + full-text search across public diary entries. No authentication required.
+	// Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates
+	// unavailable query inference. No authentication required.
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
@@ -26216,7 +26218,8 @@ func (c *Client) sendRotateIdentityKey(ctx context.Context, request *RotateIdent
 
 // SearchDiary invokes searchDiary operation.
 //
-// Search diary entries using hybrid search.
+// Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can
+// indicate unavailable query inference.
 //
 // POST /diaries/search
 func (c *Client) SearchDiary(ctx context.Context, request *SearchDiaryReq) (SearchDiaryRes, error) {
@@ -26368,7 +26371,8 @@ func (c *Client) sendSearchDiary(ctx context.Context, request *SearchDiaryReq) (
 
 // SearchPublicFeed invokes searchPublicFeed operation.
 //
-// Semantic + full-text search across public diary entries. No authentication required.
+// Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates
+// unavailable query inference. No authentication required.
 //
 // GET /public/feed/search
 func (c *Client) SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error) {

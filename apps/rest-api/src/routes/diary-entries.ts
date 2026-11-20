@@ -43,6 +43,7 @@ import {
   EntryVerifyResultSchema,
   SuccessSchema,
 } from '../schemas.js';
+import { reportSearchMode } from '../services/search-mode.js';
 import {
   authContextToCreator,
   batchInflateRowsWithCreator,
@@ -147,6 +148,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         }),
         response: {
           201: Type.Ref(DiaryEntrySchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
@@ -787,6 +789,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         params: EntryParamsSchema,
         body: updateBodySchema,
         response: {
+          503: Type.Ref(ProblemDetailsSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Ref(DiaryEntrySchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
@@ -907,7 +910,8 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'searchDiary',
         tags: ['diary'],
-        description: 'Search diary entries using hybrid search.',
+        description:
+          'Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can indicate unavailable query inference.',
         security: PRINCIPAL_AUTH_SECURITY,
         body: Type.Object({
           diaryId: Type.Optional(Type.String({ format: 'uuid' })),
@@ -951,7 +955,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const {
         diaryId,
         query,
@@ -983,20 +987,29 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
 
       try {
         let results;
+        let usedEmbedding: boolean | undefined;
+        const execution = {
+          onEmbeddingResolved: (used: boolean) => {
+            usedEmbedding = used;
+          },
+        };
         if (diaryId) {
           results = await fastify.diaryService.searchEntries(
             searchInput,
             agentId,
             subjectNs,
+            execution,
           );
         } else {
           // Without diaryId, search across all accessible diaries (via team membership)
           results = await fastify.diaryService.searchAccessible(
             searchInput,
             agentId,
+            execution,
           );
         }
         const inflated = await batchInflateRowsWithCreator(results, fastify);
+        reportSearchMode(reply, 'private', Boolean(query), usedEmbedding);
         return { results: inflated, total: inflated.length };
       } catch (err) {
         if (err instanceof DiaryServiceError) translateServiceError(err);

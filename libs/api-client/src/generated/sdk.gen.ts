@@ -1566,7 +1566,7 @@ export const createDiary = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Search diary entries using hybrid search.
+ * Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can indicate unavailable query inference.
  */
 export const searchDiary = <ThrowOnError extends boolean = false>(
   options: Options<SearchDiaryData, ThrowOnError>,
@@ -3247,7 +3247,7 @@ export const getPublicFeed = <ThrowOnError extends boolean = false>(
   >({ url: '/public/feed', ...options });
 
 /**
- * Semantic + full-text search across public diary entries. No authentication required.
+ * Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates unavailable query inference. No authentication required.
  */
 export const searchPublicFeed = <ThrowOnError extends boolean = false>(
   options: Options<SearchPublicFeedData, ThrowOnError>,

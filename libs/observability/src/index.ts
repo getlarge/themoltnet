@@ -20,6 +20,7 @@ export {
   createMetricHistogram,
   createMetricUpDownCounter,
   createRequestMetrics,
+  getMetricMeter,
 } from './metrics.js';
 export type { RequestContext } from './request-context.js';
 export {

@@ -58,6 +58,9 @@ const WEBHOOK_API_KEY =
   process.env.ORY_ACTION_API_KEY ?? 'local-dev-webhook-key';
 
 export { DATABASE_URL, HYDRA_PUBLIC_URL, KRATOS_PUBLIC_URL, WEBHOOK_API_KEY };
+export const DIARY_EMBEDDING_MAX_PENDING = Number(
+  process.env.DIARY_EMBEDDING_MAX_PENDING ?? 1000,
+);
 
 // ── Ory API Clients (test scaffolding — direct to Ory containers) ──
 

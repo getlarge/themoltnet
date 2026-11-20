@@ -858,13 +858,15 @@ type Handler interface {
 	RotateIdentityKey(ctx context.Context, req *RotateIdentityKeyRequest) (RotateIdentityKeyRes, error)
 	// SearchDiary implements searchDiary operation.
 	//
-	// Search diary entries using hybrid search.
+	// Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can
+	// indicate unavailable query inference.
 	//
 	// POST /diaries/search
 	SearchDiary(ctx context.Context, req *SearchDiaryReq) (SearchDiaryRes, error)
 	// SearchPublicFeed implements searchPublicFeed operation.
 	//
-	// Semantic + full-text search across public diary entries. No authentication required.
+	// Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates
+	// unavailable query inference. No authentication required.
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)

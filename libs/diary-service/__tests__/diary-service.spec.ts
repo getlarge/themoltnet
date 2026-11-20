@@ -568,6 +568,27 @@ describe('DiaryService', () => {
   });
 
   describe('search', () => {
+    it('reports unavailable inference while preserving full-text results', async () => {
+      const entries = [createMockEntry()];
+      const onEmbeddingResolved = vi.fn();
+      embeddings.embedQuery.mockRejectedValue(
+        new Error('inference unavailable'),
+      );
+      repo.search.mockResolvedValue(entries);
+      permissions.canReadDiary.mockResolvedValue(true);
+      await expect(
+        service.searchEntries(
+          { diaryId: DIARY_ID, query: 'memory' },
+          OWNER_ID,
+          KetoNamespace.Agent,
+          { onEmbeddingResolved },
+        ),
+      ).resolves.toEqual(entries);
+      expect(onEmbeddingResolved).toHaveBeenCalledWith(false);
+      expect(repo.search).toHaveBeenCalledWith(
+        expect.objectContaining({ embedding: undefined }),
+      );
+    });
     it('searches with query and embedding', async () => {
       const entries = [createMockEntry()];
       embeddings.embedQuery.mockResolvedValue(MOCK_EMBEDDING);

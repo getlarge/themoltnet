@@ -2,6 +2,8 @@ import {
   PermissionCheckUnavailableError,
   RemoteAuthenticationError,
 } from '@moltnet/auth';
+import { DiaryEmbeddingQueueFullError } from '@moltnet/database';
+import { createMetricCounter } from '@moltnet/observability';
 import type {
   FastifyError,
   FastifyInstance,
@@ -50,6 +52,31 @@ function mapRemoteAuthenticationError(
  * short, and a hint keeps pollers from hammering.
  */
 const PERMISSION_UNAVAILABLE_RETRY_AFTER_SEC = 1;
+const admissionRejections = createMetricCounter(
+  'moltnet-rest-api',
+  'diary.embedding.admission.rejected',
+  'Diary writes rejected by the durable embedding backlog limit',
+);
+
+function isEmbeddingQueueFull(error: Error): boolean {
+  // DBOS portable/replayed errors retain their name, not their prototype.
+  return (
+    error instanceof DiaryEmbeddingQueueFullError ||
+    error.name === 'DiaryEmbeddingQueueFullError'
+  );
+}
+
+function mapEmbeddingQueueFull(error: Error): ProblemError {
+  admissionRejections.add(1);
+  const mapped = createProblem(
+    'service-unavailable',
+    'Diary indexing is busy. Retry this write later.',
+    { retryAfter: 5 },
+  ) as ProblemError;
+  mapped.exposeServerDetail = true;
+  mapped.cause = error;
+  return mapped;
+}
 
 function mapPermissionCheckUnavailableError(
   error: PermissionCheckUnavailableError,
@@ -140,7 +167,8 @@ async function errorHandler(fastify: FastifyInstance) {
     // fields. Avoid a second generic server-error line here.
     if (
       error instanceof RemoteAuthenticationError ||
-      error instanceof PermissionCheckUnavailableError
+      error instanceof PermissionCheckUnavailableError ||
+      isEmbeddingQueueFull(error)
     ) {
       done();
       return;
@@ -171,11 +199,13 @@ async function errorHandler(fastify: FastifyInstance) {
     (error: ProblemError, request: FastifyRequest, reply: FastifyReply) => {
       const remoteError =
         error instanceof RemoteAuthenticationError ? error : null;
-      const handledError = remoteError
-        ? mapRemoteAuthenticationError(remoteError)
-        : error instanceof PermissionCheckUnavailableError
-          ? mapPermissionCheckUnavailableError(error)
-          : mapTransactionContention(error);
+      const handledError = isEmbeddingQueueFull(error)
+        ? mapEmbeddingQueueFull(error)
+        : remoteError
+          ? mapRemoteAuthenticationError(remoteError)
+          : error instanceof PermissionCheckUnavailableError
+            ? mapPermissionCheckUnavailableError(error)
+            : mapTransactionContention(error);
       const status = handledError.statusCode ?? 500;
       const isServerError = status >= 500;
       const validationContext = (
