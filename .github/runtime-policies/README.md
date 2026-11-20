@@ -289,8 +289,13 @@ Removing a tool takes effect for sessions started afterwards; it does not
 retroactively change a session already running against an older policy snapshot.
 
 Focused, knowledge-assisted focused, and security review policies allow the existing
-Bash tool only for commands beginning with `git diff --no-ext-diff --no-textconv`.
-These flags disable external diff and text-conversion helpers. Review briefs supply
-the exact pinned `base...head` range; reviewers can scope by path or adjust diff
-context. This is a review policy grant, not a custom tool or a default capability
+Bash tool only for commands beginning with
+`git diff --no-ext-diff --no-textconv --end-of-options`. The fixed options disable
+external diff and text-conversion helpers, then close Git's option parser before
+model-supplied arguments. Keep `--end-of-options` in the policy prefix: flags
+before it could override the helper restrictions or write output to a file.
+Review briefs supply the exact pinned `base...head` range. Append `-- PATH` to
+scope the diff; use `read` for more source context instead of appending flags.
+Git rejects unsupported option-boundary syntax rather than running a weaker
+command. This is a review policy grant, not a custom tool or a default capability
 for other agents. Live policy definitions require an operator update.

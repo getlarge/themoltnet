@@ -90,13 +90,13 @@ it.each([
       });
     expect(
       check(
-        `git diff --no-ext-diff --no-textconv ${'a'.repeat(40)}...${'b'.repeat(40)} -- src/file.ts`,
+        `git diff --no-ext-diff --no-textconv --end-of-options ${'a'.repeat(40)}...${'b'.repeat(40)} -- src/file.ts`,
       ),
     ).toMatchObject({ allow: true });
     for (const command of [
       'git checkout main',
       'git diff --ext-diff',
-      'git diff --no-ext-diff --no-textconv HEAD; git checkout main',
+      'git diff --no-ext-diff --no-textconv --end-of-options HEAD; git checkout main',
       'bash -c "echo execute"',
     ])
       expect(check(command)).toMatchObject({ allow: false });

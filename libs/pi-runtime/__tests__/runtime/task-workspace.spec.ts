@@ -89,6 +89,7 @@ describe('exact-revision task workspaces', () => {
           'diff',
           '--no-ext-diff',
           '--no-textconv',
+          '--end-of-options',
           `${repo.first}...${repo.second}`,
           '--',
           'file.txt',
