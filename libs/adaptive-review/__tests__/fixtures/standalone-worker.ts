@@ -11,7 +11,7 @@ import { Client } from 'pg';
 
 import {
   conductAdaptiveReview,
-  createAdaptiveStageApp,
+  createAdaptiveWorkflowApp,
   type StandaloneReviewInput,
 } from '../../src/index.js';
 
@@ -104,10 +104,9 @@ const git = (...args: string[]) =>
   execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 const base = git('rev-parse', 'HEAD~1');
 const head = git('rev-parse', 'HEAD');
-const app = createAdaptiveStageApp<StandaloneReviewInput, unknown>({
+const app = createAdaptiveWorkflowApp<StandaloneReviewInput, unknown>({
   databaseUrl,
   queueName,
-  stage: 'workflow',
   run: (input, ctx) =>
     conductAdaptiveReview(
       input,

@@ -12,7 +12,12 @@ import type { ReviewRetentionPolicy } from './retention.js';
 import { scopedReviewTasks } from './review-tasks.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import { previousFindings } from './threads.js';
-import { type SpecialistPool, workerPool } from './workers.js';
+import {
+  MAX_FOCUSED_WORKERS,
+  type ReviewCapacity,
+  type SpecialistPool,
+  workerPool,
+} from './workers.js';
 import {
   type AdaptiveReport,
   prepareAdaptiveReview,
@@ -45,6 +50,8 @@ export type StandaloneReviewResult =
 
 export interface StandaloneReviewServices {
   cwd: string;
+  /** Host-only request, replayed for unfinished work; never persisted as a checkpoint. */
+  ensureCapacity?(capacity: readonly ReviewCapacity[]): Promise<void>;
   github: CliDeps['github'];
   connect: CliDeps['connect'];
   /** Host operation: fetch inert pinned objects, including after replacement. */
@@ -117,87 +124,7 @@ export async function conductAdaptiveReview(
     ctx,
     'investigation',
     async (): Promise<AdaptiveReport | null> => {
-      const prepared = admission.prepared;
-      // Filesystem state is host-local and must be reconstructed on every host.
-      await services.ensureGit(prepared);
-      const snapshot = loadAdaptivePolicy(
-        createGit(services.cwd),
-        prepared.base,
-      );
-      if (!snapshot) return null;
-      const client = await services.connect(input.teamId);
-      const resolved = await ctx.step('profiles', async () =>
-        resolveProfiles(
-          input.profiles,
-          snapshot.policy.lanes,
-          await client.profiles(input.teamId),
-        ),
-      );
-      const tasks = scopedReviewTasks(client.tasks, input);
-      const options: RunOptions = {
-        identity: {
-          ...prepared,
-          teamId: input.teamId,
-          diaryId: input.diaryId,
-          classifierProfileId: resolved.classifier,
-        },
-        mode: input.mode,
-        tasks,
-        cwd: services.cwd,
-        profiles: resolved.profiles,
-        profileRevisions: resolved.revisions,
-        taskBudgets: input.taskBudgets,
-        runtimeSha: input.runtimeSha,
-        ...(input.projectId ? { projectId: input.projectId } : {}),
-      };
-      const assertCurrent = async () => {
-        const current = await services.github.revisions(input.repo, input.pr);
-        if (current.base !== prepared.base || current.head !== prepared.head)
-          throw new Error('PR revisions changed; start a new review');
-        const available = await client.profiles(input.teamId);
-        for (const [id, revision] of Object.entries(resolved.revisions))
-          if (
-            available.find((profile) => profile.id === id)?.revision !==
-            revision
-          )
-            throw new Error('Runtime profile changed; start a new review');
-      };
-      const routing = await reviewCheckpoint(ctx, 'routing', async () => {
-        await assertCurrent();
-        return prepareAdaptiveReview({
-          ...options,
-          ctx: reviewContext(ctx, 'route'),
-        });
-      });
-      const prior = await ctx.step('previous-findings', async () =>
-        previousFindings(
-          await services.github.reviewThreads(input.repo, input.pr),
-          input.appLogin,
-        ),
-      );
-      const report = await reviewCheckpoint(ctx, 'report', async () => {
-        await assertCurrent();
-        return runRoutedAdaptiveReview(
-          {
-            ...options,
-            previousFindings: prior,
-            ctx: reviewContext(ctx, 'review'),
-          },
-          routing,
-        );
-      });
-      const spend = await ctx.step('spend', () =>
-        collectWorkflowSpend(
-          report.taskIds.map((taskId) => ({
-            taskId,
-            stage:
-              report.results.find((result) => result.taskIds.includes(taskId))
-                ?.lane ?? 'classifier',
-          })),
-          (id) => client.tasks.listAttempts(id),
-        ),
-      );
-      return { ...report, spend };
+      return investigateReview(input, admission.prepared, ctx, services);
     },
   );
   if (!finalReport)
@@ -246,4 +173,118 @@ export function runStandaloneReview(args: {
           ),
       }),
   });
+}
+
+async function investigateReview(
+  input: StandaloneReviewInput,
+  prepared: Prepared,
+  ctx: WorkflowContext,
+  services: StandaloneReviewServices,
+): Promise<AdaptiveReport | null> {
+  // Filesystem state is host-local and must be reconstructed on every host.
+  await services.ensureGit(prepared);
+  const snapshot = loadAdaptivePolicy(createGit(services.cwd), prepared.base);
+  if (!snapshot) return null;
+  const client = await services.connect(input.teamId);
+  const resolved = await ctx.step('profiles', async () =>
+    resolveProfiles(
+      input.profiles,
+      snapshot.policy.lanes,
+      await client.profiles(input.teamId),
+    ),
+  );
+  const tasks = scopedReviewTasks(client.tasks, input);
+  const options: RunOptions = {
+    identity: {
+      ...prepared,
+      teamId: input.teamId,
+      diaryId: input.diaryId,
+      classifierProfileId: resolved.classifier,
+    },
+    mode: input.mode,
+    tasks,
+    cwd: services.cwd,
+    profiles: resolved.profiles,
+    profileRevisions: resolved.revisions,
+    taskBudgets: input.taskBudgets,
+    runtimeSha: input.runtimeSha,
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+  };
+  const assertCurrent = () =>
+    assertPinnedRevisions(
+      input,
+      prepared,
+      resolved.revisions,
+      client,
+      services,
+    );
+  const routing = await reviewCheckpoint(ctx, 'routing', async () => {
+    await assertCurrent();
+    await services.ensureCapacity?.([
+      { pool: 'classifier', profile: resolved.classifier, count: 1 },
+    ]);
+    return prepareAdaptiveReview({
+      ...options,
+      ctx: reviewContext(ctx, 'route'),
+    });
+  });
+  const prior = await ctx.step('previous-findings', async () =>
+    previousFindings(
+      await services.github.reviewThreads(input.repo, input.pr),
+      input.appLogin,
+    ),
+  );
+  const report = await reviewCheckpoint(ctx, 'report', async () => {
+    await assertCurrent();
+    const pools = new Map<SpecialistPool, number>();
+    for (const route of routing.routing.routes)
+      if (route.run) {
+        const pool = workerPool(route.lane);
+        pools.set(pool, (pools.get(pool) ?? 0) + 1);
+      }
+    if (pools.size)
+      await services.ensureCapacity?.(
+        [...pools].map(([pool, count]) => ({
+          pool,
+          profile: resolved.profiles[pool],
+          count: pool === 'focused' ? Math.min(count, MAX_FOCUSED_WORKERS) : 1,
+        })),
+      );
+    return runRoutedAdaptiveReview(
+      {
+        ...options,
+        previousFindings: prior,
+        ctx: reviewContext(ctx, 'review'),
+      },
+      routing,
+    );
+  });
+  const spend = await ctx.step('spend', () =>
+    collectWorkflowSpend(
+      report.taskIds.map((taskId) => ({
+        taskId,
+        stage:
+          report.results.find((result) => result.taskIds.includes(taskId))
+            ?.lane ?? 'classifier',
+      })),
+      (id) => client.tasks.listAttempts(id),
+    ),
+  );
+  return { ...report, spend };
+}
+
+async function assertPinnedRevisions(
+  input: StandaloneReviewInput,
+  prepared: Prepared,
+  revisions: Record<string, number>,
+  client: Awaited<ReturnType<StandaloneReviewServices['connect']>>,
+  services: StandaloneReviewServices,
+): Promise<void> {
+  const current = await services.github.revisions(input.repo, input.pr);
+  if (current.base !== prepared.base || current.head !== prepared.head)
+    throw new Error('PR revisions changed; start a new review');
+  const available = await client.profiles(input.teamId);
+  for (const [id, revision] of Object.entries(revisions))
+    if (available.find((profile) => profile.id === id)?.revision !== revision)
+      throw new Error('Runtime profile changed; start a new review');
 }

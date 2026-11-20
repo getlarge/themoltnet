@@ -729,7 +729,7 @@ describe('route and review failures', () => {
       routing: { routes: [] },
     });
     const { deps: cli } = deps();
-    const primaryConnect = cli.connect.bind(cli);
+    const primaryConnect = cli.connect;
     const controller = new AbortController();
     const timeout = vi
       .spyOn(AbortSignal, 'timeout')

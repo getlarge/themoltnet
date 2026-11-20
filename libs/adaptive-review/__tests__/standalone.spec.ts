@@ -1,12 +1,11 @@
+import { MoltNetError, NetworkError } from '@themoltnet/sdk';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { SuspendTask } from 'absurd-sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  ReviewCoordinatorError,
-  scopedReviewTasks,
-} from '../src/review-tasks.js';
+import { DEFAULT_COMPLEXITY_RUBRIC } from '../src/review-assets.js';
+import { scopedReviewTasks } from '../src/review-tasks.js';
 import {
   conductAdaptiveReview,
   type StandaloneReviewInput,
@@ -26,8 +25,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function fixture(tasks = new IdempotentReviewTasks()) {
-  const repo = reviewFixture();
+function fixture(tasks = new IdempotentReviewTasks(), lanes?: string[]) {
+  const repo = reviewFixture(undefined, lanes);
   fixtures.push(repo);
   const options = repo.options(tasks);
   const input: StandaloneReviewInput = {
@@ -82,6 +81,7 @@ describe('complete adaptive review workflow', () => {
       },
     }));
     const { input, services } = fixture(tasks);
+    services.ensureCapacity = vi.fn(async () => {});
     const result = await conductAdaptiveReview(
       { ...input, mode: 'active', publication: 'report-only' },
       replayContext(),
@@ -92,6 +92,9 @@ describe('complete adaptive review workflow', () => {
         result.report.results.every((lane) => lane.status === 'screened'),
     ).toBe(true);
     expect(tasks.created).toHaveLength(1);
+    expect(services.ensureCapacity).toHaveBeenCalledExactlyOnceWith([
+      { pool: 'classifier', profile: 'classifier', count: 1 },
+    ]);
     expect(services.publish).not.toHaveBeenCalled();
   });
   it('conducts the entire review without Actions inputs or intermediate files', async () => {
@@ -142,20 +145,114 @@ describe('complete adaptive review workflow', () => {
     expect(services.publish).toHaveBeenCalledOnce();
   });
 
-  it('does not freeze a coordinator read error into classifier fallback or a failed lane', async () => {
+  it('does not freeze a coordinator creation error into classifier fallback or a failed lane', async () => {
     const { tasks, input, services } = fixture();
     const ctx = replayContext(input.correlationId);
-    const get = vi.spyOn(tasks, 'getTask');
-    get.mockRejectedValueOnce(new Error('transport unavailable'));
+    const get = vi.spyOn(tasks, 'createTask');
+    get.mockRejectedValueOnce(new NetworkError('transport unavailable'));
     await expect(
       conductAdaptiveReview(input, ctx, services),
-    ).rejects.toBeInstanceOf(ReviewCoordinatorError);
-    expect(tasks.created).toHaveLength(1);
+    ).rejects.toBeInstanceOf(NetworkError);
+    expect(tasks.created).toHaveLength(0);
     ctx.resetForReplay();
     const result = await conductAdaptiveReview(input, ctx, services);
     expect(result.status).toBe('completed');
     expect(tasks.created).toHaveLength(3);
     expect(ctx.checkpointNames).toContain('routing');
+  });
+
+  it('recovers aggregated complexity domain creation interruptions with the original map and key', async () => {
+    const tasks = new IdempotentReviewTasks((body) => {
+      if (body.taskType === 'classify') return reviewOutput(body);
+      if (body.tags?.includes('stage:map'))
+        return {
+          result: { groups: [{ nature: 'small change', fileIndexes: [0] }] },
+        };
+      if (body.tags?.some((tag) => tag.startsWith('stage:domain:')))
+        return {
+          result: {
+            summary: 'Checked change',
+            signals: [
+              {
+                criterionId: DEFAULT_COMPLEXITY_RUBRIC.criteria[0].id,
+                evidence: 'one isolated change',
+                impact: 'neutral',
+              },
+            ],
+          },
+        };
+      return {
+        result: {
+          scores: DEFAULT_COMPLEXITY_RUBRIC.criteria.map((criterion) => ({
+            criterionId: criterion.id,
+            status: 'pass',
+            rationale: 'small isolated change',
+          })),
+          verdict: 'Low',
+        },
+      };
+    });
+    const { input, services } = fixture(tasks, ['complexity']);
+    input.profiles.complexity = 'reviewer';
+    const create = tasks.createTask.bind(tasks);
+    const domainKeys: Array<string | undefined> = [];
+    let interrupted = false;
+    tasks.createTask = async (body, options) => {
+      if (body.tags?.some((tag) => tag.startsWith('stage:domain:'))) {
+        domainKeys.push(options?.idempotencyKey);
+        if (!interrupted) {
+          interrupted = true;
+          throw new NetworkError('domain creation interrupted');
+        }
+      }
+      return create(body, options);
+    };
+    const ctx = replayContext(input.correlationId);
+    await expect(
+      conductAdaptiveReview(input, ctx, services),
+    ).rejects.toBeInstanceOf(AggregateError);
+    expect(ctx.checkpointNames).not.toContain('report');
+    const mapIds = tasks.created.filter((task) =>
+      task.tags?.includes('stage:map'),
+    );
+    expect(mapIds).toHaveLength(1);
+    ctx.resetForReplay();
+    const result = await conductAdaptiveReview(input, ctx, services);
+    expect(
+      result.status === 'completed' && result.report.results[0].status,
+    ).toBe('clear');
+    expect(
+      tasks.created.filter((task) => task.tags?.includes('stage:map')),
+    ).toHaveLength(1);
+    expect(domainKeys).toHaveLength(2);
+    expect(domainKeys[1]).toBe(domainKeys[0]);
+  });
+
+  it('records a permanent rejection for its lane while preserving other completed lanes', async () => {
+    const { tasks, input, services } = fixture();
+    const create = tasks.createTask.bind(tasks);
+    const rejected = vi.fn();
+    tasks.createTask = (body, options) => {
+      if (body.tags?.includes('lane:tests')) {
+        rejected();
+        return Promise.reject(
+          new MoltNetError('not permitted', {
+            statusCode: 403,
+            code: 'FORBIDDEN',
+          }),
+        );
+      }
+      return create(body, options);
+    };
+    const ctx = replayContext(input.correlationId);
+    const result = await conductAdaptiveReview(input, ctx, services);
+    expect(
+      result.status === 'completed' &&
+        result.report.results.map((lane) => lane.status),
+    ).toEqual(['failed', 'clear']);
+    ctx.resetForReplay();
+    await conductAdaptiveReview(input, ctx, services);
+    expect(rejected).toHaveBeenCalledTimes(1);
   });
 
   it('retains terminal task failure without manufacturing a new execution budget', async () => {
@@ -201,6 +298,7 @@ describe('complete adaptive review workflow', () => {
 
   it('skips ineligible requests before fetching Git data or dispatching tasks', async () => {
     const { input, tasks, services } = fixture();
+    services.ensureCapacity = vi.fn(async () => {});
     const original = await services.github.pullRequest(input.repo, input.pr);
     vi.mocked(services.github.pullRequest).mockResolvedValue({
       ...original,
@@ -211,6 +309,7 @@ describe('complete adaptive review workflow', () => {
     ).toBe('skipped');
     expect(tasks.created).toHaveLength(0);
     expect(services.ensureGit).not.toHaveBeenCalled();
+    expect(services.ensureCapacity).not.toHaveBeenCalled();
   });
 });
 

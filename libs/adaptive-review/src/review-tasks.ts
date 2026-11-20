@@ -1,5 +1,8 @@
 import { isTransientMoltNetError } from '@themoltnet/sdk';
-import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+import {
+  type TaskClient,
+  TaskOutcomeError,
+} from '@themoltnet/tasks-orchestrator';
 
 /** A failed API operation is not evidence of a terminal child-task failure. */
 export class ReviewCoordinatorError extends Error {
@@ -9,10 +12,30 @@ export class ReviewCoordinatorError extends Error {
   }
 }
 
+/** Inspect transport wrappers, but never reinterpret a terminal task outcome. */
 export function isReviewCoordinatorFailure(reason: unknown): boolean {
-  return (
-    reason instanceof ReviewCoordinatorError || isTransientMoltNetError(reason)
-  );
+  const seen = new Set<unknown>();
+  const recoverable = (error: unknown): boolean => {
+    if (
+      !(error instanceof Error) ||
+      seen.has(error) ||
+      error instanceof TaskOutcomeError ||
+      error.name === 'TaskOutcomeError'
+    )
+      return false;
+    seen.add(error);
+    if (
+      error instanceof ReviewCoordinatorError ||
+      isTransientMoltNetError(error) ||
+      error.name === 'AbortError'
+    )
+      return true;
+    return (
+      (error instanceof AggregateError && error.errors.some(recoverable)) ||
+      recoverable(error.cause)
+    );
+  };
+  return recoverable(reason);
 }
 
 /** Enforce review scope for every child, including repairs and replacements. */
@@ -29,7 +52,9 @@ export function scopedReviewTasks(
     } catch (cause) {
       // Preserve the shared waiter's bounded transient-read retries.
       if (isTransientMoltNetError(cause)) throw cause;
-      throw new ReviewCoordinatorError(name, cause);
+      if (isReviewCoordinatorFailure(cause))
+        throw new ReviewCoordinatorError(name, cause);
+      throw cause;
     }
   };
   const listMessages = tasks.listMessages?.bind(tasks);

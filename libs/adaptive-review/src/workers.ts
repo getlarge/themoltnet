@@ -4,11 +4,7 @@ import type { Lane } from './core.js';
 
 /** The worker jobs that can claim one kind of adaptive review task. */
 export type WorkerPool =
-  | 'classifier'
-  | 'docs'
-  | 'complexity'
-  | 'security'
-  | 'focused';
+  'classifier' | 'docs' | 'complexity' | 'security' | 'focused';
 
 /** A pool of specialist workers, each running one runtime profile. */
 export type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
@@ -124,3 +120,11 @@ export function workflowWorkerLiveness(options: {
     },
   };
 }
+
+/** Volatile host capacity requested by the durable workflow, never checkpointed. */
+export interface ReviewCapacity {
+  pool: 'classifier' | SpecialistPool;
+  profile: string;
+  count: number;
+}
+export const MAX_FOCUSED_WORKERS = 4;

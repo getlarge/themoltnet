@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { createGit } from '@moltnet/docs-impact-review';
@@ -21,6 +21,7 @@ import {
 import { reviewCheckpoint } from './context.js';
 import type { Lane } from './core.js';
 import { executeAdaptiveStage } from './execution.js';
+import { executionCorrelation } from './identity.js';
 import { hasIncompleteCoverage } from './report.js';
 import { cleanupReviewExecutions, reviewRetentionPolicy } from './retention.js';
 import { loadAdaptivePolicy } from './snapshot.js';
@@ -63,6 +64,7 @@ export interface CliDeps {
     pullRequest(repo: string, pr: number): Promise<PullRequest>;
   };
   connect(
+    this: void,
     teamId: string,
     signal?: AbortSignal,
   ): Promise<{
@@ -345,11 +347,6 @@ function plan(deps: CliDeps, prepared: Prepared, enabled: boolean): number {
       enabled && classifierTaskPossible(deps.cwd, prepared.base, prepared.head),
   });
   return 0;
-}
-
-function executionCorrelation(key: string): string {
-  const hex = createHash('sha256').update(key).digest('hex');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 async function assertCurrentRevision(

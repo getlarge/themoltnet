@@ -9,7 +9,7 @@ import { expect, it } from 'vitest';
 import { parseReviewTaskBudgets } from '../src/config.js';
 import {
   ADAPTIVE_WORKFLOW_TASK,
-  createAdaptiveStageApp,
+  createAdaptiveWorkflowApp,
   executionQueue,
 } from '../src/execution.js';
 import {
@@ -84,13 +84,12 @@ it('resumes one complete workflow in a replacement OS process after classificati
     runUrl: 'https://example.com/review',
     inlineFindings: false,
   };
-  const app = createAdaptiveStageApp<
+  const app = createAdaptiveWorkflowApp<
     StandaloneReviewInput,
     StandaloneReviewResult
   >({
     databaseUrl,
     queueName,
-    stage: 'workflow',
     run: async () => {
       throw new Error('Only the child worker may conduct the review');
     },
@@ -238,7 +237,7 @@ it('binds complete intent before worker startup and reuses the completed executi
   } finally {
     const queueName = executionQueue(`workflow-v1:${input.correlationId}`);
     for (const suffix of ['', '-input']) {
-      const app = createAdaptiveStageApp({
+      const app = createAdaptiveWorkflowApp({
         databaseUrl,
         queueName: queueName + suffix,
         run: async () => null,

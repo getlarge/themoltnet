@@ -14,7 +14,7 @@ const TaskBudgetSchema = Type.Object(
 );
 
 export type TaskBudget = Static<typeof TaskBudgetSchema>;
-// The route job has 55 minutes; leave time for setup and artifact publication.
+// Independent classifier ceiling; reserve review time for selected lanes.
 export const CLASSIFIER_STAGE_BUDGET_SEC = 45 * 60;
 // A separate work limit for fast packets; larger diffs still get classified
 // up to this ceiling rather than skipping classification altogether.
