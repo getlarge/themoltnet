@@ -19,7 +19,7 @@ export ADAPTIVE_RUNTIME_SHA="$(git rev-parse HEAD)"
 ```
 
 The bundle is currently a private workspace artifact, not an npm-installed
-review CLI. Keep its shared chunks and worker manifest with `run.js`.
+review CLI. Keep `review-worker.js`, its shared chunks, and the worker manifest with `run.js`.
 
 Provide an initialized Absurd 0.4.0 database through `ADAPTIVE_DATABASE_URL`,
 MoltNet credentials with `task:write` plus the daemon credential scopes,
@@ -38,7 +38,7 @@ For locally managed workers, install the compatible released `moltnet-agent`,
 set `MOLTNET_AGENT_NAME`, and configure its model providers and signing
 credentials using the [daemon guide](../../apps/agent-daemon/README.md).
 Use the exact daemon version recorded in `dist/release-dependencies.json`.
-`ADAPTIVE_DAEMON_BIN` can select an installed binary or trusted wrapper; the
+`MOLTNET_DAEMON_BIN` can select an installed binary or trusted wrapper; the
 launcher does not check that binary's version.
 
 Change to a checkout of the repository being reviewed, then run:
@@ -58,31 +58,38 @@ before fetching pinned Git objects or submitting model tasks, and reads policy
 and review guidance from the pinned base. It never executes the reviewed head
 to run the review.
 
-The launcher starts separate daemon processes for the classifier and configured
-specialist profiles. Every worker filters claims by the same review correlation
-ID, team, profile and task type. Project-scoped reviews also get matching daemon
-bindings for headless and Git worktree execution. The docs pool supplies both
-strategies because its planning tasks and revision-pinned reviews have different
-workspace requirements. Unprojected reviews explicitly select General. Task creation centrally enforces the correlation, team and diary,
-including semantic repairs. Correlation selects work; permissions and runtime
-sandboxing provide access and execution isolation.
+The local launcher starts capacity as each phase needs it. Classification
+requests one classifier worker. After routing, the workflow requests only the
+selected specialist pools: up to four focused workers, one for each other routed
+pool, and both headless and Git worktree strategies for project-scoped docs.
+Every worker filters claims by review correlation ID, team, profile and task type.
+Task creation checks correlation, team and diary, including semantic repairs.
+Unprojected reviews explicitly select General.
 
-Workers stay available across idle gaps until the coordinator finishes. They
-are stopped when the host exits, fails, receives SIGINT/SIGTERM, or reaches
-`--timeout-sec` (default two hours). An unexpected worker exit fails the host;
-the supervisor does not classify outstanding work as final failed lanes. Restart with the
-same command to supply replacement capacity. Host shutdown stops active daemon
-attempts, which can exhaust a task's one-attempt limit. Restarting restores
-workers and coordinator checkpoints; it does not recreate terminally failed
-child tasks. `--workers external` skips local
-worker startup when matching workers already exist. Those workers must use the
-same correlation ID, team, profile, task types, and project binding. Both modes run the same
-Absurd workflow.
+Capacity belongs to the current host, not durable workflow state. Resuming an
+incomplete phase requests capacity again. Each daemon runs behind a guardian
+process. Host loss disconnects the guardian, which terminates the daemon process
+group and escalates to SIGKILL after ten seconds if descendants remain. Normal
+shutdown signals workers before waiting for the coordinator to drain. Structured
+logs retain their JSON format and include the pool, worker index and process IDs.
+
+Workers stop when the review finishes, the host fails, receives SIGINT/SIGTERM,
+or reaches its timeout. An unexpected worker exit fails the host. Restart with
+the same execution ID to supply replacement capacity. Shutdown can leave an
+active single-attempt child task terminal. Neither replay nor
+`ADAPTIVE_RETRY_FAILED=true` creates replacements for terminal child tasks.
+
+With `--workers external`, the launcher does not start workers. The operator
+provides matching profiles, task types, team, correlation filters and project
+bindings, plus their credentials, sandbox configuration and lifecycle management.
+Correlation filters select work; authorization and sandbox policy enforce isolation.
+Both modes run the same Absurd workflow.
 
 ```mermaid
 flowchart TD
     Host[Local launcher or Actions consumer] --> Workflow[One durable Absurd review]
-    Host --> Workers[Review-scoped daemon workers]
+    Workflow -->|Request capacity after admission and routing| Host
+    Host -->|Start and supervise| Workers[Review-scoped daemon workers]
     Workflow --> Pin[Pin PR and policy]
     Pin --> Classify[Classify and decide routes]
     Classify --> Lanes[Run selected lanes concurrently]
@@ -106,8 +113,10 @@ executions. Immutable input binding rejects changing options on resume.
 Completed checkpoints retain classifier decisions, task IDs, lane results and
 publication state. Replacement hosts reconstruct local Git objects for unfinished
 investigation; publication reuses the saved report. No prepared or routing JSON
-files are required. A transient coordinator API failure does
-not become a final lane result. Daemon attempt policy, bounded semantic repair,
+files are required. Recoverable task-API interruptions, including wrapped parallel creation
+failures, escape lane checkpoints so the coordinator can recover. Deterministic
+task-API rejections are recorded as lane failures; terminal task outcomes retain
+the daemon's existing attempt classification. Daemon attempt policy, bounded semantic repair,
 and explicit terminal-task recovery remain distinct. Existing review tasks
 retain their configured one-attempt limit; this change does not increase it.
 
@@ -125,6 +134,58 @@ database you own:
 ```bash
 ABSURD_DATABASE_URL="$ADAPTIVE_DATABASE_URL" uvx absurdctl init --ref 0.4.0
 ```
+
+## Environment contract
+
+Command-line options override their corresponding environment settings.
+
+| Setting                                                                                                         | Complete-workflow use                                                                                              |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `ADAPTIVE_DATABASE_URL`                                                                                         | Required initialized Absurd database; keep it on resume.                                                           |
+| `ADAPTIVE_EXECUTION_ID`                                                                                         | Alternative to `--execution-id`; stable review UUID.                                                               |
+| `ADAPTIVE_REPOSITORY`, `ADAPTIVE_PR`                                                                            | Alternatives to `--repo` and `--pr`.                                                                               |
+| `MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`                                                                           | Required task scope; optional `MOLTNET_PROJECT_ID` selects project scope.                                          |
+| `ADAPTIVE_RUNTIME_SHA`                                                                                          | Required full runtime commit SHA; a label, not code attestation.                                                   |
+| `ADAPTIVE_MODE`                                                                                                 | `active` (default) or `shadow`.                                                                                    |
+| `ADAPTIVE_CLASSIFIER_PROFILE`                                                                                   | Required profile ID or name in the selected team.                                                                  |
+| `ADAPTIVE_FOCUSED_PROFILE`, `ADAPTIVE_DOCS_PROFILE`, `ADAPTIVE_COMPLEXITY_PROFILE`, `ADAPTIVE_SECURITY_PROFILE` | Required for their enabled policy lanes.                                                                           |
+| `ADAPTIVE_TASK_BUDGETS`                                                                                         | Optional YAML/JSON budget overrides; validated before dispatch.                                                    |
+| `PROTECTED_PATHS`                                                                                               | Optional newline-separated paths excluded from review eligibility.                                                 |
+| `ADAPTIVE_APP_LOGIN`                                                                                            | Required reviewer App login, including `[bot]`.                                                                    |
+| `GH_TOKEN`                                                                                                      | Repository token for GitHub reads and, when requested, publication.                                                |
+| `ADAPTIVE_GITHUB_APP_ID`, `MOLTNET_GITHUB_APP_PRIVATE_KEY`                                                      | Alternative renewable App authentication, scoped to the repository and requested publication mode; held in memory. |
+| `ADAPTIVE_PUBLICATION=github`                                                                                   | Equivalent to opting into publication with `--publish`.                                                            |
+| `ADAPTIVE_REPORT`                                                                                               | Alternative to `--report`; JSON report destination.                                                                |
+| `ADAPTIVE_RUN_URL`                                                                                              | Stable source link for publication; defaults to the PR URL.                                                        |
+| `ADAPTIVE_INLINE_FINDINGS=false`                                                                                | Disable inline finding threads.                                                                                    |
+| `GITHUB_API_URL`, `GITHUB_GRAPHQL_URL`, `GITHUB_SERVER_URL`                                                     | Optional GitHub endpoint overrides; configure `gh` for that host too.                                              |
+| `MOLTNET_DAEMON_BIN`                                                                                            | Trusted local daemon executable or wrapper; never PR-supplied configuration.                                       |
+| `ADAPTIVE_TIMEOUT_SEC`                                                                                          | Host timeout in seconds, overridden by `--timeout-sec`.                                                            |
+| `ADAPTIVE_RETRY_FAILED=true`                                                                                    | Retry an exhausted coordinator while preserving its saved checkpoints.                                             |
+
+MoltNet credential and provider setup follows the
+[daemon guide](../../apps/agent-daemon/README.md). Workers do not inherit GitHub
+publication credentials or coordinator database URLs. Git and `gh` subprocesses
+receive runner basics and the scoped token, rather than model or identity secrets.
+
+## Host lifetime and identity
+
+`--execution-id` supplies the review UUID and the child-task correlation ID.
+Absurd assigns its own internal workflow task ID. Durable Actions reruns retain
+the review UUID; ephemeral reruns include the run attempt in its derivation.
+The standalone consumer and legacy CLI use the same correlation helper.
+
+Connections and Git preparation are reused within one host. PR/profile currency
+checks may be cached for 30 seconds while unfinished phases replay. Replacement
+hosts reconstruct preparation and validate pinned revisions afresh. Keep runtime
+profiles stable while tasks remain outstanding: claims select the current profile
+by ID, not an independently stored historical model configuration.
+
+The local host timeout defaults to two hours. Actions recomputes the remaining
+budget after provider setup, within the 125-minute job budget and with two minutes
+reserved for cleanup. That also caps an explicit timeout. Local and external
+worker modes share the same timeout/cancellation signal. Workflow failures report
+the review ID and sanitized underlying details; host logs distinguish start and resume.
 
 ## Choose an execution mode
 
@@ -193,8 +254,7 @@ Releases containing the bundled worker action record its daemon version in
 version. An explicit override must be an exact stable `major.minor.patch`
 version; prerelease suffixes are rejected. The caller owns compatibility with
 its selected review bundle. Released bundles
-skip workspace installation and compilation. Coordinator and worker jobs verify
-the same artifact digest, and workers restore their action from that artifact.
+skip workspace installation and compilation. The consumer restores its worker action from the same pinned review bundle.
 Optional diary context still installs its exact external runtime dependencies.
 A deliberate `runtime-ref` override must be a full trusted commit SHA; a source
 checkout without the bundle installs and builds it during preparation.
@@ -234,8 +294,15 @@ for adding the comment trigger and its authorization checks.
 
 ## Legacy stage commands
 
-These manual stage entry points remain for existing executions. They are not
-the orchestration used by the current reusable Actions workflow.
+The manual `prepare`, `plan`, `route`, `review`, and `publish` commands are
+deprecated. Start new reviews with `run.js`. These commands remain available for
+published consumers and unfinished stage executions.
+
+Remove them only in the next breaking action release after maintained consumers
+have migrated and the retention window for unfinished legacy executions has
+elapsed. Pinned older releases retain their original execution compatibility.
+This is a removal condition, not an announced release date or completed rollout.
+Outcomes collection and cleanup are not deprecated.
 
 Use the repository's Node version from `.tool-versions`, pnpm, Git, and `gh`.
 Build the bundle in a trusted MoltNet checkout containing this implementation:
@@ -381,32 +448,14 @@ A failed lane makes the review command exit 1 **after writing its report**.
 successful command are not review clearance. Publication can publish an
 incomplete report. There is no implicit approval gate between these commands.
 
-### Environment contract
+### Legacy stage environment settings
 
-This table describes the retained stage commands. The complete `run.js`
-workflow uses the profile/budget settings above and optional `ADAPTIVE_REPORT`;
-it does not require `ADAPTIVE_PREPARED` or `ADAPTIVE_ROUTE`.
-`ADAPTIVE_EXECUTION_MODE` selects database provisioning in Actions only.
-
-| Setting                                                                             | Meaning                                                                                                                         |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `ADAPTIVE_EXECUTION_MODE`                                                           | `durable` (default) or `ephemeral`; keep it unchanged from preparation through publication.                                     |
-| `ADAPTIVE_DATABASE_URL`                                                             | Required for prepare, route, review, and publish in both CLI modes. Durable replacements use the same database.                 |
-| `ADAPTIVE_EXECUTION_ID`                                                             | Optional preparation override for the correlation ID. Use a UUID; preserve it on resume.                                        |
-| `ADAPTIVE_RETRY_FAILED=true`                                                        | Explicitly retries an Absurd stage that reached `failed`; does not refresh completed stages or failed lane results.             |
-| `ADAPTIVE_MODE`                                                                     | Required `active` or `shadow`; shadow investigates every enabled lane.                                                          |
-| `ADAPTIVE_RUNTIME_SHA`                                                              | Required runtime revision label, pinned as input. Operators must actually run that code; this string is not a code attestation. |
-| `ADAPTIVE_CLASSIFIER_PROFILE`                                                       | Required profile name or ID, resolved in the selected team.                                                                     |
-| `ADAPTIVE_FOCUSED_PROFILE`                                                          | Required when tests, conventions, blast-radius, or performance is enabled.                                                      |
-| `ADAPTIVE_DOCS_PROFILE`, `ADAPTIVE_COMPLEXITY_PROFILE`, `ADAPTIVE_SECURITY_PROFILE` | Required for their respective enabled lanes.                                                                                    |
-| `ADAPTIVE_TASK_BUDGETS`                                                             | Optional YAML overrides; see [task budgets](README.md#findings-and-outcomes). Keep resolved limits unchanged on resume.         |
-| `MOLTNET_PROJECT_ID`                                                                | Optional task project scope. Workers need the matching project binding; omitting it uses General work.                          |
-| `ADAPTIVE_PREPARED`, `ADAPTIVE_ROUTE`, `ADAPTIVE_REPORT`                            | Prepared input, routing output, and report file paths. Parent directories must exist.                                           |
-| `ADAPTIVE_APP_LOGIN`                                                                | Required for review history and publication attribution.                                                                        |
-| `ADAPTIVE_RUN_URL`                                                                  | Required for publication; use a stable URL across retries.                                                                      |
-| `ADAPTIVE_INLINE_FINDINGS=false`                                                    | Disables inline threads; all other values retain inline publication.                                                            |
-| `GITHUB_API_URL`, `GITHUB_GRAPHQL_URL`                                              | Optional REST and GraphQL overrides. Configure `gh` separately for the same GitHub host.                                        |
-| `GITHUB_OUTPUT`, `GITHUB_STEP_SUMMARY`                                              | Optional Actions output/summary files. Without an output file, stage outputs go to stdout.                                      |
+The [environment contract](#environment-contract) defines shared settings.
+The legacy commands additionally use `ADAPTIVE_PREPARED` and `ADAPTIVE_ROUTE`
+handoff files and require an explicit `ADAPTIVE_MODE`. `ADAPTIVE_REPORT` is their
+report handoff. `ADAPTIVE_EXECUTION_MODE` also governs legacy preparation identity;
+keep it unchanged through all stages. `GITHUB_OUTPUT` and `GITHUB_STEP_SUMMARY`
+are optional Actions files; without an output file, stage outputs go to stdout.
 
 Profile IDs and the revisions returned by the profile API are pinned. A
 changed revision is rejected on resume. Task claims currently select profiles
@@ -843,3 +892,17 @@ pnpm run e2e:down
 ```
 
 CI runs it in the daemon runtime e2e lane, with an initialized Absurd database.
+
+### Real Pi cold-cache preparation
+
+A separate process-level check prepares four independent real default Pi adapters
+against one empty temporary snapshot cache. It builds a real VM checkpoint and
+loads it from each worker, without invoking a model or claiming tasks:
+
+```bash
+MOLTNET_PI_VM_INTEGRATION=1 pnpm exec nx run @themoltnet/agent-daemon:test -- __tests__/pi-cold-start.integration.spec.ts
+```
+
+This requires the daemon's VM prerequisites. It verifies concurrent preparation,
+not model quality or live GitHub permissions. Snapshot process tests also cover
+contention, a killed builder, stale-lock recovery, and atomic publication.

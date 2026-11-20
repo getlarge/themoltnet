@@ -7,6 +7,11 @@ Local runs always use an existing `ADAPTIVE_DATABASE_URL`.
 This is separate from `mode: active` / `shadow`, which selects review coverage;
 `.github/adaptive-review.json` does not control execution infrastructure.
 
+New executions use the single `run.js` launcher. Legacy `prepare`, `plan`, `route`,
+`review`, and `publish` commands are deprecated; see the
+[removal and compatibility policy](EXECUTION.md#legacy-stage-commands).
+Outcomes collection and cleanup remain supported.
+
 Adaptive review reads `.github/adaptive-review.json` from the pull request's
 **base commit**. A repository opts in by adding a version 1 JSON file on its
 base branch. A PR adding or changing the policy is reviewed under the old base
