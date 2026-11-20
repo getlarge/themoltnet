@@ -7,10 +7,8 @@ Local runs always use an existing `ADAPTIVE_DATABASE_URL`.
 This is separate from `mode: active` / `shadow`, which selects review coverage;
 `.github/adaptive-review.json` does not control execution infrastructure.
 
-New executions use the single `run.js` launcher. Legacy `prepare`, `plan`, `route`,
-`review`, and `publish` commands are deprecated; see the
-[removal and compatibility policy](EXECUTION.md#legacy-stage-commands).
-Outcomes collection and cleanup remain supported.
+Run complete reviews with `run.js`. The composite action handles outcomes and
+cleanup; stage-by-stage review commands are no longer provided.
 
 Adaptive review reads `.github/adaptive-review.json` from the pull request's
 **base commit**. A repository opts in by adding a version 1 JSON file on its
@@ -278,12 +276,10 @@ A binary patch hides what changed, so it routes every enabled lane as
 incomplete. Lockfile summaries and generated paths are deliberate and do not;
 the report still lists them as not reviewed.
 
-The durable route and review stages wait on MoltNet task deadlines rather than
-the current Actions attempt's worker-job status. Replacement workers can claim
-remaining eligible tasks under the same review correlation ID; restarting the
-coordinator does not start workers or reset task expiry. See
-[workers and lifetime](EXECUTION.md#workers-and-lifetime) for the host and worker
-recovery responsibilities.
+The durable workflow waits on MoltNet task deadlines. The launcher reconstructs
+worker capacity for unfinished phases using the same review correlation ID;
+resuming does not reset task expiry. See [host lifetime and identity](EXECUTION.md#host-lifetime-and-identity)
+for worker replacement and cancellation behavior.
 
 When a lane's review is incomplete, the comment lists what it could not assess
 under "Not fully assessed". For the docs lane, these are the documents, hunks,
