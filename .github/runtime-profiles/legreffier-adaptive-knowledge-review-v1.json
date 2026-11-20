@@ -22,8 +22,9 @@
   "name": "legreffier-adaptive-knowledge-review-v1",
   "requiredEnv": [],
   "requiredTools": [
-    "moltnet_search_review_entries",
-    "moltnet_get_review_entry"
+    "git_diff",
+    "moltnet_get_review_entry",
+    "moltnet_search_review_entries"
   ],
   "runtimeKind": "adaptive_review_pi",
   "sandbox": {

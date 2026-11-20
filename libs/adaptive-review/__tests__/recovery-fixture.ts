@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -106,6 +107,17 @@ export function reviewOutput(body: Parameters<TaskClient['createTask']>[0]) {
 
 /** Models the API's idempotency contract, including incompatible request rejection. */
 export class IdempotentReviewTasks extends FakeTasks {
+  stageArtifact: NonNullable<TaskClient['stageArtifact']> = (body) => {
+    if (typeof body !== 'string')
+      throw new Error('Fixture expects text artifact');
+    return Promise.resolve({
+      artifactSource: 'staged',
+      cid: createHash('sha256').update(body).digest('hex'),
+      sizeBytes: Buffer.byteLength(body),
+      contentType: 'application/json',
+    });
+  };
+
   readonly requests: Array<{ key: string; body: string; id: string }> = [];
   private readonly keys = new Map<
     string,

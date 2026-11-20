@@ -4,10 +4,11 @@
   "shellCommands": [],
   "tools": [
     "find",
+    "git_diff",
     "grep",
     "ls",
-    "read",
+    "moltnet_get_review_entry",
     "moltnet_search_review_entries",
-    "moltnet_get_review_entry"
+    "read"
   ]
 }

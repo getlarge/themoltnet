@@ -1,6 +1,6 @@
 {
-  "description": "Repository inspection only for staged security review tasks; the pinned diff is supplied in the task brief.",
+  "description": "Read-only security review with the pinned diff available through git_diff and approved repository inspection tools.",
   "name": "legreffier-security-review-readonly-v1",
   "shellCommands": [],
-  "tools": ["find", "grep", "ls", "read"]
+  "tools": ["find", "git_diff", "grep", "ls", "read"]
 }

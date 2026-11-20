@@ -54,6 +54,7 @@ import {
   accountForPriorFindings,
   type PriorFindingReview,
 } from './prior-findings.js';
+import { withPinnedReviewDiff } from './review-diff.js';
 import { isReviewCoordinatorFailure } from './review-tasks.js';
 import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
@@ -211,6 +212,9 @@ function projectScopedTaskClient(
       tasks.createTask({ ...body, projectId }, options),
     getTask: (id) => tasks.getTask(id),
     listAttempts: (id) => tasks.listAttempts(id),
+    ...(tasks.stageArtifact
+      ? { stageArtifact: tasks.stageArtifact.bind(tasks) }
+      : {}),
     ...(listMessages ? { listMessages } : {}),
   };
 }
@@ -461,7 +465,7 @@ export async function runRoutedAdaptiveReview(
           `lane.${route.lane}.result`,
           async (): Promise<LaneResult> => {
             try {
-              const laneTasks = trackingTaskClient(
+              let laneTasks = trackingTaskClient(
                 guardWorkers(tasks, workerPool(route.lane), options.workers),
                 createdTaskIds[index],
               );
@@ -474,6 +478,21 @@ export async function runRoutedAdaptiveReview(
                   findings: [],
                 };
               const profileId = requiredProfile(options, route.lane);
+              if (
+                [
+                  'tests',
+                  'conventions',
+                  'blast-radius',
+                  'performance',
+                  'security',
+                ].includes(route.lane)
+              ) {
+                laneTasks = withPinnedReviewDiff(laneTasks, {
+                  git,
+                  base: identity.base,
+                  head: identity.head,
+                });
+              }
               return await LANE_RUNNERS[route.lane]({
                 ctx: reviewContext(laneContext, route.lane),
                 taskIds: createdTaskIds[index],
