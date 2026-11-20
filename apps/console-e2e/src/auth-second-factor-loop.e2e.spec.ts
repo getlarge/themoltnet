@@ -77,7 +77,14 @@ test.describe.serial('console auth with a pending second factor', () => {
 
     const consoleLoads: string[] = [];
     page.on('framenavigated', (frame) => {
-      if (frame === page.mainFrame() && frame.url().startsWith(CONSOLE_URL)) {
+      const url = new URL(frame.url());
+      // Auth screens now share the Console origin. Count returns to protected
+      // routes, not normal transitions inside the authentication UI.
+      if (
+        frame === page.mainFrame() &&
+        url.origin === new URL(CONSOLE_URL).origin &&
+        !url.pathname.startsWith('/auth/')
+      ) {
         consoleLoads.push(frame.url());
       }
     });
@@ -94,7 +101,11 @@ test.describe.serial('console auth with a pending second factor', () => {
 
     // Landed on the second-factor form, not back on the console.
     await expect(page.locator('input[name="totp_code"]')).toBeVisible();
-    expect(page.url()).not.toContain(CONSOLE_URL);
+    await expect(page).toHaveURL(
+      (url) =>
+        url.origin === new URL(CONSOLE_URL).origin &&
+        url.pathname === '/auth/login',
+    );
   });
 
   test('sends the second-factor challenge to an aal2 login flow', async ({
