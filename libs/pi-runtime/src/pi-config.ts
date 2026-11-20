@@ -69,6 +69,7 @@ export interface PiModelSpec {
   api?: string;
   contextWindow?: number;
   input?: readonly PiModelModality[];
+  /** Declared thinking support and provider-specific effort mapping. */
   reasoning?: boolean;
   thinkingLevelMap?: Readonly<Record<string, string>>;
   /** Explicit provider claim that strict JSON-schema function tools work. */
@@ -77,7 +78,7 @@ export interface PiModelSpec {
 
 /** Serialized model declaration registered through Pi's native provider API. */
 interface PiStoredModelSpec extends Omit<PiModelSpec, 'supportsStrictMode'> {
-  compat?: { supportsStrictMode: boolean };
+  compat?: { supportsStrictMode?: boolean; maxTokensField?: 'max_tokens' };
 }
 
 export interface WritePiProviderInput {
@@ -108,6 +109,9 @@ export interface WriteSingleProviderPiConfigInput extends WritePiConfigBase {
   cost?: PiModelCost;
   /** Input modalities for `model`. Omitted leaves Pi's text-only default. */
   input?: readonly PiModelModality[];
+  /** Declared thinking support and provider-specific effort mapping. */
+  reasoning?: boolean;
+  thinkingLevelMap?: Readonly<Record<string, string>>;
   /**
    * OpenAI-completions base URL for the provider. Defaults to Ollama Cloud.
    */
@@ -135,14 +139,17 @@ export interface WriteMultiProviderPiConfigInput extends WritePiConfigBase {
 }
 
 export type WritePiConfigInput =
-  | WriteSingleProviderPiConfigInput
-  | WriteMultiProviderPiConfigInput;
+  WriteSingleProviderPiConfigInput | WriteMultiProviderPiConfigInput;
 
 /**
  * Keep model types explicit in the generated catalog. Legacy declarations
  * without a type are chat; capabilities are emitted only when declared.
  */
-function toPiModel(entry: PiModelSpec, baseUrl: string): PiStoredModelSpec {
+function toPiModel(
+  entry: PiModelSpec,
+  baseUrl: string,
+  api = 'openai-completions',
+): PiStoredModelSpec {
   const endpoint = new URL(baseUrl);
   const cloudModel =
     endpoint.origin === 'https://ollama.com' &&
@@ -154,6 +161,18 @@ function toPiModel(entry: PiModelSpec, baseUrl: string): PiStoredModelSpec {
   const cloudCost =
     entry.type === 'classifier' ? cloudModel?.classifierCost : cloudModel?.cost;
   const cost = entry.cost ?? cloudCost;
+  // Ollama silently ignores max_completion_tokens; its chat API uses max_tokens.
+  const ollamaChat =
+    endpoint.origin === 'https://ollama.com' &&
+    endpoint.pathname.replace(/\/$/, '') === '/v1' &&
+    entry.type !== 'classifier' &&
+    (entry.api ?? api) === 'openai-completions';
+  const compat = {
+    ...(ollamaChat ? { maxTokensField: 'max_tokens' as const } : {}),
+    ...(entry.supportsStrictMode !== undefined
+      ? { supportsStrictMode: entry.supportsStrictMode }
+      : {}),
+  };
   return {
     id: entry.id,
     ...(cost ? { cost: { ...cost } } : {}),
@@ -169,9 +188,7 @@ function toPiModel(entry: PiModelSpec, baseUrl: string): PiStoredModelSpec {
     ...(entry.thinkingLevelMap
       ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
       : {}),
-    ...(entry.supportsStrictMode !== undefined
-      ? { compat: { supportsStrictMode: entry.supportsStrictMode } }
-      : {}),
+    ...(Object.keys(compat).length ? { compat } : {}),
   };
 }
 
@@ -197,7 +214,7 @@ export function writePiConfig(input: WritePiConfigInput): void {
                 }
               : {}),
             models: provider.models.map((model) =>
-              toPiModel(model, provider.baseUrl),
+              toPiModel(model, provider.baseUrl, provider.api),
             ),
           },
         ]),
@@ -220,6 +237,8 @@ export function writePiConfig(input: WritePiConfigInput): void {
                 id: input.model,
                 cost: input.cost,
                 input: input.input,
+                reasoning: input.reasoning,
+                thinkingLevelMap: input.thinkingLevelMap,
                 supportsStrictMode: input.supportsStrictMode,
               },
               input.baseUrl ?? 'https://ollama.com/v1',

@@ -75,6 +75,34 @@ function plan(
 }
 
 describe('exact-revision task workspaces', () => {
+  it('supports pinned Git diff inspection from a dedicated review worktree', () => {
+    const repo = repository();
+    const workspace = prepareTaskWorkspace(
+      task(),
+      repo.root,
+      plan('dedicated_worktree', repo.second),
+    );
+    try {
+      const diff = execFileSync(
+        'git',
+        [
+          'diff',
+          '--no-ext-diff',
+          '--no-textconv',
+          '--end-of-options',
+          `${repo.first}...${repo.second}`,
+          '--',
+          'file.txt',
+        ],
+        { cwd: workspace.cwdPath, encoding: 'utf8' },
+      );
+      expect(workspace.mountPath).toBe(repo.root);
+      expect(diff).toContain('-first');
+      expect(diff).toContain('+second');
+    } finally {
+      workspace.cleanup();
+    }
+  });
   it('fails a shared mount before model execution when HEAD drifted', () => {
     const repo = repository();
 

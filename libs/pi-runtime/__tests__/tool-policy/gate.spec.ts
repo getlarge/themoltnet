@@ -69,6 +69,32 @@ const base = (over: Partial<GateInput>): GateInput => ({
 });
 
 describe('decideToolCall', () => {
+  it('matches executable paths literally rather than by basename', () => {
+    const check = (command: string, executable = 'git') =>
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command,
+          allowedShellCommands: [{ argvPrefix: [executable, 'status'] }],
+          analyze: analyzeRealCommand,
+        }),
+      );
+    expect(check('git status')).toMatchObject({ allow: true });
+    for (const executable of [
+      './git',
+      'tools/git',
+      '/workspace/git',
+      '/usr/bin/git',
+    ])
+      expect(check(`${executable} status`)).toMatchObject({ allow: false });
+    expect(check('/usr/bin/git status', '/usr/bin/git')).toMatchObject({
+      allow: true,
+    });
+    expect(check('./git status', '/usr/bin/git')).toMatchObject({
+      allow: false,
+    });
+  });
+
   it('off allows anything', () => {
     expect(
       decideToolCall(base({ toolName: 'write', enforcement: 'off' })),

@@ -523,3 +523,16 @@ MOLTNET_PI_VM_INTEGRATION=1 pnpm exec nx run @themoltnet/agent-daemon:test -- __
 This requires the daemon's VM prerequisites. It verifies concurrent preparation,
 not model quality or live GitHub permissions. Snapshot process tests also cover
 contention, a killed builder, stale-lock recovery, and atomic publication.
+
+### Pinned diff inspection
+
+Focused and security reviewers inspect the pinned diff through the existing Bash
+tool: `git diff --no-ext-diff --no-textconv --end-of-options BASE...HEAD`. The review
+profiles bind policies granting that command prefix; they do not grant arbitrary
+Bash commands.
+The task still pins the workspace to the head commit. Dedicated task worktrees
+mount their owning repository, preserving the Git metadata needed for diffing.
+The fixed `--end-of-options` boundary prevents trailing arguments from overriding
+helper restrictions or selecting file output. Use `-- PATH` to inspect one file;
+use `read` with `offset` and `limit` for surrounding context and long source files.
+Large diffs need not fit in the task brief. No review-specific Git tool is installed in the default runtime.

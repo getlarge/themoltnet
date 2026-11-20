@@ -1,6 +1,16 @@
 {
   "description": "Repository inspection only for focused advisory PR reviews.",
   "name": "legreffier-adaptive-focused-readonly-v1",
-  "shellCommands": [],
+  "shellCommands": [
+    {
+      "argvPrefix": [
+        "git",
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--end-of-options"
+      ]
+    }
+  ],
   "tools": ["find", "grep", "ls", "read"]
 }

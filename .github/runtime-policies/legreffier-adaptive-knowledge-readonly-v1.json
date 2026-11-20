@@ -1,7 +1,17 @@
 {
   "description": "Repository reads plus bounded diary tools supplied by the optional adaptive review runtime module.",
   "name": "legreffier-adaptive-knowledge-readonly-v1",
-  "shellCommands": [],
+  "shellCommands": [
+    {
+      "argvPrefix": [
+        "git",
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--end-of-options"
+      ]
+    }
+  ],
   "tools": [
     "find",
     "grep",

@@ -1,6 +1,16 @@
 {
-  "description": "Repository inspection only for staged security review tasks; the pinned diff is supplied in the task brief.",
+  "description": "Repository inspection and pinned Git diff access for staged security review tasks.",
   "name": "legreffier-security-review-readonly-v1",
-  "shellCommands": [],
+  "shellCommands": [
+    {
+      "argvPrefix": [
+        "git",
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--end-of-options"
+      ]
+    }
+  ],
   "tools": ["find", "grep", "ls", "read"]
 }

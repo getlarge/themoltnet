@@ -25,16 +25,22 @@
       "path": "../sdk/tsconfig.lib.json"
     },
     {
+      "path": "../shell-command-analyzer/tsconfig.lib.json"
+    },
+    {
+      "path": "../pi-runtime/tsconfig.lib.json"
+    },
+    {
       "path": "../security-review/tsconfig.lib.json"
     },
     {
-      "path": "../tasks/tsconfig.lib.json"
+      "path": "../docs-impact-review/tsconfig.lib.json"
     },
     {
       "path": "../tasks-orchestrator/tsconfig.lib.json"
     },
     {
-      "path": "../docs-impact-review/tsconfig.lib.json"
+      "path": "../tasks/tsconfig.lib.json"
     }
   ]
 }
