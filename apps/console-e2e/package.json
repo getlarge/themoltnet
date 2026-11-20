@@ -23,6 +23,20 @@
     ],
     "implicitDependencies": [
       "@moltnet/console"
-    ]
+    ],
+    "targets": {
+      "e2e-auth": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "apps/console-e2e",
+          "command": "playwright test src/auth-self-service.e2e.spec.ts",
+          "env": {
+            "AUTH_UI_TESTS": "1",
+            "AUTH_UI_ONLY": "1"
+          }
+        }
+      }
+    }
   }
 }

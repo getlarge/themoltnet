@@ -68,7 +68,14 @@ function parseMailRecords(payload: unknown): MailRecord[] {
         : typeof mail['DateSent'] === 'string'
           ? mail['DateSent']
           : undefined;
-    const dateSentMs = dateSent ? Date.parse(dateSent) : Number.NaN;
+    // Mailslurper returns UTC without a timezone ("YYYY-MM-DD HH:mm:ss").
+    // Date.parse otherwise interprets it in the runner's local timezone.
+    const normalizedDate = dateSent?.replace(' ', 'T');
+    const utcDate =
+      normalizedDate && !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalizedDate)
+        ? `${normalizedDate}Z`
+        : normalizedDate;
+    const dateSentMs = utcDate ? Date.parse(utcDate) : Number.NaN;
 
     return {
       to: extractRecipient(mail),
@@ -130,7 +137,10 @@ export async function waitForVerificationData(
         continue;
       }
       if (sinceMs > 0) {
-        if (record.dateSentMs === undefined || record.dateSentMs < sinceMs) {
+        if (
+          record.dateSentMs === undefined ||
+          record.dateSentMs < Math.floor(sinceMs / 1000) * 1000
+        ) {
           continue;
         }
       }

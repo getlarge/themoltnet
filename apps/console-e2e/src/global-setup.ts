@@ -28,6 +28,14 @@ export default async function globalSetup() {
   const mailslurperUrl =
     process.env['MAILSLURPER_API_URL'] ?? 'http://localhost:4437';
 
+  if (process.env['AUTH_UI_ONLY'] === '1') {
+    await Promise.all([
+      waitForHealthy(kratosHealthUrl),
+      waitForHealthy(consoleUrl),
+    ]);
+    return;
+  }
+
   await Promise.all([
     waitForHealthy(kratosHealthUrl),
     waitForHealthy(apiHealthUrl),

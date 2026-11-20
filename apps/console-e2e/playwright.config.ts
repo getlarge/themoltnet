@@ -17,6 +17,7 @@ export default defineConfig({
   reporter: CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   globalSetup: './src/global-setup.ts',
   use: {
+    launchOptions: { channel: process.env['PLAYWRIGHT_CHANNEL'] },
     actionTimeout: 20_000,
     baseURL: CONSOLE_URL,
     trace: 'retain-on-failure',

@@ -7,7 +7,10 @@ import type { TestUser } from './test-user.js';
 import { generateTotpCode, waitForFreshTotpWindow } from './totp.js';
 
 export async function submitKratosForm(page: Page): Promise<void> {
-  await page.locator('form button[type="submit"]').first().click();
+  await page
+    .locator('form button[type="submit"][name="method"]')
+    .first()
+    .click();
 }
 
 export interface RegisterOptions {
