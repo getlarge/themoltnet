@@ -3337,10 +3337,16 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.14.0
+      proper-lockfile:
+        specifier: 'catalog:'
+        version: 4.1.2
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
+      '@types/proper-lockfile':
+        specifier: 'catalog:'
+        version: 4.1.4
       tsx:
         specifier: 'catalog:'
         version: 4.23.15

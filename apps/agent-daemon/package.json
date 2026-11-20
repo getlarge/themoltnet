@@ -204,7 +204,10 @@
           "{workspaceRoot}/test-fixtures/agent-server-endpoint.json",
           "{workspaceRoot}/docs/operate/*.md",
           "{workspaceRoot}/test-fixtures/connection-state-root.json",
-          "{workspaceRoot}/docs/.vitepress/config.ts"
+          "{workspaceRoot}/docs/.vitepress/config.ts",
+          {
+            "env": "MOLTNET_PI_VM_INTEGRATION"
+          }
         ]
       },
       "check:externals": {}
