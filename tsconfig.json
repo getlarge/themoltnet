@@ -275,6 +275,9 @@
     },
     {
       "path": "./packages/adaptive-review-action"
+    },
+    {
+      "path": "./libs/retrieval-eval"
     }
   ]
 }

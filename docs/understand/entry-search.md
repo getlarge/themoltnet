@@ -194,3 +194,14 @@ REST and MCP tests should remain lighter. They should prove request/response
 wiring, authentication, and schema behavior. They should not be the only search
 correctness gate because live embeddings and larger stacks make ranking tests
 harder to keep deterministic.
+
+## Reproducible retrieval evaluation
+
+The private [retrieval evaluation library](../../libs/retrieval-eval/README.md)
+provides a runnable local fixture baseline and Nx reproduction commands. It
+measures the production search repository in disposable PostgreSQL/pgvector with
+locally cached embeddings, without changing production ranking defaults. The
+twelve-entry, six-query fixture is development evidence, not a held-out
+benchmark. The library also accepts frozen datasets and can rescore saved
+rankings after label changes; corpus collection and annotation interfaces are
+separate work.
