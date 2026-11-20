@@ -168,6 +168,7 @@ describe('resolvePiAgentDir', () => {
           compat: { supportsDeveloperRole: false },
           models: [
             {
+              compat: { maxTokensField: 'max_tokens' },
               id: 'glm-5.2',
               type: 'chat',
               cost: OLLAMA_CLOUD_COST,

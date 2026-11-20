@@ -50,6 +50,7 @@ import {
   executeProfileClassificationTask,
   resolveClassifier,
 } from './runtime/model-runtime.js';
+import { assertRuntimeProfileThinkingLevel } from './runtime/model-selection.js';
 import { projectRuntimeCapabilities } from './runtime/runtime-capability-projection.js';
 import {
   injectRuntimeContext,
@@ -168,6 +169,7 @@ export function createGondolinDurableTaskExecutor(
       throw new Error(
         `Chat model ${options.provider}/${options.model} is not registered`,
       );
+    assertRuntimeProfileThinkingLevel(model, options.thinkingLevel);
     const logger =
       options.toolPolicyLogger ??
       createStderrToolPolicyLogger({
@@ -195,6 +197,11 @@ export function createGondolinDurableTaskExecutor(
       options.provider,
       options.model,
       (details, message) => logger.warn(details, message),
+      (controls) =>
+        record({
+          kind: 'info',
+          payload: { event: 'model_request_options', ...controls },
+        }),
     );
     const execute = createDurableTaskExecutor({
       models,

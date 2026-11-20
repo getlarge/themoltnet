@@ -60,7 +60,12 @@ describe('writeStorePiConfig', () => {
       compat: { supportsDeveloperRole: false },
       models: [
         // Pi reads `input` to decide whether image content parts may be sent.
-        { id: 'qwen3.5:397b-cloud', type: 'chat', input: ['text', 'image'] },
+        {
+          id: 'qwen3.5:397b-cloud',
+          type: 'chat',
+          input: ['text', 'image'],
+          compat: { maxTokensField: 'max_tokens' },
+        },
         {
           id: 'decisions',
           type: 'classifier',
@@ -71,7 +76,7 @@ describe('writeStorePiConfig', () => {
           type: 'chat',
           reasoning: true,
           thinkingLevelMap: { off: 'none', low: 'low' },
-          compat: { supportsStrictMode: true },
+          compat: { supportsStrictMode: true, maxTokensField: 'max_tokens' },
         },
       ],
     });

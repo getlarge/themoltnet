@@ -203,6 +203,38 @@ function setup(granted: boolean, tools: string[] = []) {
   };
 }
 
+it('rejects a sparse thinking declaration before VM setup or inference', async () => {
+  const fixture = setup(false);
+  const model = {
+    ...fixture.faux.models[0],
+    id: 'mimo-v2.6-flash',
+    provider: 'ollama-cloud',
+    api: 'openai-completions' as const,
+    baseUrl: 'https://ollama.com/v1',
+    reasoning: false,
+    thinkingLevelMap: undefined,
+  };
+  const models = Object.assign(createModels(), {
+    getModel: () => model,
+    getError: () => undefined,
+  });
+  const inference = vi.spyOn(models, 'streamSimple');
+  vi.mocked(ModelRuntime.create).mockResolvedValue(
+    models as unknown as ModelRuntime,
+  );
+  const execute = createGondolinDurableTaskExecutor({
+    ...fixture.options,
+    provider: model.provider,
+    model: model.id,
+    thinkingLevel: 'off',
+  });
+  await expect(execute(fixture.claimed, fixture.reporter)).rejects.toThrow(
+    'cannot transmit',
+  );
+  expect(fixture.resumeVm).not.toHaveBeenCalled();
+  expect(inference).not.toHaveBeenCalled();
+});
+
 it.each([
   'closed',
   'vm close delayed',
