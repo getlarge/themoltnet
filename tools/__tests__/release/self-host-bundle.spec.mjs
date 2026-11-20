@@ -519,6 +519,26 @@ test('resolves digest pins for source-tagged images', () => {
     ]) {
       assert.match(releaseEnv, new RegExp(`^${name}=.+@${digest}$`, 'm'));
     }
+    const composeDir = path.join(output, 'deploy/self-host');
+    const rendered = execFileSync(
+      'docker',
+      [
+        'compose',
+        '--env-file',
+        '.env.example',
+        '--env-file',
+        '.env.release',
+        '--profile',
+        '*',
+        'config',
+        '--format',
+        'json',
+      ],
+      { cwd: composeDir, encoding: 'utf8', env: composeEnvironment(composeDir) },
+    );
+    for (const service of Object.values(JSON.parse(rendered).services)) {
+      assert.match(service.image, /@sha256:[a-f0-9]{64}$/, service.image);
+    }
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }

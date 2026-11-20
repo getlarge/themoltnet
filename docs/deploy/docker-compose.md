@@ -191,6 +191,5 @@ PostgreSQL major-version changes require a separate migration procedure.
 bundle. It supports existing PostgreSQL 17, consumer-owned private networks, and
 externally protected Talos volumes. The archive includes its complete
 configuration and maintenance jobs. Follow `deploy/ory/README.md` for the
-interface and explicit initialization sequence. `images.txt` records every
-runtime and maintenance image; release archives and first-party images carry
-GitHub attestations from `release-self-host.yml`.
+interface and explicit initialization sequence. The release archive includes
+digest-pinned image references in `.env.release` and a GitHub attestation.

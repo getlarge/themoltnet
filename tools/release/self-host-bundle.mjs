@@ -250,42 +250,6 @@ function validateBundle(bundleRoot) {
   }
 }
 
-function writeImageManifest(bundleRoot, skipDigests) {
-  const rendered = run(
-    'docker',
-    [
-      'compose',
-      '--env-file',
-      '.env.example',
-      '--env-file',
-      '.env.release',
-      '--profile',
-      '*',
-      'config',
-      '--format',
-      'json',
-    ],
-    {
-      capture: true,
-      cwd: path.join(bundleRoot, 'deploy/self-host'),
-      env: validationEnvironment({ includeImages: false }),
-    },
-  );
-  const images = [
-    ...new Set(
-      Object.values(JSON.parse(rendered).services).map(
-        (service) => service.image,
-      ),
-    ),
-  ].sort();
-  if (
-    !skipDigests &&
-    images.some((image) => !/@sha256:[a-f0-9]{64}$/.test(image))
-  )
-    throw new Error('Every effective bundle image must be digest pinned');
-  writeFileSync(path.join(bundleRoot, 'images.txt'), images.join('\n') + '\n');
-}
-
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const bundleName = `moltnet-self-host-${args.version}`;
@@ -329,7 +293,6 @@ function main() {
     args.imageTag,
   );
   validateBundle(bundleRoot);
-  writeImageManifest(bundleRoot, args.skipDigests);
   process.stdout.write(`${bundleRoot}\n`);
 }
 

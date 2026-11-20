@@ -16,8 +16,7 @@ protected volume name. The standalone consumer accepts `TALOS_DATA_VOLUME`.
 Set `ORY_TOOLS_IMAGE` independently from the application migration image. The
 release locks both to the same database-tools digest initially. It contains
 Node and pg. All first-party images are source-revision pinned; Ory,
-its UI, and Talos use the module's explicit digest pins. `images.txt` lists
-every effective image, including maintenance jobs.
+its UI, and Talos use the module's explicit digest pins.
 
 Set `ORY_DB_HOST` (default `postgres`), `ORY_DB_PORT` (5432),
 `ORY_DB_SSLMODE` (`disable` on a private Docker network or `verify-full`),

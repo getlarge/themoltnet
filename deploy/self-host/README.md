@@ -91,6 +91,10 @@ serves are stopped:
 ./maintain.sh upgrade
 ```
 
+If you initialized with custom Compose options (such as `-p my-project` or
+`-f compose.tracing.yaml`), pass the **same options** after `upgrade` so it
+stops and migrates the existing project, not a new one.
+
 It validates the configuration, pulls the pinned images, stops the application
 and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
 clients, stopping at the first failure.

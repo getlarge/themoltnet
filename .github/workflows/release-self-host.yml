@@ -123,45 +123,6 @@ jobs:
         with:
           subject-path: moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz
 
-      - name: Resolve first-party image subjects
-        id: subjects
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          for variable in REST_API_IMAGE MCP_SERVER_IMAGE CONSOLE_IMAGE DB_MIGRATE_IMAGE; do
-            ref=$(sed -n "s/^$variable=//p" "moltnet-self-host-$VERSION/deploy/self-host/.env.release")
-            echo "${variable}_name=${ref%@*}" >> "$GITHUB_OUTPUT"
-            echo "${variable}_digest=${ref##*@}" >> "$GITHUB_OUTPUT"
-          done
-
-      - name: Attest REST API image
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-name: ${{ steps.subjects.outputs.REST_API_IMAGE_name }}
-          subject-digest: ${{ steps.subjects.outputs.REST_API_IMAGE_digest }}
-          push-to-registry: true
-
-      - name: Attest MCP image
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-name: ${{ steps.subjects.outputs.MCP_SERVER_IMAGE_name }}
-          subject-digest: ${{ steps.subjects.outputs.MCP_SERVER_IMAGE_digest }}
-          push-to-registry: true
-
-      - name: Attest Console image
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-name: ${{ steps.subjects.outputs.CONSOLE_IMAGE_name }}
-          subject-digest: ${{ steps.subjects.outputs.CONSOLE_IMAGE_digest }}
-          push-to-registry: true
-
-      - name: Attest database and Ory tools image
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
-        with:
-          subject-name: ${{ steps.subjects.outputs.DB_MIGRATE_IMAGE_name }}
-          subject-digest: ${{ steps.subjects.outputs.DB_MIGRATE_IMAGE_digest }}
-          push-to-registry: true
-
       - name: Upload workflow artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
