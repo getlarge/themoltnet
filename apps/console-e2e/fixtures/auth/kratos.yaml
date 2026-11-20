@@ -1,0 +1,66 @@
+version: v1.3.1
+dsn: sqlite:///data/db.sqlite?_fk=true
+serve:
+  public:
+    base_url: http://localhost:24433/
+    cors:
+      enabled: true
+      allowed_origins: [http://localhost:25174]
+      allowed_methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+      allowed_headers: [Content-Type, Authorization]
+      allow_credentials: true
+  admin:
+    base_url: http://localhost:24434/
+identity:
+  default_schema_id: synthetic
+  schemas:
+    - id: synthetic
+      url: file:///fixture/schema.json
+selfservice:
+  default_browser_return_url: http://localhost:25174/auth/logout
+  allowed_return_urls: [http://localhost:25174/]
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: false
+        min_password_length: 16
+    code:
+      enabled: true
+    totp:
+      enabled: true
+      config:
+        issuer: MoltNet
+  flows:
+    login:
+      lifespan: 15s
+      ui_url: http://localhost:25174/auth/login
+    registration:
+      ui_url: http://localhost:25174/auth/registration
+      after:
+        password:
+          default_browser_return_url: http://localhost:25174/auth/login
+    settings:
+      ui_url: http://localhost:25174/auth/settings
+    recovery:
+      use: code
+      enabled: true
+      ui_url: http://localhost:25174/auth/recovery
+    verification:
+      use: code
+      enabled: true
+      ui_url: http://localhost:25174/auth/verification
+    error:
+      ui_url: http://localhost:25174/auth/error
+    logout:
+      after:
+        default_browser_return_url: http://localhost:25174/auth/login
+session:
+  cookie:
+    same_site: Lax
+courier:
+  smtp:
+    connection_uri: smtps://test:test@mail:1025/?skip_ssl_verify=true
+
+feature_flags:
+  use_continue_with_transitions: true
