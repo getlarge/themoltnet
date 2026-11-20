@@ -159,15 +159,19 @@ describe('Ory environment parity', () => {
       services: {
         oauth2: {
           config: {
-            urls: { login: string; consent: string };
+            urls: Record<string, unknown>;
           };
         };
       };
     };
 
     expect(project.services.oauth2.config.urls).toMatchObject({
-      login: '${ORY_PROJECT_URL}/login',
       consent: '${API_BASE_URL}/oauth2/consent',
+      error: '${CONSOLE_BASE_URL}/auth/error',
+      login: '${CONSOLE_BASE_URL}/auth/login',
+      logout: '${CONSOLE_BASE_URL}/auth/logout',
+      post_logout_redirect: '${CONSOLE_BASE_URL}/',
+      registration: '${CONSOLE_BASE_URL}/auth/registration',
     });
   });
 
