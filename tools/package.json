@@ -55,6 +55,7 @@
     "@types/node": "catalog:",
     "@types/ws": "catalog:",
     "es-module-lexer": "catalog:",
+    "eslint": "catalog:",
     "ignore": "catalog:",
     "json5": "catalog:",
     "tsx": "catalog:",
@@ -87,7 +88,18 @@
           "^production",
           "{workspaceRoot}/.husky/pre-commit",
           "{workspaceRoot}/.github/workflows/**/*",
-          "{workspaceRoot}/docker-compose*.yaml"
+          "{workspaceRoot}/docker-compose*.yaml",
+          {
+            "input": "eslintConfig",
+            "projects": [
+              "@moltnet/console",
+              "@moltnet/agent-desktop",
+              "@themoltnet/design-system",
+              "@moltnet/diary-ui",
+              "@moltnet/task-ui",
+              "@moltnet/entry-explore-mcp-app"
+            ]
+          }
         ]
       },
       "test:agent-bundle": {

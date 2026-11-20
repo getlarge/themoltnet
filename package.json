@@ -102,7 +102,7 @@
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "eslint": "catalog:",
-    "eslint-plugin-jsx-a11y": "catalog:",
+    "eslint-plugin-jsx-a11y-x": "catalog:",
     "eslint-plugin-playwright": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
