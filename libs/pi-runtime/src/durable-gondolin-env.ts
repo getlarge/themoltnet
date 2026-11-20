@@ -1,7 +1,7 @@
 import { posix } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 
-import type { Context } from '@earendil-works/chord';
+import type { Context } from '@earendil-works/chord/context';
 import type { VM } from '@earendil-works/gondolin';
 import {
   type BinaryReader,

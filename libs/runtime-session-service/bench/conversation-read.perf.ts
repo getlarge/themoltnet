@@ -27,6 +27,7 @@ import {
   defineDocFamily,
   LiveDoc,
   MemoryStorage,
+  type Seq,
   type StorageWrite,
 } from '@earendil-works/pi-durable';
 import { KetoNamespace } from '@moltnet/auth';
@@ -64,10 +65,21 @@ const text = (n: number) => 'lorem ipsum dolor sit amet '.repeat(n);
 async function history(turns: number) {
   const commits: StorageWrite[][] = [];
   class Writer extends MemoryStorage {
-    override async commit(writes: readonly StorageWrite[]) {
-      const seq = await super.commit(writes, context);
-      commits.push(JSON.parse(JSON.stringify(writes)) as StorageWrite[]);
-      return seq;
+    override async commit(
+      batches: readonly (readonly StorageWrite[])[],
+      receive: (index: number, seq: Seq) => void,
+      ctx: typeof context,
+    ) {
+      return super.commit(
+        batches,
+        (index, seq) => {
+          commits.push(
+            JSON.parse(JSON.stringify(batches[index])) as StorageWrite[],
+          );
+          receive(index, seq);
+        },
+        ctx,
+      );
     }
   }
   const session = createSession(new Writer());

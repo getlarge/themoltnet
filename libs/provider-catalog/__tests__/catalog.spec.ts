@@ -40,6 +40,7 @@ describe('provider catalog', () => {
     expect(new Set(classifiers.map((entry) => entry.provider))).toEqual(
       new Set([
         'cloudflare-workers-ai',
+        'github-copilot',
         'openai',
         'opencode',
         'openrouter',

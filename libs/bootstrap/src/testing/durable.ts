@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import {
+  type CommitResult,
   createSession,
   defineDocFamily,
   defineTask,
@@ -10,6 +11,7 @@ import {
   type Id,
   LiveDoc,
   MemoryStorage,
+  type Seq,
   type Storage,
   type StorageWrite,
 } from '@earendil-works/pi-durable';
@@ -173,22 +175,39 @@ export async function openDurableSeed(
         });
         return result.data.id as I;
       }
-      override async commit(writes: readonly StorageWrite[]) {
-        const result = await appendRuntimeStoreCommit({
-          ...request,
-          path,
-          body: {
-            ...writer,
-            commitId: randomUUID(),
-            expectedSeq: head,
-            writes: JSON.parse(JSON.stringify(writes)) as Record<
-              string,
-              unknown
-            >[],
-          },
-        });
-        head = result.data.seq;
-        return super.commit(writes, context);
+      override async commit(
+        batches: readonly (readonly StorageWrite[])[],
+        receive: (index: number, seq: Seq) => void,
+      ): Promise<CommitResult> {
+        const seqs: Seq[] = [];
+        try {
+          for (const writes of batches) {
+            let prepared: ReturnType<MemoryStorage['prepareCommit']>;
+            try {
+              prepared = this.prepareCommit(writes);
+            } catch (refused) {
+              return { stored: seqs.length, refused };
+            }
+            const result = await appendRuntimeStoreCommit({
+              ...request,
+              path,
+              body: {
+                ...writer,
+                commitId: randomUUID(),
+                expectedSeq: head,
+                writes: JSON.parse(JSON.stringify(prepared.writes)) as Record<
+                  string,
+                  unknown
+                >[],
+              },
+            });
+            head = result.data.seq;
+            seqs.push(prepared.apply());
+          }
+          return { stored: seqs.length };
+        } finally {
+          for (const [index, seq] of seqs.entries()) receive(index, seq);
+        }
       }
     }
     const seed = await createDurableSeed(

@@ -52,7 +52,8 @@
     "generate:agent-daemon-client": "pnpm exec nx run @moltnet/agent-daemon-api-client:generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:signer-openapi && pnpm run generate:agent-server-openapi && pnpm run generate:client && pnpm run generate:api-bindings && pnpm run generate:signer-client && pnpm run generate:agent-daemon-client && pnpm run go:generate && pnpm run go:fmt",
     "check:pack": "pnpm exec nx run-many -t check:pack",
-    "check:actionlint": "github-actionlint -shellcheck= -pyflakes= .github/workflows/*.yml",
+    "actionlint": "GOWORK=off go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12",
+    "check:actionlint": "pnpm run -s actionlint -shellcheck= -pyflakes= .github/workflows/*.yml",
     "renovate:create-app": "node tools/create-renovate-app.mjs",
     "check:quickstart": "pnpm exec nx run @moltnet/tools:check-quickstart",
     "check:vite-aliases": "tsx tools/src/check-vite-alias-exports.ts",
@@ -79,6 +80,7 @@
     "@commitlint/config-conventional": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
     "@eslint/js": "catalog:",
+    "@noble/ed25519": "catalog:",
     "@nx-go/nx-go": "catalog:",
     "@nx/devkit": "catalog:",
     "@nx/docker": "catalog:",
@@ -104,7 +106,6 @@
     "eslint-plugin-playwright": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
-    "github-actionlint": "1.7.12",
     "globals": "catalog:",
     "husky": "catalog:",
     "jiti": "catalog:",
@@ -121,8 +122,7 @@
     "typescript-eslint": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
-    "vitest-axe": "catalog:",
-    "@noble/ed25519": "catalog:"
+    "vitest-axe": "catalog:"
   },
   "engines": {
     "node": ">=24.14.1"

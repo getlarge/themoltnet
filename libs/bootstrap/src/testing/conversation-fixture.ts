@@ -1,6 +1,10 @@
 /** Test-only: the Pi commits behind the Go CLI conversation E2E fixture. */
 import type { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
-import { MemoryStorage, type StorageWrite } from '@earendil-works/pi-durable';
+import {
+  MemoryStorage,
+  type Seq,
+  type StorageWrite,
+} from '@earendil-works/pi-durable';
 
 import { assistantMessage, createDurableSeed } from './durable.js';
 
@@ -19,11 +23,20 @@ export async function buildConversationFixtureCommits() {
   const commits: StorageWrite[][] = [];
   class Capture extends MemoryStorage {
     override async commit(
-      writes: readonly StorageWrite[],
+      batches: readonly (readonly StorageWrite[])[],
+      receive: (index: number, seq: Seq) => void,
       ctx: typeof context,
     ) {
-      commits.push(JSON.parse(JSON.stringify(writes)) as StorageWrite[]);
-      return super.commit(writes, ctx);
+      return super.commit(
+        batches,
+        (index, seq) => {
+          commits.push(
+            JSON.parse(JSON.stringify(batches[index])) as StorageWrite[],
+          );
+          receive(index, seq);
+        },
+        ctx,
+      );
     }
   }
   const seed = await createDurableSeed(

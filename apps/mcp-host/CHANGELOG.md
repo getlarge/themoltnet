@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/mcp-host-v0.2.1...mcp-host-v0.2.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **docker:** align node base images with the 24.22.3 toolchain ([0b21f08](https://github.com/getlarge/themoltnet/commit/0b21f08a4e967d66d857f3c1685aa7ad309fedf8))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/mcp-host-v0.2.0...mcp-host-v0.2.1) (2026-11-05)
 
 

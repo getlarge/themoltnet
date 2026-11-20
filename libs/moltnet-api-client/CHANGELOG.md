@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.89.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.88.0...moltnet-api-client-v1.89.0) (2026-11-19)
+
+
+### Codegen
+
+* **api-client:** regenerate specs and clients after dependency bump ([225fe11](https://github.com/getlarge/themoltnet/commit/225fe11d8e89fe948a3b2c953740a9310366f3f1))
+* **deps:** lock file maintenance ([4776226](https://github.com/getlarge/themoltnet/commit/477622647b16fe51558df857adedea122d1ebe88))
+
 ## [1.88.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.87.0...moltnet-api-client-v1.88.0) (2026-10-28)
 
 

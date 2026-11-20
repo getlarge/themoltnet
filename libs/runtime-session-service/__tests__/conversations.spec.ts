@@ -35,13 +35,24 @@ const Attempts = defineDocFamily({
 async function fixture() {
   const commits: { seq: number; writes: StorageWrite[] }[] = [];
   class Writer extends MemoryStorage {
-    override async commit(writes: readonly StorageWrite[]) {
-      const seq = await super.commit(writes, context);
-      commits.push({
-        seq,
-        writes: JSON.parse(JSON.stringify(writes)) as StorageWrite[],
-      });
-      return seq;
+    override async commit(
+      batches: readonly (readonly StorageWrite[])[],
+      receive: (index: number, seq: Seq) => void,
+      ctx: typeof context,
+    ) {
+      return super.commit(
+        batches,
+        (index, seq) => {
+          commits.push({
+            seq,
+            writes: JSON.parse(
+              JSON.stringify(batches[index]),
+            ) as StorageWrite[],
+          });
+          receive(index, seq);
+        },
+        ctx,
+      );
     }
   }
   const writer = new Writer();

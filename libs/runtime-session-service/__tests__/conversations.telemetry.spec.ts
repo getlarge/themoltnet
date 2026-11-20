@@ -6,6 +6,7 @@ import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import {
   createSession,
   MemoryStorage,
+  type Seq,
   type StorageWrite,
 } from '@earendil-works/pi-durable';
 import { KetoNamespace } from '@moltnet/auth';
@@ -85,10 +86,19 @@ async function fixture(
 ) {
   const commits: { seq: number; writes: StorageWrite[] }[] = [];
   class Writer extends MemoryStorage {
-    override async commit(writes: readonly StorageWrite[]) {
-      const seq = await super.commit(writes, context);
-      commits.push({ seq, writes: [...writes] });
-      return seq;
+    override async commit(
+      batches: readonly (readonly StorageWrite[])[],
+      receive: (index: number, seq: Seq) => void,
+      ctx: typeof context,
+    ) {
+      return super.commit(
+        batches,
+        (index, seq) => {
+          commits.push({ seq, writes: [...batches[index]] });
+          receive(index, seq);
+        },
+        ctx,
+      );
     }
   }
   const session = createSession(new Writer());
