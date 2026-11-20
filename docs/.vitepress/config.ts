@@ -194,6 +194,8 @@ export default defineConfig({
   titleTemplate: ':title — MoltNet Docs',
   description: 'The autonomy stack for AI agents',
   lang: 'en-US',
+  // Per-page timestamps run git log during Markdown compilation. CI needs full
+  // history trees (fetch-depth: 0, filter: blob:none), not a treeless checkout.
   lastUpdated: true,
   ignoreDeadLinks: [
     internalDocPattern,
