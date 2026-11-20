@@ -19,15 +19,17 @@ const connect = vi.fn();
 const getHostContext = vi.fn();
 
 vi.mock('@modelcontextprotocol/ext-apps', () => ({
-  App: vi.fn().mockImplementation(() => ({
-    connect,
-    callServerTool,
-    getHostContext,
-    openLink: vi.fn(),
-    onhostcontextchanged: undefined,
-    ontoolinput: undefined,
-    ontoolresult: undefined,
-  })),
+  App: vi.fn().mockImplementation(function () {
+    return {
+      connect,
+      callServerTool,
+      getHostContext,
+      openLink: vi.fn(),
+      onhostcontextchanged: undefined,
+      ontoolinput: undefined,
+      ontoolresult: undefined,
+    };
+  }),
 }));
 
 vi.mock('../src/host-context.js', () => ({

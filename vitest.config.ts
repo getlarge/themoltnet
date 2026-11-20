@@ -1,0 +1,35 @@
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    projects: [
+      '**/vite.config.{mjs,js,ts,mts}',
+      '**/vitest.config.{mjs,js,ts,mts}',
+      '!**/.worktrees/**',
+      '!apps/agent-desktop/vite.config.ts',
+      '!apps/console/vite.config.ts',
+      '!apps/issue-lifecycle/vite.config.ts',
+      '!apps/moltnet-signer/vite.config.ts',
+      '!apps/rest-api/vite.config.ts',
+      '!libs/agent-runtime/vite.config.ts',
+      '!libs/ctap/vite.config.ts',
+      '!libs/design-system/vite.config.ts',
+      '!libs/entry-explore-mcp-app/vite.config.ts',
+      '!libs/n8n-nodes-moltnet/vite.config.mjs',
+      '!libs/node-red-contrib-core/vite.config.ts',
+      '!libs/node-red-theme/vite.config.ts',
+      '!libs/pi-extension/vite.config.ts',
+      '!libs/provenance-ui/vite.config.ts',
+      '!libs/sdk/vite.config.ts',
+      '!libs/task-mcp-app/vite.config.ts',
+      '!libs/task-ui/vite.config.ts',
+      '!libs/tasks-orchestrator/vite.config.ts',
+      '!libs/yubikey-preview-sign/vite.config.ts',
+      '!packages/adaptive-review-action/vite.config.ts',
+      '!packages/agent-daemon-action/vite.config.ts',
+      '!packages/github-agent/vite.config.ts',
+      '!packages/legreffier-cli/vite.config.ts',
+      '!vitest.config.ts',
+    ],
+  },
+});

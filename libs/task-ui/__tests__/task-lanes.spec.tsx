@@ -148,10 +148,9 @@ describe('TaskLaneColumn', () => {
 
     const lane = screen.getByRole('region', { name: 'Active' });
     const taskList = screen.getByRole('region', { name: 'Active tasks' });
-    expect(lane).toHaveStyle({
-      height: 'clamp(24rem, calc(100dvh - 18rem), 42rem)',
-      overflow: 'hidden',
-    });
+    // Assert the responsive rule, not jsdom's resolved viewport pixels.
+    expect(lane.style.height).toBe('clamp(24rem, 100dvh - 18rem, 42rem)');
+    expect(lane).toHaveStyle({ overflow: 'hidden' });
     expect(taskList).toHaveAttribute('tabindex', '0');
     expect(taskList).toHaveStyle({ overflowY: 'auto' });
   });
@@ -190,10 +189,9 @@ describe('TaskLaneBoard', () => {
       overflowX: 'auto',
       scrollSnapType: 'x proximity',
     });
-    expect(board.firstElementChild).toHaveStyle({
-      gridAutoColumns: 'min(82vw, 18rem)',
-      gridAutoFlow: 'column',
-    });
+    const track = board.firstElementChild as HTMLElement;
+    expect(track.style.gridAutoColumns).toBe('min(82vw, 18rem)');
+    expect(track).toHaveStyle({ 'grid-auto-flow': 'column' });
   });
 
   it('shows the real total in a lane header even when more remain', () => {

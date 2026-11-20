@@ -26,8 +26,10 @@ vi.mock('../src/cli.js', () => ({
 
 import '../src/main.js';
 
+// Capture module-initialization output before Vitest clears mock history.
+const deps = mocks.runAdaptiveStage.mock.calls[0][1] as CliDeps;
+
 it('reads attempts for a prior-job task with explicit team context', async () => {
-  const deps = mocks.runAdaptiveStage.mock.calls[0][1] as CliDeps;
   const signal = new AbortController().signal;
   const client = await deps.connect('review-team', signal);
   expect(connect).toHaveBeenCalledWith({ signal });

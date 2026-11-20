@@ -1,5 +1,5 @@
 import { MoltNetError } from '@themoltnet/sdk';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import {
   buildCatalogue,
@@ -48,10 +48,8 @@ const machine = {
   providerEnv: new Map<string, boolean>(),
   runtimeKinds: new Set<string>(),
 };
-const catalogue = (
-  port: CatalogueAgentPort,
-  logger?: { warn: ReturnType<typeof vi.fn> },
-) => buildCatalogue({ agent: port, machine, identityDefault: {}, logger });
+const catalogue = (port: CatalogueAgentPort, logger?: { warn: Mock }) =>
+  buildCatalogue({ agent: port, machine, identityDefault: {}, logger });
 
 describe('project catalogue', () => {
   it('lists accessible active projects only from the verified team', async () => {

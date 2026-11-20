@@ -5,7 +5,7 @@
     "outDir": "./out-tsc",
     "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
   "exclude": ["__tests__", "e2e"],
   "extends": "./tsconfig.json",

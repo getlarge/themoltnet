@@ -975,7 +975,7 @@ describe('installed daemon version', () => {
 
     // Act
     const result = runStepScript(
-      { ...step, run: step.run.replace('timeout: 120_000', 'timeout: 500') },
+      { ...step, run: step.run.replace('timeout: 120_000', 'timeout: 1500') },
       {
         HOME: root,
         ACTION_TEMP: root,
@@ -997,7 +997,7 @@ describe('installed daemon version', () => {
     expect(log('sleep.log')).toEqual(['15', '30']);
     expect(log('installer-env.log')).toEqual([]);
     expect(outputs()).toEqual({});
-  });
+  }, 10_000);
 });
 
 describe('daemon command', () => {

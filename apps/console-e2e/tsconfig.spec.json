@@ -4,6 +4,7 @@
     "composite": true,
     "module": "ESNext",
     "outDir": "./out-tsc/spec",
+    "rootDir": ".",
     "sourceMap": false,
     "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
     "types": ["node", "@playwright/test"]

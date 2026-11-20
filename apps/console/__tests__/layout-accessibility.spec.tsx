@@ -206,7 +206,9 @@ describe('console layout accessibility', () => {
     });
 
     expect(shell).not.toBeNull();
-    expect(shell).toHaveStyle({ height: '100dvh', overflow: 'hidden' });
+    // Keep the viewport-relative contract; jsdom resolves it to pixel height.
+    expect(shell?.style.height).toBe('100dvh');
+    expect(shell).toHaveStyle({ overflow: 'hidden' });
     expect(main).toHaveStyle({
       minHeight: '0',
       overflowX: 'auto',

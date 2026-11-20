@@ -303,7 +303,7 @@ async function configFilesContaining(
   return hits;
 }
 
-describe.sequential('moltnet-agent server (loopback supervisor)', () => {
+describe('moltnet-agent server (loopback supervisor)', () => {
   let harness: DaemonTestHarness;
   let agent: Agent;
   let personalTeamId: string;

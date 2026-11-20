@@ -21,8 +21,8 @@ import { join } from 'node:path';
 
 import { cryptoService } from '@moltnet/crypto-service';
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
-import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as Sdk from '@themoltnet/sdk';
+import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

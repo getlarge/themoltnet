@@ -34,7 +34,12 @@ const writer = {
 };
 const reader = { listTeamMembers: vi.fn() };
 
-beforeAll(() => initTeamInviteWorkflow());
+let membershipStep: unknown;
+beforeAll(() => {
+  initTeamInviteWorkflow();
+  // Keep the registered step, not mock history that resets before each test.
+  membershipStep = dbos.registerStep.mock.results[0].value;
+});
 beforeEach(() => {
   dbos.startWorkflow.mockClear();
   dbos.getWorkflowStatus.mockReset().mockResolvedValue(null);
@@ -50,7 +55,7 @@ beforeEach(() => {
 });
 
 function grantMembership() {
-  return dbos.registerStep.mock.results[0].value as (
+  return membershipStep as (
     input: RedeemTeamInvite,
     grant: { teamId: string; role: TeamInviteRole },
   ) => Promise<TeamRole>;

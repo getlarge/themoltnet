@@ -27,6 +27,7 @@ const current = () => {
   return capture.props;
 };
 beforeEach(() => {
+  vi.mocked(invoke).mockReset();
   vi.useFakeTimers();
   capture.props = null;
   localStorage.clear();

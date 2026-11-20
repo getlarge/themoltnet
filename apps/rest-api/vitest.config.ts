@@ -13,17 +13,12 @@ export default defineConfig({
     // CI failure mode: '[vitest-worker]: Timeout calling "onTaskUpdate"'
     // — vitest's parent↔fork IPC times out at 5s when worker threads
     // saturate the parent process's CPU budget. On a 4-vCPU agent the
-    // sweet spot is maxThreads: 2 — each test file still runs in its
+    // sweet spot is maxWorkers: 2 — each test file still runs in its
     // own thread (DBOS workflow queues register at module load,
     // requiring per-file isolation), but the parent stays responsive
     // to RPCs. Bumping to 4 made the timeout worse, not better.
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        maxThreads: 2,
-        minThreads: 1,
-      },
-    },
+    maxWorkers: 2,
     testTimeout: 30_000,
     // Randomize test order so cross-test state bleed surfaces in CI rather than
     // only when a contributor remembers to run --sequence.shuffle manually.

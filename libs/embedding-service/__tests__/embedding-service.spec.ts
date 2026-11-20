@@ -20,14 +20,12 @@ vi.mock('@huggingface/transformers', () => ({
 // Import after mock setup
 import { createEmbeddingService } from '../src/embedding-service.js';
 
-function createMockLogger(): {
-  [K in keyof EmbeddingLogger]: ReturnType<typeof vi.fn>;
-} {
+function createMockLogger() {
   return {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
+    info: vi.fn<EmbeddingLogger['info']>(),
+    warn: vi.fn<EmbeddingLogger['warn']>(),
+    error: vi.fn<EmbeddingLogger['error']>(),
+    debug: vi.fn<EmbeddingLogger['debug']>(),
   };
 }
 
