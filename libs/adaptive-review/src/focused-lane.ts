@@ -21,10 +21,7 @@ import {
 } from './prior-findings.js';
 
 export type FocusedLane =
-  | 'tests'
-  | 'conventions'
-  | 'blast-radius'
-  | 'performance';
+  'tests' | 'conventions' | 'blast-radius' | 'performance';
 
 const FocusedOutput = Type.Object(
   {
@@ -91,7 +88,7 @@ function focusBrief(lane: FocusedLane, ctx: LaneContext): string {
           (file) => `Path ${JSON.stringify(file.path)}:\n${file.patch}`,
         )
       : [
-          'The diff exceeds the inline budget. Inspect the pinned head worktree and surrounding files with approved read tools. If changed-line evidence is unavailable, explain the gap in unclear rather than guessing a citation.',
+          'The diff exceeds the inline budget. Use git_diff to list changed paths and page the exact pinned diff with old/new coordinates; use read with offset/limit for surrounding source. If evidence is unavailable, explain the gap in unclear rather than guessing a citation.',
         ]),
   ].join('\n\n');
 }

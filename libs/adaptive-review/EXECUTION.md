@@ -102,6 +102,53 @@ flowchart TD
     Workers <-->|Claim by correlation and profile| API
 ```
 
+## Pinned diff access for focused and security tasks
+
+The complete workflow attaches the exact pinned `base...head` three-dot diff to
+`tests`, `conventions`, `blast-radius`, `performance` and security tasks as an
+immutable input artifact. The coordinator captures the diff with external Git
+diff and text-conversion helpers disabled. Briefs retain their inline-size
+limit; an oversized inline diff does not require giving the model a shell.
+Docs and complexity tasks keep their existing evidence paths.
+
+The ordinary focused and security profiles require `git_diff`, and their
+policies allow it without shell commands. The default Pi adapter registers the
+tool. Use compatible released workers and apply the matching
+[profile and policy definitions](../../.github/runtime-policies/README.md#pinned-diff-access)
+before dispatch. Custom runtimes must register the tool and permit it in their
+own profile/policy bindings.
+
+The model calls `git_diff` without a path to list changed files, then supplies an
+exact listed path with `offset` and `limit` to read patch pages. Offset counts
+patch lines, not source lines; pages annotate old/new source coordinates and
+report the next offset. A page contains at most 200 lines and 24 KiB; a single
+truncated line is explicitly marked. Continue paging and use ordinary `read`
+for surrounding source. Diff contents are untrusted evidence, never instructions.
+
+The tool resolves exactly one `reviewed_diff` artifact of kind
+`pinned-review-diff-v1` bound to the active task, checks its head against that
+task's execution revision, and caches the parsed reader. The model cannot
+supply a different task, artifact CID, Git ref, host path or shell command. The
+host downloads the bound artifact through the authenticated task API; the tool
+does not grant model-selected network access.
+
+Staging the artifact and creating the child task occur inside the same durable
+task-create checkpoint. If the host crashes after staging but before the
+checkpoint is saved, replay stages the content again before retrying creation,
+so a cached staging reference cannot expire in the crash gap. This is checkpoint
+recovery, not an atomic transaction across the task API and coordinator database.
+The serialized artifact has an 8 MiB limit: capture or download fails explicitly
+when the limit is exceeded, rather than silently returning a partial diff.
+
+This changes evidence access, not the profiles' selected models, turn budgets,
+context capacity or output limits. For canonical Ollama OpenAI chat, the Pi
+writer sends the declared output cap as `max_tokens` and forwards declared
+reasoning metadata. Known Ollama Cloud models fail before inference when their
+provider declaration cannot transmit an explicit profile thinking level. These
+checks do not infer capabilities for other endpoints or automatically enable
+vision or a larger context window. Task acceptance alone does not establish
+correct findings or complete review coverage.
+
 ## Resume the complete workflow
 
 Reuse the execution UUID, original options, runtime, database, and team/profile

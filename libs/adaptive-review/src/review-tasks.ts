@@ -77,6 +77,17 @@ export function scopedReviewTasks(
     },
     getTask: (id) => request('task read', () => tasks.getTask(id)),
     listAttempts: (id) => request('attempt read', () => tasks.listAttempts(id)),
+    ...(tasks.stageArtifact
+      ? {
+          stageArtifact: (body, query, options) => {
+            if (options.teamId !== scope.teamId)
+              throw new Error('Artifact scope differs from its review');
+            return request('artifact staging', () =>
+              tasks.stageArtifact!(body, query, options),
+            );
+          },
+        }
+      : {}),
     ...(listMessages
       ? {
           listMessages: (id: string, attemptN: number) =>
