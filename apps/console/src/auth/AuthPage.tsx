@@ -1,6 +1,7 @@
 import '@ory/elements-react/theme/styles.css';
 import './auth.css';
 
+import type { FlowError } from '@ory/client-fetch';
 import type {
   OryClientConfiguration,
   OryErrorHandler,
@@ -32,6 +33,7 @@ import {
   logoutOAuthSession,
   navigateToOryRedirect,
   rememberFlowRestart,
+  withoutFlow,
 } from './flows.js';
 import {
   type AuthPage as PageKind,
@@ -43,14 +45,13 @@ import { useAuth } from './useAuth.js';
 type State =
   | { kind: 'loading' }
   | { kind: 'flow'; loaded: LoadedFlow }
+  | { kind: 'error'; error: FlowError }
   | {
-      kind: 'error';
-      error: Awaited<
-        ReturnType<ReturnType<typeof getKratosClient>['getFlowError']>
-      >;
-    }
-  | { kind: 'oauthError'; error: string; description: string | null }
-  | { kind: 'failed'; message: string };
+      kind: 'failed';
+      message: string;
+      detail?: string | null;
+      retryable: boolean;
+    };
 
 export function AuthPage({ page }: { page: PageKind }) {
   const theme = useTheme();
@@ -71,6 +72,7 @@ export function AuthPage({ page }: { page: PageKind }) {
       setState({
         kind: 'failed',
         message: 'Loading this form took too long. Please try again.',
+        retryable: true,
       });
     }, 15_000);
     setState({ kind: 'loading' });
@@ -87,9 +89,10 @@ export function AuthPage({ page }: { page: PageKind }) {
           // Hydra reports OAuth errors in the query string, not as Kratos flow
           // errors. Render them as plain text only.
           setState({
-            kind: 'oauthError',
-            error: oauthError,
-            description: search.get('error_description'),
+            kind: 'failed',
+            message: oauthError,
+            detail: search.get('error_description'),
+            retryable: false,
           });
           return;
         }
@@ -97,6 +100,7 @@ export function AuthPage({ page }: { page: PageKind }) {
           setState({
             kind: 'failed',
             message: 'Sign-in could not complete. Please start again.',
+            retryable: true,
           });
           return;
         }
@@ -156,9 +160,7 @@ export function AuthPage({ page }: { page: PageKind }) {
             // Resume with a fresh settings flow after login. Keep return_to
             // nested here so Kratos still validates it when settings restarts.
             const destination = new URL(authUrl('settings'));
-            const parameters = new URLSearchParams(search);
-            parameters.delete('flow');
-            destination.search = parameters.toString();
+            destination.search = withoutFlow(search).toString();
             const login = new URL(authUrl('login'));
             login.searchParams.set('return_to', destination.toString());
             navigateToOryRedirect(login.toString());
@@ -178,6 +180,7 @@ export function AuthPage({ page }: { page: PageKind }) {
             kind: 'failed',
             message:
               'The form could not be started. Try again or return to sign-in.',
+            retryable: true,
           });
         }
       })
@@ -190,31 +193,28 @@ export function AuthPage({ page }: { page: PageKind }) {
 
   // Elements appends rate_limited messages to the form itself, so this
   // handler does not add a page-level notice for them.
-  const onError: OryErrorHandler = (event) => {
-    if (event.type === 'unexpected_error') {
-      setNotice('This request could not complete. Please try again.');
-    } else if (
-      event.type === 'csrf_error' ||
-      event.type === 'flow_expired' ||
-      event.type === 'flow_not_found' ||
-      event.type === 'flow_replaced'
-    ) {
-      if (
-        page !== 'error' &&
-        page !== 'logout' &&
-        !(event.type === 'flow_expired' && event.body.use_flow_id)
+  const flowErrorHandler =
+    (kind: LoadedFlow['kind']): OryErrorHandler =>
+    (event) => {
+      if (event.type === 'unexpected_error') {
+        setNotice('This request could not complete. Please try again.');
+      } else if (
+        event.type === 'csrf_error' ||
+        event.type === 'flow_expired' ||
+        event.type === 'flow_not_found' ||
+        event.type === 'flow_replaced'
       ) {
-        rememberFlowRestart(page);
+        if (!(event.type === 'flow_expired' && event.body.use_flow_id)) {
+          rememberFlowRestart(kind);
+        }
+        setNotice(
+          'Your form expired or could not be verified. Please try again.',
+        );
       }
-      setNotice(
-        'Your form expired or could not be verified. Please try again.',
-      );
-    }
-  };
+    };
   const props = {
     config,
     components: { Form: { TotpSettings: AccessibleTotp } },
-    onError,
     onSuccess: async () => {
       await refreshSession();
     },
@@ -318,21 +318,13 @@ export function AuthPage({ page }: { page: PageKind }) {
             </Text>
             <div role="alert">
               <Text>{state.message}</Text>
+              {state.detail && <Text>{state.detail}</Text>}
             </div>
-            <Button onClick={() => setAttempt((value) => value + 1)}>
-              Try again
-            </Button>
-            <a href={authUrl('login')}>Start sign-in again</a>
-          </Stack>
-        ) : state.kind === 'oauthError' ? (
-          <Stack gap={4} align="center">
-            <Text as="h1" variant="h2">
-              Unable to continue
-            </Text>
-            <div role="alert">
-              <Text>{state.error}</Text>
-              {state.description && <Text>{state.description}</Text>}
-            </div>
+            {state.retryable && (
+              <Button onClick={() => setAttempt((value) => value + 1)}>
+                Try again
+              </Button>
+            )}
             <a href={authUrl('login')}>Start sign-in again</a>
           </Stack>
         ) : state.kind === 'error' ? (
@@ -345,7 +337,7 @@ export function AuthPage({ page }: { page: PageKind }) {
           <FlowView
             key={state.loaded.flow.id}
             loaded={state.loaded}
-            props={props}
+            props={{ ...props, onError: flowErrorHandler(state.loaded.kind) }}
             session={session}
           />
         )}

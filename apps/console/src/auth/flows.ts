@@ -18,10 +18,12 @@ export type LoadedFlow =
   | { kind: 'verification'; flow: VerificationFlow }
   | { kind: 'settings'; flow: SettingsFlow };
 
-/** Only documented browser-flow parameters cross into flow initialization.
- * return_to is passed to Kratos for validation; never navigate to it ourselves.
+/** JSON flow creation forwards only these documented browser-flow parameters.
+ * Browser-endpoint handoffs forward the query minus `flow` instead, and Kratos
+ * validates it. return_to is passed to Kratos for validation; never navigate
+ * to it ourselves.
  */
-export function flowParameters(search: URLSearchParams) {
+function flowParameters(search: URLSearchParams) {
   return {
     returnTo: search.get('return_to') ?? undefined,
     loginChallenge: search.get('login_challenge') ?? undefined,
@@ -80,7 +82,7 @@ export async function loadFlow(
   }
 }
 
-export interface FlowFailure {
+interface FlowFailure {
   redirect_browser_to?: string;
   use_flow_id?: string;
   error?: { id?: string };
@@ -106,10 +108,14 @@ export function browserFlowUrl(
   search: URLSearchParams,
 ): string {
   const url = new URL(`/self-service/${kind}/browser`, getConfig().kratosUrl);
+  url.search = withoutFlow(search).toString();
+  return url.toString();
+}
+
+export function withoutFlow(search: URLSearchParams): URLSearchParams {
   const parameters = new URLSearchParams(search);
   parameters.delete('flow');
-  url.search = parameters.toString();
-  return url.toString();
+  return parameters;
 }
 
 export function navigateToOryRedirect(destination: string): void {
@@ -159,9 +165,7 @@ export function flowSearch(kind: AuthFlow): URLSearchParams {
       Date.now() - pending.at > RESTART_TTL_MS
     )
       return search;
-    const restored = new URLSearchParams(pending.search);
-    restored.delete('flow');
-    return restored;
+    return withoutFlow(new URLSearchParams(pending.search));
   } catch {
     return search;
   }

@@ -28,7 +28,9 @@ async function setup(
   apps.push(app);
   app.sessionResolver = {
     evictIdentity: vi.fn(),
-    resolveSession: vi.fn().mockResolvedValue(human),
+    resolveSession: vi.fn(async ({ cookie }: { cookie?: string | null }) =>
+      cookie ? human : null,
+    ),
   };
   app.oauth2Client.getOAuth2LogoutRequest = vi
     .fn()
