@@ -3,7 +3,7 @@ import baseConfig from '../../eslint.config.mjs';
 export default [
   ...baseConfig,
   {
-    files: ['**/*.ts'],
+    files: ['**/*.ts', '**/*.mts'],
     rules: {
       // E2E harness code legitimately reads infra connection details from the
       // environment (the Compose stack is out of process); there is no config
@@ -12,7 +12,10 @@ export default [
     },
   },
   {
-    files: ['src/app-factories.e2e.spec.ts'],
+    files: [
+      'src/app-factories.e2e.spec.ts',
+      'src/fixtures/adaptive-review-worker.mts',
+    ],
     rules: {
       // This integration suite intentionally crosses app boundaries to execute
       // the actual registered workflow factories against real Absurd storage.

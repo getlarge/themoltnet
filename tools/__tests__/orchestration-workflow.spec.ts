@@ -16,6 +16,7 @@ const workflow = parse(
     string,
     {
       env: Record<string, string>;
+      needs?: string[];
       steps: Array<{ name?: string; run?: string }>;
     }
   >;
@@ -59,7 +60,7 @@ describe('orchestration database endpoint handoff', () => {
       if (port) {
         expect(result.status, result.stderr).toBe(0);
         expect(readFileSync(envFile, 'utf8')).toBe(
-          `ORCHESTRATION_ABSURD_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:${port}/issue_lifecycle\n`,
+          `ORCHESTRATION_ABSURD_URL=postgresql://absurd:absurd_secret@127.0.0.1:${port}/absurd\n`,
         );
       } else {
         expect(result.status).not.toBe(0);
@@ -69,4 +70,23 @@ describe('orchestration database endpoint handoff', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+});
+
+it('owns full adaptive review E2E outside the neutral daemon lanes', () => {
+  const review = workflow.jobs['e2e-adaptive-review'];
+  expect(review.needs).toContain('orchestrator');
+  expect(
+    review.steps.some((step) =>
+      step.run?.includes('@themoltnet/orchestration-e2e:e2e:adaptive-review'),
+    ),
+  ).toBe(true);
+  const daemon = Object.values(workflow.jobs).filter((job) =>
+    job.steps?.some((step) =>
+      step.run?.includes('@themoltnet/agent-daemon-e2e:e2e'),
+    ),
+  );
+  expect(daemon).toHaveLength(1);
+  expect(daemon[0].steps.some((step) => step.run?.includes('absurd-db'))).toBe(
+    false,
+  );
 });

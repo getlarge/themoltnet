@@ -83,7 +83,7 @@ describe('adaptive review database selection', () => {
     expect(result.calls).toContain('uvx absurdctl init --ref 0.4.0');
     expect(result.calls).not.toContain('external');
     expect(result.output).toBe(
-      'ADAPTIVE_DATABASE_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:40123/issue_lifecycle\n',
+      'ADAPTIVE_DATABASE_URL=postgresql://absurd:absurd_secret@127.0.0.1:40123/absurd\n',
     );
   });
 

@@ -19,13 +19,16 @@ import {
   createAdaptiveWorkflowApp,
   workflowExecutionQueue,
 } from '@moltnet/adaptive-review';
+import {
+  createE2EAgentHarness,
+  type E2EAgentHarness,
+} from '@moltnet/bootstrap';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { Client } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startHttpStub } from './fixtures.js';
-import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
+import { startHttpStub } from './fixtures/http-stub.js';
 
 const workspaceRoot = resolve(import.meta.dirname, '../../..');
 const reviewEntry = resolve(
@@ -38,7 +41,7 @@ const workerEntry = resolve(
 );
 const absurdUrl =
   process.env.ORCHESTRATION_ABSURD_URL ??
-  'postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle';
+  'postgresql://absurd:absurd_secret@localhost:55434/absurd';
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
 function executable(path: string, source: string) {
@@ -93,15 +96,23 @@ async function launch(
 }
 
 describe('standalone adaptive review (e2e)', () => {
-  let harness: DaemonTestHarness;
+  let harness: E2EAgentHarness;
   let agent: Agent;
-  let creds: Awaited<ReturnType<DaemonTestHarness['createAgent']>>;
+  let creds: Awaited<ReturnType<E2EAgentHarness['createAgent']>>;
   let key: string;
   let profileId: string;
   let projectId: string;
 
   beforeAll(async () => {
-    harness = await createDaemonTestHarness();
+    harness = await createE2EAgentHarness({
+      restApiUrl: process.env.REST_API_URL,
+      databaseUrl: process.env.DATABASE_URL,
+      hydraPublicUrl: process.env.ORY_HYDRA_PUBLIC_URL,
+      hydraAdminUrl: process.env.ORY_HYDRA_ADMIN_URL,
+      ketoReadUrl: process.env.ORY_KETO_PUBLIC_URL,
+      ketoWriteUrl: process.env.ORY_KETO_ADMIN_URL,
+      kratosAdminUrl: process.env.ORY_KRATOS_ADMIN_URL,
+    });
     creds = await harness.createAgent('e2e-adaptive-review');
     agent = await connect({
       apiUrl: harness.restApiUrl,

@@ -38,17 +38,17 @@ services:
         condition: service_healthy
     restart: 'on-failure:3'
 
-  issue-lifecycle-db:
+  absurd-db:
     extends:
       file: docker-compose.base.yaml
-      service: issue-lifecycle-db
+      service: absurd-db
 
-  issue-lifecycle-db-migrate:
+  absurd-db-migrate:
     extends:
       file: docker-compose.base.yaml
-      service: issue-lifecycle-db-migrate
+      service: absurd-db-migrate
     depends_on:
-      issue-lifecycle-db:
+      absurd-db:
         condition: service_healthy
     restart: 'on-failure:3'
 

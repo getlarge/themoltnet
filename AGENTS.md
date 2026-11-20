@@ -289,7 +289,7 @@ loads the dotenvx-encrypted root `.env` into every task's environment even with
 `NX_LOAD_DOT_ENV_FILES=false`, which would inject ciphertext into Compose's
 `${POSTGRES_*}` interpolation and crash the containers;
 running Compose outside Nx avoids that (#1306). The infra-only
-`issue-lifecycle-db-migrate` image is still built by Compose on first
+`absurd-db-migrate` image is still built by Compose on first
 `up` (it is not an Nx docker-images project).
 
 If you need the raw Compose commands (after `pnpm run e2e:build`):

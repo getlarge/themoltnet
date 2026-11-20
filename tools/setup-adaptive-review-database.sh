@@ -28,6 +28,6 @@ docker build --tag adaptive-review-absurd-migrate \
 # Join only the known service's network namespace. Never initialize the URL
 # supplied for durable mode, even if that secret is also present in this job.
 docker run --rm --network "container:$ADAPTIVE_POSTGRES_CONTAINER" \
-  --env ABSURD_DATABASE_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:5432/issue_lifecycle \
+  --env ABSURD_DATABASE_URL=postgresql://absurd:absurd_secret@127.0.0.1:5432/absurd \
   adaptive-review-absurd-migrate uvx absurdctl init --ref 0.4.0
-printf 'ADAPTIVE_DATABASE_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:%s/issue_lifecycle\n' "$port" >> "$GITHUB_ENV"
+printf 'ADAPTIVE_DATABASE_URL=postgresql://absurd:absurd_secret@127.0.0.1:%s/absurd\n' "$port" >> "$GITHUB_ENV"

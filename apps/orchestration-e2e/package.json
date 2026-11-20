@@ -9,6 +9,14 @@
     "pg": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/adaptive-review": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/adaptive-review-action": "workspace:*",
+    "@themoltnet/agent-daemon": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "@types/pg": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
@@ -42,6 +50,34 @@
         ],
         "options": {
           "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/orchestration-e2e"
+        },
+        "outputs": []
+      },
+      "e2e:adaptive-review": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@themoltnet/adaptive-review-action"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.adaptive-review.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.adaptive-review.config.ts",
           "cwd": "apps/orchestration-e2e"
         },
         "outputs": []

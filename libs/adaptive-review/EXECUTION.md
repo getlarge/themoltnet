@@ -244,6 +244,10 @@ jobs:
 ```
 
 Use your caller's actual filename in `protected-paths`. Set `runtime-ref` to the same bundle SHA as the reusable workflow pin.
+For this repository, the post-publication `sync-consumer-pins` release job updates
+both caller pins together in the release PR or a generated consumer-adoption PR.
+The generated PR still requires validation and merge; no manual SHA editing is
+needed. External repositories must arrange their own adoption automation.
 This explicit pin also works when the runner omits workflow identity context. Obtain the full bundle SHA
 from that release's `Action bundle commit:` line; the source tag has no compiled
 bundle. The [action release guide](../../docs/contribute/action-releases.md)
@@ -487,7 +491,7 @@ Task execution and GitHub publication remain simulated in these integration test
 
 ### Complete launcher end-to-end test
 
-The [standalone e2e suite](../../apps/agent-daemon-e2e/src/adaptive-review.e2e.spec.ts)
+The [standalone e2e suite](../../apps/orchestration-e2e/src/adaptive-review.e2e.spec.ts)
 runs the built `run.js`, real Absurd checkpoints, the REST API, and separate
 real daemon processes. It covers classifier-selected and screened branches,
 correlation filtering, signed executor completion, publication, and a fresh
@@ -499,11 +503,12 @@ Start the full e2e stack before running it:
 
 ```bash
 pnpm run e2e:up
-NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e -- src/adaptive-review.e2e.spec.ts
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/orchestration-e2e:e2e:adaptive-review
 pnpm run e2e:down
 ```
 
-CI runs it in the daemon runtime e2e lane, with an initialized Absurd database.
+CI runs this full-stack target in its own adaptive-review job. The default
+orchestration e2e target remains database-only.
 
 ### Real Pi cold-cache preparation
 

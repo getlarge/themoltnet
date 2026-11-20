@@ -297,6 +297,7 @@ jobs:
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
       e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
+      e2e-adaptive-review: ${{ steps.compute.outputs.e2e-adaptive-review }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
       agent-desktop: ${{ steps.compute.outputs.agent-desktop }}
@@ -497,7 +498,7 @@ jobs:
           fi
 
           # Orchestration durability: a standalone suite that only needs the
-          # Absurd Postgres (issue-lifecycle-db + its migrate sibling), NOT the
+          # Absurd Postgres (absurd-db + its migrate sibling), NOT the
           # app-image stack. Its own lightweight job (below) keeps it off the
           # long e2e-node/rest-api job and out of the *_IMAGE dependency.
           if contains "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review"; then
@@ -506,10 +507,16 @@ jobs:
             echo "e2e-orchestration=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
+            echo "e2e-adaptive-review=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-adaptive-review=false" >> "$GITHUB_OUTPUT"
+          fi
+
           # e2e-any: true iff any suite should run. The e2e stack images
           # (rest-api, mcp-server, db-migrate, console, mcp-host) are shared by
           # all suites, so this single flag gates the image builds.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap" "@moltnet/agent-desktop-e2e"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap" "@moltnet/agent-desktop-e2e" "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -1593,19 +1600,6 @@ jobs:
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d rest-api
-      - name: Start Absurd database for standalone review E2E
-        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.configuration == 'runtime'
-        env:
-          COMPOSE_DISABLE_ENV_FILE: true
-        run: |
-          docker compose -f docker-compose.e2e.yaml up -d --wait issue-lifecycle-db
-          docker compose -f docker-compose.e2e.yaml run --rm --build issue-lifecycle-db-migrate
-          db_port=$(docker compose -f docker-compose.e2e.yaml port issue-lifecycle-db 5432 | awk -F: 'NR == 1 { print $NF }')
-          if [[ ! "$db_port" =~ ^[0-9]+$ ]]; then
-            echo 'Could not resolve the Absurd Postgres host port' >&2
-            exit 1
-          fi
-          echo "ORCHESTRATION_ABSURD_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:${db_port}/issue_lifecycle" >> "$GITHUB_ENV"
       - name: Run Gondolin sandbox VM integration tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
         env:
@@ -1955,8 +1949,52 @@ jobs:
         if: failure() && needs.affected.outputs.e2e-cpp-sdk == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
 
+  e2e-adaptive-review:
+    name: E2E Tests (Adaptive Review)
+    if: needs.affected.outputs.e2e-adaptive-review == 'true'
+    needs: [affected, orchestrator]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    env:
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+      ABSURD_POSTGRES_BIND: '5432'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: ./.github/actions/setup-workspace
+        with:
+          go: 'false'
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start API stack and shared Absurd database
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: |
+          docker compose -f docker-compose.e2e.yaml up -d --wait rest-api absurd-db
+          docker compose -f docker-compose.e2e.yaml run --rm --build absurd-db-migrate
+          db_port=$(docker compose -f docker-compose.e2e.yaml port absurd-db 5432 | awk -F: 'NR == 1 { print $NF }')
+          if [[ ! "$db_port" =~ ^[0-9]+$ ]]; then
+            echo 'Could not resolve the Absurd Postgres host port' >&2
+            exit 1
+          fi
+          echo "ORCHESTRATION_ABSURD_URL=postgresql://absurd:absurd_secret@127.0.0.1:${db_port}/absurd" >> "$GITHUB_ENV"
+      - name: Run complete adaptive review E2E
+        run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e:adaptive-review
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
+
   # Standalone durability suite for @moltnet/orchestration. Unlike the other
-  # e2e jobs it needs only the Absurd Postgres (issue-lifecycle-db + its migrate
+  # e2e jobs it needs only the Absurd Postgres (absurd-db + its migrate
   # sibling, built locally from infra/absurd/Dockerfile), NOT the five app
   # images — so it does not `needs: orchestrator`, skips GHCR/*_IMAGE, and only
   # brings up those two services. Runs in parallel with the other e2e jobs.
@@ -1969,7 +2007,7 @@ jobs:
     needs: [affected]
     env:
       # Publish the container port without reserving a fixed host port.
-      ISSUE_LIFECYCLE_POSTGRES_BIND: '5432'
+      ABSURD_POSTGRES_BIND: '5432'
     steps:
       - name: Skip if Orchestration E2E not affected
         if: needs.affected.outputs.e2e-orchestration != 'true'
@@ -1990,14 +2028,14 @@ jobs:
         # before they create queues). `run` returns the migration's exit code,
         # so a failed migration fails the step.
         run: |
-          docker compose -f docker-compose.e2e.yaml up -d --wait issue-lifecycle-db
-          docker compose -f docker-compose.e2e.yaml run --rm --build issue-lifecycle-db-migrate
-          db_port=$(docker compose -f docker-compose.e2e.yaml port issue-lifecycle-db 5432 | awk -F: 'NR == 1 { print $NF }')
+          docker compose -f docker-compose.e2e.yaml up -d --wait absurd-db
+          docker compose -f docker-compose.e2e.yaml run --rm --build absurd-db-migrate
+          db_port=$(docker compose -f docker-compose.e2e.yaml port absurd-db 5432 | awk -F: 'NR == 1 { print $NF }')
           if [[ ! "$db_port" =~ ^[0-9]+$ ]]; then
             echo 'Could not resolve the Absurd Postgres host port' >&2
             exit 1
           fi
-          echo "ORCHESTRATION_ABSURD_URL=postgresql://issue_lifecycle:issue_lifecycle_secret@127.0.0.1:${db_port}/issue_lifecycle" >> "$GITHUB_ENV"
+          echo "ORCHESTRATION_ABSURD_URL=postgresql://absurd:absurd_secret@127.0.0.1:${db_port}/absurd" >> "$GITHUB_ENV"
       - name: Run Orchestration Durability E2E tests
         if: needs.affected.outputs.e2e-orchestration == 'true'
         run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e
@@ -2008,7 +2046,7 @@ jobs:
         run: pnpm exec nx run @moltnet/adaptive-review:test:integration
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-orchestration == 'true'
-        run: docker compose -f docker-compose.e2e.yaml logs --tail=50 issue-lifecycle-db issue-lifecycle-db-migrate
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50 absurd-db absurd-db-migrate
 
   skill-check:
     name: Skill Validation
