@@ -97,6 +97,21 @@ export async function flowFailure(error: unknown) {
   return { status: error.response.status, body };
 }
 
+/** Kratos answers JSON flow creation with 400 `session_already_available`
+ * when a session exists. Its browser endpoint instead validates return_to and
+ * redirects itself, so hand the public initialization context over to it.
+ */
+export function browserFlowUrl(
+  kind: AuthFlow,
+  search: URLSearchParams,
+): string {
+  const url = new URL(`/self-service/${kind}/browser`, getConfig().kratosUrl);
+  const parameters = new URLSearchParams(search);
+  parameters.delete('flow');
+  url.search = parameters.toString();
+  return url.toString();
+}
+
 export function navigateToOryRedirect(destination: string): void {
   const url = new URL(destination, window.location.href);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {

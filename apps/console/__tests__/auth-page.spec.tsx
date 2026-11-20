@@ -8,6 +8,10 @@ import { AuthPage } from '../src/auth/AuthPage.js';
 const mockCreateSettingsFlow = vi.fn();
 const mockGetSettingsFlow = vi.fn();
 const mockCreateLoginFlow = vi.fn();
+const mockGetLoginFlow = vi.fn();
+const mockCreateRegistrationFlow = vi.fn();
+const mockCreateRecoveryFlow = vi.fn();
+const mockGetFlowError = vi.fn();
 const mockAssign = vi.fn();
 
 vi.mock('../src/kratos.js', () => ({
@@ -15,6 +19,10 @@ vi.mock('../src/kratos.js', () => ({
     createBrowserSettingsFlow: mockCreateSettingsFlow,
     getSettingsFlow: mockGetSettingsFlow,
     createBrowserLoginFlow: mockCreateLoginFlow,
+    getLoginFlow: mockGetLoginFlow,
+    createBrowserRegistrationFlow: mockCreateRegistrationFlow,
+    createBrowserRecoveryFlow: mockCreateRecoveryFlow,
+    getFlowError: mockGetFlowError,
   }),
 }));
 
@@ -39,7 +47,10 @@ function responseError(status: number, body: unknown): ResponseError {
   );
 }
 
-function renderPage(page: 'settings' | 'login' = 'settings') {
+function renderPage(
+  page:
+    'settings' | 'login' | 'registration' | 'recovery' | 'error' = 'settings',
+) {
   return render(
     <MoltThemeProvider mode="dark">
       <AuthPage page={page} />
@@ -55,6 +66,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'location', {
     value: {
       href: 'https://console.example.test/auth/settings',
+      pathname: '/auth/settings',
       search: '',
       assign: mockAssign,
     },
@@ -185,5 +197,81 @@ describe('AuthPage settings session recovery', () => {
 
     expect(mockCreateSettingsFlow.mock.calls[0][1].signal.aborted).toBe(true);
     expect(mockAssign).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthPage existing session', () => {
+  it.each([
+    ['login', mockCreateLoginFlow],
+    ['registration', mockCreateRegistrationFlow],
+    ['recovery', mockCreateRecoveryFlow],
+  ] as const)(
+    'hands %s to the Kratos browser endpoint when a session already exists',
+    async (page, createFlow) => {
+      window.location.search = `?${new URLSearchParams({
+        return_to: 'https://app.example.test/after',
+        login_challenge: 'challenge-id',
+      })}`;
+      createFlow.mockRejectedValue(
+        responseError(400, { error: { id: 'session_already_available' } }),
+      );
+
+      renderPage(page);
+
+      await waitFor(() => expect(mockAssign).toHaveBeenCalledOnce());
+      const destination = new URL(mockAssign.mock.calls[0][0] as string);
+      expect(destination.origin + destination.pathname).toBe(
+        `https://auth.example.test/self-service/${page}/browser`,
+      );
+      expect(destination.searchParams.get('return_to')).toBe(
+        'https://app.example.test/after',
+      );
+      expect(destination.searchParams.get('login_challenge')).toBe(
+        'challenge-id',
+      );
+      expect(screen.queryByText('Unable to continue')).not.toBeInTheDocument();
+    },
+  );
+
+  it('drops the stale flow id when handing an existing session to Kratos', async () => {
+    window.location.search = '?flow=old-flow&refresh=false';
+    mockGetLoginFlow.mockRejectedValue(
+      responseError(400, { error: { id: 'session_already_available' } }),
+    );
+
+    renderPage('login');
+
+    await waitFor(() =>
+      expect(mockAssign).toHaveBeenCalledExactlyOnceWith(
+        'https://auth.example.test/self-service/login/browser?refresh=false',
+      ),
+    );
+  });
+
+  it('keeps other 400 errors visible', async () => {
+    mockCreateLoginFlow.mockRejectedValue(
+      responseError(400, { error: { id: 'browser_location_change_required' } }),
+    );
+
+    renderPage('login');
+
+    expect(await screen.findByText('Unable to continue')).toBeInTheDocument();
+    expect(mockAssign).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthPage OAuth error', () => {
+  it('renders Hydra error parameters as plain text', async () => {
+    window.location.search = `?${new URLSearchParams({
+      error: 'invalid_request',
+      error_description: '<b>Bad</b> redirect_uri',
+    })}`;
+
+    const view = renderPage('error');
+
+    expect(await screen.findByText('invalid_request')).toBeInTheDocument();
+    expect(screen.getByText('<b>Bad</b> redirect_uri')).toBeInTheDocument();
+    expect(view.container.querySelector('b')).toBeNull();
+    expect(mockGetFlowError).not.toHaveBeenCalled();
   });
 });

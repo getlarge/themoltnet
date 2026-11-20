@@ -23,6 +23,7 @@ import { getConfig } from '../config.js';
 import { getKratosClient } from '../kratos.js';
 import { AccessibleTotp } from './AccessibleTotp.js';
 import {
+  browserFlowUrl,
   clearFlowRestart,
   flowFailure,
   flowSearch,
@@ -48,6 +49,7 @@ type State =
         ReturnType<ReturnType<typeof getKratosClient>['getFlowError']>
       >;
     }
+  | { kind: 'oauthError'; error: string; description: string | null }
   | { kind: 'failed'; message: string };
 
 export function AuthPage({ page }: { page: PageKind }) {
@@ -80,6 +82,17 @@ export function AuthPage({ page }: { page: PageKind }) {
     const run = async () => {
       if (page === 'error') {
         const id = search.get('id');
+        const oauthError = search.get('error');
+        if (!id && oauthError) {
+          // Hydra reports OAuth errors in the query string, not as Kratos flow
+          // errors. Render them as plain text only.
+          setState({
+            kind: 'oauthError',
+            error: oauthError,
+            description: search.get('error_description'),
+          });
+          return;
+        }
         if (!id) {
           setState({
             kind: 'failed',
@@ -151,6 +164,16 @@ export function AuthPage({ page }: { page: PageKind }) {
             navigateToOryRedirect(login.toString());
             return;
           }
+          if (
+            (page === 'login' ||
+              page === 'registration' ||
+              page === 'recovery') &&
+            failure?.status === 400 &&
+            failure.body.error?.id === 'session_already_available'
+          ) {
+            navigateToOryRedirect(browserFlowUrl(page, search));
+            return;
+          }
           setState({
             kind: 'failed',
             message:
@@ -165,6 +188,8 @@ export function AuthPage({ page }: { page: PageKind }) {
     };
   }, [page, attempt]);
 
+  // Elements appends rate_limited messages to the form itself, so this
+  // handler does not add a page-level notice for them.
   const onError: OryErrorHandler = (event) => {
     if (event.type === 'unexpected_error') {
       setNotice('This request could not complete. Please try again.');
@@ -297,6 +322,17 @@ export function AuthPage({ page }: { page: PageKind }) {
             <Button onClick={() => setAttempt((value) => value + 1)}>
               Try again
             </Button>
+            <a href={authUrl('login')}>Start sign-in again</a>
+          </Stack>
+        ) : state.kind === 'oauthError' ? (
+          <Stack gap={4} align="center">
+            <Text as="h1" variant="h2">
+              Unable to continue
+            </Text>
+            <div role="alert">
+              <Text>{state.error}</Text>
+              {state.description && <Text>{state.description}</Text>}
+            </div>
             <a href={authUrl('login')}>Start sign-in again</a>
           </Stack>
         ) : state.kind === 'error' ? (
