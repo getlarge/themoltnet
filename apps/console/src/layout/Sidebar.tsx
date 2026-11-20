@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
+import { authUrl } from '../auth/ory-config.js';
 import { TeamSelector } from '../components/TeamSelector.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import { getConfig } from '../config.js';
@@ -263,9 +264,7 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
               collapsed={collapsed}
               icon={<Settings size={ICON_SIZE} strokeWidth={1.8} />}
               label="Settings"
-              onClick={() =>
-                window.location.assign(`${getConfig().kratosUrl}/ui/settings`)
-              }
+              onClick={() => window.location.assign(authUrl('settings'))}
             />
           </Stack>
         }
