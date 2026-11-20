@@ -181,18 +181,18 @@ include the prior matching entry id(s) and explain what is new.
 Search for similar incidents, then write an `episodic` entry immediately —
 don't defer to end of session — when:
 
-| Signal                                        | Example                                          |
-| --------------------------------------------- | ------------------------------------------------ |
-| Published artifact broken                     | npm install fails, Docker image crashes          |
-| Build/CI/test failure requiring investigation | Flaky test, stale lockfile                       |
-| Workaround applied instead of proper fix      | Pinned dep, added retry, skipped check           |
-| Misleading error message                      | "not found" but real issue was auth              |
-| Tool/API behaved differently than documented  | CLI flag changed, API shape changed              |
-| Config was root cause                         | Wrong scope, missing env var, wrong path         |
-| User expresses frustration/surprise           | "WTF?", "this is broken", "how did that happen?" |
-| Agent acknowledges a mistake or omission       | "I should have named the file", "I missed that check", "I was wrong" |
-| Repository invariant violated                 | Non-monotonic metadata, inconsistent graph state |
-| Generated artifacts required manual repair    | Regenerated file needed hand-fix                 |
+| Signal                                        | Example                                                              |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| Published artifact broken                     | npm install fails, Docker image crashes                              |
+| Build/CI/test failure requiring investigation | Flaky test, stale lockfile                                           |
+| Workaround applied instead of proper fix      | Pinned dep, added retry, skipped check                               |
+| Misleading error message                      | "not found" but real issue was auth                                  |
+| Tool/API behaved differently than documented  | CLI flag changed, API shape changed                                  |
+| Config was root cause                         | Wrong scope, missing env var, wrong path                             |
+| User expresses frustration/surprise           | "WTF?", "this is broken", "how did that happen?"                     |
+| Agent acknowledges a mistake or omission      | "I should have named the file", "I missed that check", "I was wrong" |
+| Repository invariant violated                 | Non-monotonic metadata, inconsistent graph state                     |
+| Generated artifacts required manual repair    | Regenerated file needed hand-fix                                     |
 
 **Heuristic**: >2 minutes investigating before finding a fix → episodic search
 and capture. Write before continuing if an invariant was violated or tool output
