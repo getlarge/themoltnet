@@ -59,6 +59,50 @@ beforeAll(async () => {
   analyzeRealCommand = (command) => analyzer.analyze(command);
 });
 
+it.each([
+  'legreffier-adaptive-focused-readonly-v1',
+  'legreffier-adaptive-knowledge-readonly-v1',
+  'legreffier-security-review-readonly-v1',
+])(
+  'allows pinned diff inspection without granting other commands in %s',
+  (name) => {
+    const policy = JSON.parse(
+      readFileSync(
+        resolve(
+          import.meta.dirname,
+          '../../../../.github/runtime-policies',
+          `${name}.json`,
+        ),
+        'utf8',
+      ),
+    ) as {
+      tools: string[];
+      shellCommands: Array<{ argvPrefix: [string, ...string[]] }>;
+    };
+    const check = (command: string) =>
+      decideToolCall({
+        toolName: 'bash',
+        command,
+        enforcement: 'enforce',
+        allowedTools: new Set(policy.tools),
+        allowedShellCommands: policy.shellCommands,
+        analyze: analyzeRealCommand,
+      });
+    expect(
+      check(
+        `git diff --no-ext-diff --no-textconv ${'a'.repeat(40)}...${'b'.repeat(40)} -- src/file.ts`,
+      ),
+    ).toMatchObject({ allow: true });
+    for (const command of [
+      'git checkout main',
+      'git diff --ext-diff',
+      'git diff --no-ext-diff --no-textconv HEAD; git checkout main',
+      'bash -c "echo execute"',
+    ])
+      expect(check(command)).toMatchObject({ allow: false });
+  },
+);
+
 const base = (over: Partial<GateInput>): GateInput => ({
   toolName: 'read',
   enforcement: 'enforce',
@@ -660,3 +704,5 @@ describe('decideToolCall', () => {
     });
   });
 });
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';

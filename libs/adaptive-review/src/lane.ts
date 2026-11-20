@@ -134,9 +134,6 @@ export function withCreateHook(
     },
     getTask: (id) => tasks.getTask(id),
     listAttempts: (id) => tasks.listAttempts(id),
-    ...(tasks.stageArtifact
-      ? { stageArtifact: tasks.stageArtifact.bind(tasks) }
-      : {}),
     ...(listMessages ? { listMessages } : {}),
   };
 }

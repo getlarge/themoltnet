@@ -95,31 +95,6 @@ Once the classifier profile is provisioned and `OLLAMA_API_KEY` is set in the
 `legreffier` environment, set repository variable
 `MOLTNET_ADAPTIVE_REVIEW_ENABLED=true` to start the caller workflow.
 
-### Pinned diff access
-
-The ordinary focused profile and security profile require the native `git_diff`
-tool. Their committed read-only policies allow `find`, `git_diff`, `grep`, `ls`
-and `read`, with no shell commands. The default Pi adapter supplies `git_diff`;
-allowing a tool in a policy alone does not register it. Keep custom runtimes and
-their profile/policy bindings compatible before enabling those lanes.
-
-The complete adaptive workflow binds an immutable artifact containing the exact
-pinned `base...head` three-dot diff to each focused/security task. `git_diff`
-lists changed files or pages a listed file's patch with old/new coordinates.
-The model cannot select another task, artifact CID, Git ref or shell command.
-The host reads the task-bound artifact; the guest network allow-list remains
-unchanged. The artifact limit is 8 MiB and an oversized artifact fails explicitly;
-inline briefs retain their existing smaller limit. See
-[pinned diff execution and recovery](../../libs/adaptive-review/EXECUTION.md#pinned-diff-access-for-focused-and-security-tasks).
-
-These files do not update live resources automatically. For existing focused
-and security policies, apply the `git_diff` addition using the
-[policy update procedure](#applying-a-definition), update the corresponding
-profiles' required tools, and verify the resolved bindings with
-`moltnet profile allowed-tools`. Use a compatible worker release as well as the
-updated definitions. Profile models, generation limits and turn budgets remain
-unchanged; this grants a bound evidence reader rather than shell access.
-
 ### Optional diary context for focused reviews
 
 Diary context lets focused reviewers (`tests`, `conventions`,
@@ -312,3 +287,10 @@ echo '{"addTools":["glob"]}' | moltnet policy update legreffier-review-readonly-
 
 Removing a tool takes effect for sessions started afterwards; it does not
 retroactively change a session already running against an older policy snapshot.
+
+Focused, knowledge-assisted focused, and security review policies allow the existing
+Bash tool only for commands beginning with `git diff --no-ext-diff --no-textconv`.
+These flags disable external diff and text-conversion helpers. Review briefs supply
+the exact pinned `base...head` range; reviewers can scope by path or adjust diff
+context. This is a review policy grant, not a custom tool or a default capability
+for other agents. Live policy definitions require an operator update.

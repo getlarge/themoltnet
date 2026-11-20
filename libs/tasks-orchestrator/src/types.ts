@@ -71,8 +71,6 @@ export type WorkflowStepHandle<T = JsonValue> = {
  * (see `createSdkTaskClient`).
  */
 export interface TaskClient {
-  /** Optional input-artifact staging for producers of large immutable evidence. */
-  stageArtifact?: Agent['tasks']['artifacts']['stage'];
   createTask(
     body: CreateTaskBody & { teamId: string },
     options?: { idempotencyKey?: string },

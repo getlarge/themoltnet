@@ -1,6 +1,10 @@
 {
-  "description": "Read-only security review with the pinned diff available through git_diff and approved repository inspection tools.",
+  "description": "Repository inspection and pinned Git diff access for staged security review tasks.",
   "name": "legreffier-security-review-readonly-v1",
-  "shellCommands": [],
-  "tools": ["find", "git_diff", "grep", "ls", "read"]
+  "shellCommands": [
+    {
+      "argvPrefix": ["git", "diff", "--no-ext-diff", "--no-textconv"]
+    }
+  ],
+  "tools": ["find", "grep", "ls", "read"]
 }

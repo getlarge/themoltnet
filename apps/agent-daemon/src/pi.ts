@@ -9,7 +9,6 @@ import {
   GONDOLIN_BASE_EXECUTABLES,
   GONDOLIN_TOOL_NAMES,
   MOLTNET_TOOL_NAMES,
-  pinnedReviewDiffTool,
   type PiExecutorManifest,
   type PiRuntimeDefinition,
 } from '@themoltnet/pi-runtime';
@@ -134,7 +133,6 @@ export const defaultPiRuntimeDefinition = definePiRuntime({
     executables: GONDOLIN_BASE_EXECUTABLES,
   }),
   hostCapabilities: [agentSigningCapability],
-  tools: [pinnedReviewDiffTool],
 });
 
 export const defaultPiDaemonAdapter = createPiDaemonAdapter(

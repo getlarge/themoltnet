@@ -9,8 +9,6 @@ import type { TaskClient } from './types.js';
  */
 export function createSdkTaskClient(agent: Agent): TaskClient {
   return {
-    stageArtifact: (body, query, options) =>
-      agent.tasks.artifacts.stage(body, query, options),
     createTask(body, options) {
       const { teamId, ...createBody } = body;
       return agent.tasks.create(createBody, {
