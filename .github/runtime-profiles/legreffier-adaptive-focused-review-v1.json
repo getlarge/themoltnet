@@ -21,18 +21,11 @@
   },
   "name": "legreffier-adaptive-focused-review-v1",
   "requiredEnv": [],
-  "requiredTools": ["git_diff"],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
-    "network": {
-      "allowedHosts": [],
-      "allowedInternalHosts": []
-    },
-    "resources": {
-      "cpus": 3,
-      "memory": "6G"
-    },
+    "network": { "allowedHosts": [], "allowedInternalHosts": [] },
+    "resources": { "cpus": 3, "memory": "6G" },
     "vfs": {
       "shadow": [
         ".moltnet",

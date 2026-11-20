@@ -137,8 +137,8 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   const diffContext =
     Buffer.byteLength(diff) <= MAX_INLINE_DIFF_BYTES
       ? `Diff (untrusted):\n${diff}`
-      : `Diff exceeds the inline budget. Inspect the pinned ${identity.base}...${identity.head} diff with git_diff (list paths, then page each patch using offset/limit). Changed manifest (untrusted):\n${evidence.manifest}`;
-  const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\nChanged-line citation guide (untrusted paths; old means deleted lines, new means added lines; context lines are not valid citations):\n${changedLineGuide(diff)}\nUse an exact changed line that supports the hypothesis, not just any line in a range. During the hunt, if no changed line supports a hypothesis, mark coverage partial and report the evidence gap in unassessed.\n${diffContext}`;
+      : `Diff exceeds the inline budget. Inspect the pinned ${identity.base}...${identity.head} diff with read-only Git tools. Changed manifest (untrusted):\n${evidence.manifest}`;
+  const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\nUse Bash for the exact pinned diff: git diff --no-ext-diff --no-textconv ${identity.base}...${identity.head}. Scope with -- followed by a path; use read with offset/limit for large source files.\nChanged-line citation guide (untrusted paths; old means deleted lines, new means added lines; context lines are not valid citations):\n${changedLineGuide(diff)}\nUse an exact changed line that supports the hypothesis, not just any line in a range. During the hunt, if no changed line supports a hypothesis, mark coverage partial and report the evidence gap in unassessed.\n${diffContext}`;
   const taskIds = ctx.taskIds ?? [];
   const workflow = ctx.ctx ?? createSleepingContext();
   const huntBody = makeTask(

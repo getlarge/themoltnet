@@ -23,7 +23,6 @@ export {
   type TrackedError,
 } from './moltnet/tools.js';
 export { createPiTelemetry } from './otel/durable.js';
-export { pinnedReviewDiffTool } from './pinned-review-diff.js';
 export type { GondolinDurableTaskOptions } from './runtime/durable-task-options.js';
 export type {
   PiTaskExecutionPlan,

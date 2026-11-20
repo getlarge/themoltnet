@@ -274,17 +274,7 @@ function harness(
       });
     },
   );
-  const tasks = {
-    createTask,
-    stageArtifact: vi.fn(() =>
-      Promise.resolve({
-        artifactSource: 'staged',
-        cid: 'diff-cid',
-        sizeBytes: 100,
-        contentType: 'application/json',
-      }),
-    ),
-  } as unknown as TaskClient;
+  const tasks = { createTask } as unknown as TaskClient;
   return { tasks, createTask, created };
 }
 

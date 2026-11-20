@@ -28,9 +28,6 @@ export default createPiDaemonAdapter(
     runtimeKind: 'adaptive_review_pi',
     vm: defaultPiRuntimeDefinition.vm,
     hostCapabilities: defaultPiRuntimeDefinition.hostCapabilities,
-    tools: [
-      ...defaultPiRuntimeDefinition.tools,
-      ...createReviewDiaryTools(diaryIds),
-    ],
+    tools: createReviewDiaryTools(diaryIds),
   }),
 );

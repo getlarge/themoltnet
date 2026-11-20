@@ -21,18 +21,11 @@
   },
   "name": "legreffier-security-review-v2",
   "requiredEnv": [],
-  "requiredTools": ["git_diff"],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
-    "network": {
-      "allowedHosts": [],
-      "allowedInternalHosts": []
-    },
-    "resources": {
-      "cpus": 2,
-      "memory": "4G"
-    },
+    "network": { "allowedHosts": [], "allowedInternalHosts": [] },
+    "resources": { "cpus": 2, "memory": "4G" },
     "vfs": {
       "shadow": [
         ".moltnet",
