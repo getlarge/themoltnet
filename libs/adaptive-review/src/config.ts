@@ -160,50 +160,6 @@ export function parseReviewTaskBudgets(
   return resolved;
 }
 
-export function formatReviewTaskBudgets(budgets: ReviewTaskBudgets): string {
-  return [
-    '### Resolved review task budgets',
-    '',
-    '| Review | Running | Dispatch | Expiry |',
-    '| --- | --- | --- | --- |',
-    ...REVIEW_BUDGET_KEYS.map((key) => {
-      const budget = budgets[key];
-      return `| ${key} | ${budget.runningTimeoutSec}s | ${budget.dispatchTimeoutSec}s | ${budget.expiresInSec}s |`;
-    }),
-    '',
-  ].join('\n');
-}
-
-export type ReviewExecutionMode = 'durable' | 'ephemeral';
-
-export function parseReviewExecutionMode(value?: string): ReviewExecutionMode {
-  if (value === undefined || value === '') return 'durable';
-  if (value === 'durable' || value === 'ephemeral') return value;
-  throw new Error('ADAPTIVE_EXECUTION_MODE must be durable or ephemeral');
-}
-
-export function assertPreparedExecution(
-  prepared: {
-    executionMode?: ReviewExecutionMode;
-    executionAttempt?: string;
-  },
-  source: NodeJS.ProcessEnv,
-): void {
-  const mode = parseReviewExecutionMode(source.ADAPTIVE_EXECUTION_MODE);
-  if ((prepared.executionMode ?? 'durable') !== mode)
-    throw new Error(
-      'execution mode changed after preparation; start a new review',
-    );
-  const attempt =
-    mode === 'ephemeral' && source.GITHUB_RUN_ID
-      ? (source.GITHUB_RUN_ATTEMPT ?? '1')
-      : undefined;
-  if (mode === 'ephemeral' && prepared.executionAttempt !== attempt)
-    throw new Error(
-      'ephemeral review belongs to another Actions attempt; rerun all jobs to start a new review',
-    );
-}
-
 /** Centralize environment reads so review modules receive explicit inputs. */
 export function env(): NodeJS.ProcessEnv {
   return process.env;

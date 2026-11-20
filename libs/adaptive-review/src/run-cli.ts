@@ -1,12 +1,15 @@
 import { appendFileSync } from 'node:fs';
 
+import { required } from './config.js';
 import { hostTimeoutSeconds } from './host-settings.js';
 import { actionReviewCorrelation } from './identity.js';
 import { hasIncompleteCoverage } from './report.js';
+import { cleanupReviewExecutions, reviewRetentionPolicy } from './retention.js';
 import { runStandaloneFromHost } from './standalone-host.js';
 
 export const REVIEW_HELP = `Run the complete durable adaptive review with review-scoped workers.
 Usage: node run.js --repo owner/repository --pr NUMBER --execution-id UUID [options]
+  --cleanup                 Preview expired executions; ADAPTIVE_CLEANUP_APPLY=true applies
   --workers local|external   Manage local workers (default) or use existing workers
   --publish                  Reconcile findings on GitHub
   --report PATH              Export JSON report
@@ -84,6 +87,20 @@ export async function runReviewCommand(args: {
     return 0;
   }
   try {
+    if (argv.includes('--cleanup')) {
+      if (
+        source.ADAPTIVE_CLEANUP_APPLY !== undefined &&
+        !['true', 'false'].includes(source.ADAPTIVE_CLEANUP_APPLY)
+      )
+        throw new Error('ADAPTIVE_CLEANUP_APPLY must be true or false');
+      const result = await cleanupReviewExecutions({
+        databaseUrl: required('ADAPTIVE_DATABASE_URL', source),
+        policy: reviewRetentionPolicy(source),
+        apply: source.ADAPTIVE_CLEANUP_APPLY === 'true',
+      });
+      out(`${JSON.stringify(result)}\n`);
+      return 0;
+    }
     output(true);
     if (argv.includes('--resolve-intent')) {
       const correlation = actionReviewCorrelation(source);

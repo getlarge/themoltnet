@@ -11,9 +11,9 @@ import { join } from 'node:path';
 
 import { afterEach, expect, it } from 'vitest';
 
-import type { Prepared } from '../src/cli.js';
 import { githubChildEnvironment } from '../src/github-environment.js';
-import { createReviewCliDeps } from '../src/host-deps.js';
+import type { PinnedPullRequest } from '../src/host-deps.js';
+import { createReviewHostDeps } from '../src/host-deps.js';
 import { ensureReviewGit } from '../src/standalone-host.js';
 
 const dirs: string[] = [];
@@ -47,7 +47,7 @@ it('does not pass coordinator credentials to an actual gh subprocess', async () 
     `#!${process.execPath}\nconst fs=require('node:fs');fs.writeFileSync(${JSON.stringify(captured)},JSON.stringify({ app:process.env.MOLTNET_GITHUB_APP_PRIVATE_KEY, agent:process.env.MOLTNET_AGENT_KEY, provider:process.env.OPENAI_API_KEY, token:process.env.GH_TOKEN }));console.log(JSON.stringify({headRefOid:'head',baseRefOid:'base'}));`,
     { mode: 0o700 },
   );
-  const deps = createReviewCliDeps(
+  const deps = createReviewHostDeps(
     {
       PATH: `${root}:${process.env.PATH ?? ''}`,
       MOLTNET_GITHUB_APP_PRIVATE_KEY: 'app',
@@ -91,7 +91,7 @@ it('fetches missing PR objects without converting a complete local clone to a sh
   git(source, 'push', join(root, 'fixture/remote.git'), 'HEAD');
   expect(() => git(checkout, 'cat-file', '-e', `${head}^{tree}`)).toThrow();
   await ensureReviewGit(
-    { repo: 'fixture/remote', base, head } as Prepared,
+    { repo: 'fixture/remote', base, head } as PinnedPullRequest,
     checkout,
     {
       PATH: process.env.PATH,

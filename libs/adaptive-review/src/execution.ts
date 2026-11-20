@@ -14,18 +14,17 @@ import {
   withReviewExecution,
 } from './retention.js';
 
-export const ADAPTIVE_STAGE_TASK = 'adaptive_review_stage_v1';
+// Persisted binding task identity for existing complete-workflow executions.
+const ADAPTIVE_INPUT_TASK = 'adaptive_review_stage_v1';
 export const ADAPTIVE_WORKFLOW_TASK = 'adaptive_review_v1';
-type ExecutionStage = 'prepare' | 'route' | 'review' | 'publish';
-
-function taskName(stage?: ExecutionStage): string {
-  return stage ? `${ADAPTIVE_STAGE_TASK}:${stage}` : ADAPTIVE_STAGE_TASK;
-}
-
 export function workflowExecutionQueue(executionId: string): string {
-  return executionQueue(
-    `workflow-${ADAPTIVE_WORKFLOW_TASK.split('_').at(-1)}:${executionId}`,
-  );
+  const digest = createHash('sha256')
+    .update(
+      `workflow-${ADAPTIVE_WORKFLOW_TASK.split('_').at(-1)}:${executionId}`,
+    )
+    .digest('hex')
+    .slice(0, 24);
+  return `adaptive-${digest}`;
 }
 
 /** Compare JSON inputs independently of object insertion order. */
@@ -39,25 +38,7 @@ export function canonicalInput(value: unknown): string {
   );
 }
 
-export function executionQueue(executionId: string): string {
-  const digest = createHash('sha256')
-    .update(executionId)
-    .digest('hex')
-    .slice(0, 24);
-  return `adaptive-${digest}`;
-}
-
-type StageInput<T> = { operation: 'bind' | 'run'; input: T };
-
-/** Existing Node stage host, backed by the shared Absurd adapter. */
-export function createAdaptiveStageApp<T, R>(args: {
-  databaseUrl: string;
-  queueName: string;
-  stage?: ExecutionStage;
-  run: (input: T, ctx: WorkflowContext) => Promise<R>;
-}) {
-  return createReviewApp({ ...args, taskName: taskName(args.stage) });
-}
+type WorkflowInput<T> = { operation: 'bind' | 'run'; input: T };
 
 export function createAdaptiveWorkflowApp<T, R>(args: {
   databaseUrl: string;
@@ -74,7 +55,7 @@ function createReviewApp<T, R>(args: {
   logger?: Logger;
   run: (input: T, ctx: WorkflowContext) => Promise<R>;
 }) {
-  return createOrchestrationAbsurdApp<StageInput<T>>({
+  return createOrchestrationAbsurdApp<WorkflowInput<T>>({
     databaseUrl: args.databaseUrl,
     queueName: args.queueName,
     taskName: args.taskName,
@@ -91,70 +72,45 @@ function createReviewApp<T, R>(args: {
  * another repository's work with this process's checkout or credentials.
  * The bind task is an immutable input record, checked BEFORE claiming run work.
  */
-interface ExecuteStageArgs<T, R> {
+interface ExecuteWorkflowArgs<T, R> {
   databaseUrl: string;
   executionId: string;
-  stage: ExecutionStage;
   input: T;
   retryFailed?: boolean;
   retention?: ReviewRetentionPolicy;
   signal?: AbortSignal;
-  /** Host capacity starts only after immutable intent has been validated. */
-  onBound?: () => Promise<void>;
   run: (input: T, ctx: WorkflowContext) => Promise<R>;
 }
 
-export async function executeAdaptiveStage<T, R>(
-  args: ExecuteStageArgs<T, R>,
+export function executeAdaptiveWorkflow<T, R>(
+  args: ExecuteWorkflowArgs<T, R>,
 ): Promise<R> {
-  if (!args.databaseUrl) throw new Error('ADAPTIVE_DATABASE_URL is required');
-  if (!args.executionId) throw new Error('review execution ID is required');
-  return executeReview(args, {
-    queueName: executionQueue(args.executionId),
-    taskName: taskName(args.stage),
-    key: args.stage,
-    exclusive: args.stage === 'publish',
-    cleanup: args.stage === 'prepare',
-  });
-}
-
-interface ExecutionOptions {
-  queueName: string;
-  taskName: string;
-  key: string;
-  exclusive: boolean;
-  cleanup: boolean;
-}
-
-function executeReview<T, R>(
-  args: Omit<ExecuteStageArgs<T, R>, 'stage'>,
-  options: ExecutionOptions,
-): Promise<R> {
+  if (!args.databaseUrl || !args.executionId)
+    throw new Error('Review database and execution ID required');
   return withReviewExecution(
     args.databaseUrl,
-    options.queueName,
-    options.exclusive,
+    workflowExecutionQueue(args.executionId),
+    true,
     async (connection) => {
-      if (options.cleanup)
-        await cleanupReviewExecutions({
-          databaseUrl: args.databaseUrl,
-          policy: args.retention,
-          apply: true,
-        });
-      return executeBoundStage(args, connection, options);
+      await cleanupReviewExecutions({
+        databaseUrl: args.databaseUrl,
+        policy: args.retention,
+        apply: true,
+      });
+      return executeBoundWorkflow(args, connection);
     },
-    options.cleanup ? args.retention : undefined,
+    args.retention,
   );
 }
 
-async function executeBoundStage<T, R>(
-  args: Omit<ExecuteStageArgs<T, R>, 'stage'>,
+async function executeBoundWorkflow<T, R>(
+  args: ExecuteWorkflowArgs<T, R>,
   connection: Client,
-  options: ExecutionOptions,
 ): Promise<R> {
-  const { queueName } = options;
+  const queueName = workflowExecutionQueue(args.executionId);
   // Binding has its own queue, so validation cannot accidentally execute work.
-  const bindingFactory = createAdaptiveStageApp<T, never>({
+  const bindingFactory = createReviewApp<T, never>({
+    taskName: ADAPTIVE_INPUT_TASK,
     databaseUrl: args.databaseUrl,
     queueName: `${queueName}-input`,
     run: () => {
@@ -168,9 +124,9 @@ async function executeBoundStage<T, R>(
   try {
     await binding.createQueue();
     const pinned = await binding.spawn(
-      ADAPTIVE_STAGE_TASK,
+      ADAPTIVE_INPUT_TASK,
       { operation: 'bind', input: args.input },
-      { idempotencyKey: options.key },
+      { idempotencyKey: 'workflow' },
     );
     bindingWorker = await binding.startWorker({ concurrency: 1 });
     const bound = await interruptible(
@@ -195,7 +151,7 @@ async function executeBoundStage<T, R>(
   const appFactory = createReviewApp({
     databaseUrl: args.databaseUrl,
     queueName,
-    taskName: options.taskName,
+    taskName: ADAPTIVE_WORKFLOW_TASK,
     logger: {
       warn: () => {},
       error: () => {},
@@ -220,19 +176,14 @@ async function executeBoundStage<T, R>(
   try {
     await app.createQueue();
     const spawned = await app.spawn(
-      options.taskName,
+      ADAPTIVE_WORKFLOW_TASK,
       { operation: 'run', input: args.input },
-      { idempotencyKey: options.key },
+      { idempotencyKey: 'workflow' },
     );
     const snapshot = await app.fetchTaskResult(spawned.taskID);
     if (snapshot?.state === 'failed' && args.retryFailed) {
       await app.retryTask(spawned.taskID);
     }
-    if (
-      snapshot?.state !== 'completed' &&
-      (snapshot?.state !== 'failed' || args.retryFailed)
-    )
-      await args.onBound?.();
     worker = await app.startWorker({ concurrency: 1 });
     const result = await interruptible(
       () => app.awaitTaskResult(spawned.taskID),
@@ -267,19 +218,4 @@ async function interruptible<T>(
   } finally {
     signal.removeEventListener('abort', onAbort);
   }
-}
-
-/** Workflow task name is the single version source; legacy queue identities stay unchanged. */
-export function executeAdaptiveWorkflow<T, R>(
-  args: Omit<ExecuteStageArgs<T, R>, 'stage'>,
-): Promise<R> {
-  if (!args.databaseUrl || !args.executionId)
-    throw new Error('Review database and execution ID required');
-  return executeReview(args, {
-    queueName: workflowExecutionQueue(args.executionId),
-    taskName: ADAPTIVE_WORKFLOW_TASK,
-    key: 'workflow',
-    exclusive: true,
-    cleanup: true,
-  });
 }

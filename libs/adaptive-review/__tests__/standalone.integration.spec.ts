@@ -10,7 +10,7 @@ import { parseReviewTaskBudgets } from '../src/config.js';
 import {
   ADAPTIVE_WORKFLOW_TASK,
   createAdaptiveWorkflowApp,
-  executionQueue,
+  workflowExecutionQueue,
 } from '../src/execution.js';
 import {
   runStandaloneReview,
@@ -67,7 +67,7 @@ it('resumes one complete workflow in a replacement OS process after classificati
     PRIMARY KEY (queue, key)
   )`);
   const correlationId = randomUUID();
-  const queueName = executionQueue(`workflow-v1:${correlationId}`);
+  const queueName = workflowExecutionQueue(correlationId);
   const input: StandaloneReviewInput = {
     repo: 'another/project',
     pr: 7,
@@ -216,26 +216,28 @@ it('binds complete intent before worker startup and reuses the completed executi
   const args = {
     databaseUrl,
     input,
-    services,
-    onBound: () => {
-      starts += 1;
-      return Promise.resolve();
+    services: {
+      ...services,
+      ensureCapacity: () => {
+        starts += 1;
+        return Promise.resolve();
+      },
     },
   };
   try {
     const result = await runStandaloneReview(args);
     expect(result.status).toBe('completed');
-    expect(starts).toBe(1);
+    expect(starts).toBe(2);
     expect(tasks.created).toHaveLength(3);
     expect(await runStandaloneReview(args)).toEqual(result);
-    expect(starts).toBe(1);
+    expect(starts).toBe(2);
     await expect(
       runStandaloneReview({ ...args, input: { ...input, pr: 8 } }),
     ).rejects.toThrow('incompatible pinned inputs');
-    expect(starts).toBe(1);
+    expect(starts).toBe(2);
     expect(tasks.created).toHaveLength(3);
   } finally {
-    const queueName = executionQueue(`workflow-v1:${input.correlationId}`);
+    const queueName = workflowExecutionQueue(input.correlationId);
     for (const suffix of ['', '-input']) {
       const app = createAdaptiveWorkflowApp({
         databaseUrl,

@@ -1,9 +1,9 @@
-import { executeAdaptiveStage } from '../../src/execution.js';
+import { executeAdaptiveWorkflow } from '../../src/execution.js';
 
-await executeAdaptiveStage({
+await executeAdaptiveWorkflow({
   databaseUrl: process.env.ADAPTIVE_TEST_DATABASE_URL as string,
   executionId: process.env.ADAPTIVE_TEST_EXECUTION_ID as string,
-  stage: 'review',
+
   input: {},
   run: async (_input, ctx) => {
     await ctx.step('retention-test-progress', async () => ({

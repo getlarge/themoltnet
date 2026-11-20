@@ -10,14 +10,6 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
-    "./main": {
-      "import": "./src/main.ts",
-      "types": "./src/main.ts"
-    },
-    "./publish": {
-      "import": "./src/publish.ts",
-      "types": "./src/publish.ts"
-    },
     "./outcomes": {
       "import": "./src/outcomes.ts",
       "types": "./src/outcomes.ts"

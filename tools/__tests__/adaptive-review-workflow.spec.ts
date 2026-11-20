@@ -342,8 +342,6 @@ describe('adaptive review consumer', () => {
       const files = [
         'run.js',
         'review-worker.js',
-        'review.js',
-        'publish.js',
         'outcomes.js',
         'diary-runtime.js',
         'release-dependencies.json',

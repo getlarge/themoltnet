@@ -49,10 +49,8 @@ export default defineConfig({
     minify: 'esbuild',
     rolldownOptions: {
       input: {
-        review: 'src/review.ts',
         run: 'src/run.ts',
         'review-worker': '../../libs/adaptive-review/src/review-worker.ts',
-        publish: 'src/publish.ts',
         outcomes: 'src/outcomes.ts',
         'diary-runtime': 'src/diary-runtime.ts',
       },

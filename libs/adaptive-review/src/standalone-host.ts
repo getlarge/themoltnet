@@ -4,11 +4,11 @@ import { parseArgs, promisify } from 'node:util';
 
 import { GitHubApi } from '@moltnet/docs-impact-review/github-api';
 
-import type { Prepared } from './cli.js';
 import { parseReviewTaskBudgets, required } from './config.js';
 import { reviewGithubToken } from './github-auth.js';
 import { githubChildEnvironment } from './github-environment.js';
-import { createReviewCliDeps } from './host-deps.js';
+import type { PinnedPullRequest } from './host-deps.js';
+import { createReviewHostDeps } from './host-deps.js';
 import { reuseHostPreparation } from './host-preparation.js';
 import {
   DEFAULT_HOST_TIMEOUT_SEC,
@@ -116,7 +116,7 @@ export function standaloneCommand(
 
 /** Fetch blobs/ancestry only. Reviewed head code is never executed or checked out. */
 export async function ensureReviewGit(
-  prepared: Prepared,
+  prepared: PinnedPullRequest,
   cwd: string,
   env: NodeJS.ProcessEnv,
 ): Promise<void> {
@@ -193,12 +193,12 @@ export async function runStandaloneFromHost(
     env,
     command.input.publication,
   );
-  const deps = createReviewCliDeps(env, cwd, token);
+  const deps = createReviewHostDeps(env, cwd, token);
   const services = reuseHostPreparation({
     cwd,
     github: deps.github,
     connect: deps.connect,
-    ensureGit: async (prepared: Prepared) =>
+    ensureGit: async (prepared: PinnedPullRequest) =>
       ensureReviewGit(prepared, cwd, { ...env, GH_TOKEN: await token() }),
     async publish(
       report: Parameters<typeof publishAdaptiveReport>[0],

@@ -42,7 +42,7 @@
         ],
         "options": {
           "cwd": "{workspaceRoot}",
-          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries run.js,review-worker.js,review.js,publish.js,outcomes.js,diary-runtime.js,worker-action/main.js,release-dependencies.json --stable-major-tag-prefix adaptive-review-action-v"
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries run.js,review-worker.js,outcomes.js,diary-runtime.js,worker-action/main.js,release-dependencies.json --stable-major-tag-prefix adaptive-review-action-v"
         }
       }
     }

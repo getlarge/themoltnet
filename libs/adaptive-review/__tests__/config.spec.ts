@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatReviewTaskBudgets,
-  parseReviewTaskBudgets,
-  REVIEW_BUDGET_KEYS,
-} from '../src/config.js';
+import { parseReviewTaskBudgets, REVIEW_BUDGET_KEYS } from '../src/config.js';
 import { LANES } from '../src/policy.js';
 
 describe('caller task budgets', () => {
@@ -92,11 +88,8 @@ complexity:
     expect(() => parseReviewTaskBudgets(raw)).toThrow(error);
   });
 
-  it('reports resolved limits for every review without mutating later defaults', () => {
+  it('resolves budgets without mutating later defaults', () => {
     const budgets = parseReviewTaskBudgets('docs: {timeout: 5m}');
-    expect(formatReviewTaskBudgets(budgets)).toContain(
-      '| docs | 300s | 300s | 3600s |',
-    );
     budgets.docs.runningTimeoutSec = 1;
     expect(parseReviewTaskBudgets().docs.runningTimeoutSec).toBe(120);
   });

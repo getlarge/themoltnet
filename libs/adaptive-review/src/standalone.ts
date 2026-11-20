@@ -3,11 +3,11 @@ import { checkEligibility } from '@moltnet/docs-impact-review/eligibility';
 import { collectWorkflowSpend } from '@moltnet/tasks';
 import type { WorkflowContext } from '@themoltnet/tasks-orchestrator';
 
-import type { CliDeps, Prepared } from './cli.js';
 import type { ReviewTaskBudgets } from './config.js';
 import { reviewCheckpoint, reviewContext } from './context.js';
 import type { Mode } from './core.js';
 import { executeAdaptiveWorkflow } from './execution.js';
+import type { PinnedPullRequest, ReviewHostDeps } from './host-deps.js';
 import type { ReviewRetentionPolicy } from './retention.js';
 import { scopedReviewTasks } from './review-tasks.js';
 import { loadAdaptivePolicy } from './snapshot.js';
@@ -52,10 +52,10 @@ export interface StandaloneReviewServices {
   cwd: string;
   /** Host-only request, replayed for unfinished work; never persisted as a checkpoint. */
   ensureCapacity?(capacity: readonly ReviewCapacity[]): Promise<void>;
-  github: CliDeps['github'];
-  connect: CliDeps['connect'];
+  github: ReviewHostDeps['github'];
+  connect: ReviewHostDeps['connect'];
   /** Host operation: fetch inert pinned objects, including after replacement. */
-  ensureGit(prepared: Prepared): Promise<void>;
+  ensureGit(prepared: PinnedPullRequest): Promise<void>;
   publish(report: AdaptiveReport, input: StandaloneReviewInput): Promise<void>;
 }
 
@@ -151,7 +151,6 @@ export function runStandaloneReview(args: {
   retryFailed?: boolean;
   retention?: ReviewRetentionPolicy;
   signal?: AbortSignal;
-  onBound?: () => Promise<void>;
 }): Promise<StandaloneReviewResult> {
   return executeAdaptiveWorkflow({
     databaseUrl: args.databaseUrl,
@@ -160,7 +159,6 @@ export function runStandaloneReview(args: {
     retryFailed: args.retryFailed,
     retention: args.retention,
     signal: args.signal,
-    onBound: args.onBound,
     run: (input, ctx) =>
       conductAdaptiveReview(input, ctx, {
         ...args.services,
@@ -177,7 +175,7 @@ export function runStandaloneReview(args: {
 
 async function investigateReview(
   input: StandaloneReviewInput,
-  prepared: Prepared,
+  prepared: PinnedPullRequest,
   ctx: WorkflowContext,
   services: StandaloneReviewServices,
 ): Promise<AdaptiveReport | null> {
@@ -275,7 +273,7 @@ async function investigateReview(
 
 async function assertPinnedRevisions(
   input: StandaloneReviewInput,
-  prepared: Prepared,
+  prepared: PinnedPullRequest,
   revisions: Record<string, number>,
   client: Awaited<ReturnType<StandaloneReviewServices['connect']>>,
   services: StandaloneReviewServices,

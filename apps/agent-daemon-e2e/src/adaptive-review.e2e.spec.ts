@@ -16,8 +16,8 @@ import { join, resolve } from 'node:path';
 
 import {
   type AdaptiveReport,
-  createAdaptiveStageApp,
-  executionQueue,
+  createAdaptiveWorkflowApp,
+  workflowExecutionQueue,
 } from '@moltnet/adaptive-review';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { type Agent, connect } from '@themoltnet/sdk';
@@ -357,9 +357,9 @@ describe('standalone adaptive review (e2e)', () => {
         ).toHaveLength(report.taskIds.length);
       } finally {
         await agent.tasks.cancel(unrelated.id, { reason: 'E2E cleanup' });
-        const queue = executionQueue(`workflow-v1:${correlationId}`);
+        const queue = workflowExecutionQueue(correlationId);
         for (const suffix of ['', '-input']) {
-          const app = createAdaptiveStageApp({
+          const app = createAdaptiveWorkflowApp({
             databaseUrl: absurdUrl,
             queueName: queue + suffix,
             run: () => Promise.resolve(null),

@@ -9,7 +9,7 @@ import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { Client } from 'pg';
 
 import {
-  createAdaptiveStageApp,
+  createAdaptiveWorkflowApp,
   runAdaptiveReview,
   type RunOptions,
 } from '../../src/index.js';
@@ -98,7 +98,10 @@ const tasks: TaskClient = {
   },
 };
 let partial = false;
-const app = createAdaptiveStageApp<Omit<RunOptions, 'tasks' | 'ctx'>, unknown>({
+const app = createAdaptiveWorkflowApp<
+  Omit<RunOptions, 'tasks' | 'ctx'>,
+  unknown
+>({
   databaseUrl,
   queueName,
   run: (input, ctx) =>
