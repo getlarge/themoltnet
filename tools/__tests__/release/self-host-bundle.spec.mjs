@@ -534,7 +534,11 @@ test('resolves digest pins for source-tagged images', () => {
         '--format',
         'json',
       ],
-      { cwd: composeDir, encoding: 'utf8', env: composeEnvironment(composeDir) },
+      {
+        cwd: composeDir,
+        encoding: 'utf8',
+        env: composeEnvironment(composeDir),
+      },
     );
     for (const service of Object.values(JSON.parse(rendered).services)) {
       assert.match(service.image, /@sha256:[a-f0-9]{64}$/, service.image);
