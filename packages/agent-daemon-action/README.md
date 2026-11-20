@@ -29,6 +29,21 @@ Four invocation shapes:
    idle polling backoff (30 s by default) so a follow-up task is claimed
    within seconds of being created.
 
+## Trusted custom commands
+
+Set `command-entry` to an existing absolute path to a trusted Node entry point
+when the caller owns orchestration. The action prepares the daemon and configured
+providers, then directly executes the command with `MOLTNET_DAEMON_BIN` pointing
+to the installed daemon. Provider and cache cleanup still run afterwards.
+The command owns worker processes and lifetime; the action does not pass its
+task-execution options through.
+
+Do not combine this with `mode`, `profile`, task creation/execution inputs, project
+selection, claim filters, wait settings or `runtime-module`; conflicting
+non-default inputs fail before setup. The command can emit `result=<JSON>` to
+`GITHUB_OUTPUT`; callers interpret the generic `result` output. Adaptive review
+uses this contract through its [reusable host](../../libs/adaptive-review/EXECUTION.md).
+
 ## Usage
 
 ```yaml

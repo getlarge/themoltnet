@@ -26,20 +26,20 @@ services:
         condition: service_healthy
     restart: on-failure
 
-  issue-lifecycle-db:
+  absurd-db:
     extends:
       file: docker-compose.base.yaml
-      service: issue-lifecycle-db
+      service: absurd-db
     volumes:
-      - issue-lifecycle-db-data:/var/lib/postgresql/data
+      - absurd-db-data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  issue-lifecycle-db-migrate:
+  absurd-db-migrate:
     extends:
       file: docker-compose.base.yaml
-      service: issue-lifecycle-db-migrate
+      service: absurd-db-migrate
     depends_on:
-      issue-lifecycle-db:
+      absurd-db:
         condition: service_healthy
     restart: on-failure
 
@@ -174,7 +174,7 @@ services:
 
 volumes:
   app-db-data:
-  issue-lifecycle-db-data:
+  absurd-db-data:
   kratos-db-data:
   hydra-db-data:
   keto-db-data:

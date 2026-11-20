@@ -15,8 +15,8 @@ runs:
       working-directory: .adaptive-review-runtime
       run: |
         if git ls-files --error-unmatch \
-          packages/adaptive-review-action/dist/review.js \
-          packages/adaptive-review-action/dist/publish.js \
+          packages/adaptive-review-action/dist/run.js \
+          packages/adaptive-review-action/dist/review-worker.js \
           packages/adaptive-review-action/dist/outcomes.js \
           packages/adaptive-review-action/dist/diary-runtime.js \
           packages/adaptive-review-action/dist/worker-action/main.js \
@@ -35,7 +35,7 @@ runs:
         node-version-file: .adaptive-review-runtime/.tool-versions
         cache: pnpm
         cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
-    # Planner/publisher entries need no install. The optional diary runtime
+    # Released entries need no install. The optional diary runtime
     # gets its external dependencies separately in focused workers.
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       if: steps.bundle.outputs.released == 'true'

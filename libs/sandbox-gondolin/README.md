@@ -119,3 +119,18 @@ and port boundary must remain equivalent.
 
 Live tests (`vm-manager.integration.spec.ts`) boot real VMs and run only with
 `MOLTNET_PI_VM_INTEGRATION=1`; CI runs them in the agent-daemon Core lane.
+
+## Shared snapshot cache
+
+`MOLTNET_GONDOLIN_CACHE_DIR` optionally selects the host snapshot-cache directory.
+Processes sharing that directory coordinate through a renewable interprocess
+lock, including cache hits. Builders write a private `.building` file and rename
+it into place after the checkpoint completes. A killed builder therefore leaves
+no partially published cache entry. Stale build files are removed under the lock;
+pruning skips locked build directories.
+
+The lock coordinates filesystem access, not provider authentication or task
+execution. Callers retain those responsibilities. Process tests cover concurrent
+access, interrupted builders, stale-lock recovery and atomic publication.
+The [real Pi cold-cache preparation check](../adaptive-review/EXECUTION.md#real-pi-cold-cache-preparation)
+prepares four workers without a model invocation.

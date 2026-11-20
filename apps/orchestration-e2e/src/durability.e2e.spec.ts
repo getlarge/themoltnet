@@ -6,7 +6,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 /**
- * Durability E2E against a REAL Absurd Postgres (the `issue-lifecycle-db`
+ * Durability E2E against a REAL Absurd Postgres (the `absurd-db`
  * service in docker-compose.e2e.yaml). This proves the property the whole
  * `@themoltnet/tasks-orchestrator` design rests on — that completed `ctx.step`
  * checkpoints are replayed from Absurd's store and NOT re-executed when a run is
@@ -15,7 +15,7 @@ import { describe, expect, it } from 'vitest';
  * Absurd worker can prove the checkpoint store actually behaves this way.
  *
  * `ORCHESTRATION_ABSURD_URL` is set by globalSetup (defaults to the local
- * issue-lifecycle-db). A dedicated queue keeps these tasks off any other worker
+ * absurd-db). A dedicated queue keeps these tasks off any other worker
  * polling the stack, so only the in-test worker drains them.
  */
 const ABSURD_URL = process.env.ORCHESTRATION_ABSURD_URL as string;

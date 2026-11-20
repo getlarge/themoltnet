@@ -1,7 +1,4 @@
-import {
-  buildEvidence,
-  type Git as ComplexityGit,
-} from '@moltnet/complexity-review/evidence';
+import { buildEvidence } from '@moltnet/complexity-review/evidence';
 import {
   collectChangeSet,
   createGit,
@@ -57,6 +54,7 @@ import {
   accountForPriorFindings,
   type PriorFindingReview,
 } from './prior-findings.js';
+import { isReviewCoordinatorFailure } from './review-tasks.js';
 import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
 import type { PreviousFinding } from './threads.js';
@@ -236,11 +234,7 @@ export async function prepareAdaptiveReview(
   validateReviewTaskBudgets(options.taskBudgets, snapshot.policy.lanes);
   const reviewIdentity = { ...identity, policyDigest: snapshot.digest };
   const changes = changedPaths(git, identity.base, identity.head);
-  const evidence = buildEvidence(
-    git as ComplexityGit,
-    identity.base,
-    identity.head,
-  );
+  const evidence = buildEvidence(git, identity.base, identity.head);
   const packets = packetize(evidence);
   const gaps = evidence.generatedPaths.map(
     (path) => `Generated path not classified: ${path}`,
@@ -318,7 +312,8 @@ export async function prepareAdaptiveReview(
       );
       answers.push({ packetId: packet.id, answers: output.answers });
     } catch (reason) {
-      if (isWorkflowInterruption(reason)) throw reason;
+      if (isWorkflowInterruption(reason) || isReviewCoordinatorFailure(reason))
+        throw reason;
       classifierFailed = true;
       const code = laneFailureCode(reason);
       logClassifierFailure(packet.id, taskId, code);
@@ -392,7 +387,7 @@ export function classifierTaskPossible(
     throw new Error('base and head must be full Git OIDs');
   const git = createGit(cwd);
   if (!loadAdaptivePolicy(git, base)) return false;
-  const packets = packetize(buildEvidence(git as ComplexityGit, base, head));
+  const packets = packetize(buildEvidence(git, base, head));
   return packets.length > 0;
 }
 
@@ -439,11 +434,7 @@ export async function runRoutedAdaptiveReview(
     throw new Error('routing does not match the pinned review');
   }
   const changes = changedPaths(git, identity.base, identity.head);
-  const evidence = buildEvidence(
-    git as ComplexityGit,
-    identity.base,
-    identity.head,
-  );
+  const evidence = buildEvidence(git, identity.base, identity.head);
   const { routing } = preparation;
   const createdTaskIds = routing.routes.map((): string[] => []);
   // Absurd schedule_run sleeps the whole run immediately. Branches yield
@@ -506,7 +497,11 @@ export async function runRoutedAdaptiveReview(
                 previousFindings: options.previousFindings,
               });
             } catch (reason) {
-              if (isWorkflowInterruption(reason)) throw reason;
+              if (
+                isWorkflowInterruption(reason) ||
+                isReviewCoordinatorFailure(reason)
+              )
+                throw reason;
               const lane = route.lane;
               const code = laneFailureCode(reason);
               logLaneFailure(lane, createdTaskIds[index], code);

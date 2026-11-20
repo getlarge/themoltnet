@@ -122,9 +122,11 @@ documents that workflow and the `absurdctl` commands agents should reach for
 first.
 
 For the repository's local and e2e Docker stacks, this setup is handled by the
-`issue-lifecycle-db` and `issue-lifecycle-db-migrate` compose services. They run
-Postgres separately from the main MoltNet app DB and initialize the default
-`issue-lifecycle` Absurd queue.
+`absurd-db` and `absurd-db-migrate` compose services. They run
+Postgres separately from the main MoltNet app DB and initialize the Absurd
+schema. Each application creates its own workflow queues. Local volumes now use
+`absurd-db-data`; existing `issue-lifecycle-db-data` volumes are not migrated or
+deleted. Keep the old configuration to access unfinished workflows stored there.
 
 ## Retry And Recovery Model
 
@@ -437,7 +439,7 @@ docker info >/dev/null
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml ps
 
 # The dedicated Absurd DB must be initialized by compose.
-ABSURD_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle" \
+ABSURD_DATABASE_URL="postgresql://absurd:absurd_secret@localhost:55434/absurd" \
   uvx absurdctl list-queues
 
 # The daemon identity must have local MoltNet credentials.
@@ -492,7 +494,7 @@ COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d --
 The stack includes a dedicated Absurd database for this app:
 
 ```bash
-ISSUE_LIFECYCLE_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle"
+ISSUE_LIFECYCLE_DATABASE_URL="postgresql://absurd:absurd_secret@localhost:55434/absurd"
 ```
 
 Then run an agent daemon against that stack. See
@@ -510,7 +512,7 @@ Finally, point the lifecycle runner at a Postgres database usable by Absurd and
 a sandbox GitHub issue:
 
 ```bash
-export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle"
+export ISSUE_LIFECYCLE_DATABASE_URL="postgresql://absurd:absurd_secret@localhost:55434/absurd"
 export ISSUE_LIFECYCLE_CONSOLE_URL="${ISSUE_LIFECYCLE_CONSOLE_URL:-http://localhost:5174}"
 
 pnpm --filter @themoltnet/issue-lifecycle cli \

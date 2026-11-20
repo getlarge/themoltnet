@@ -1,3 +1,6 @@
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { setTimeout } from 'node:timers/promises';
 /**
  * Executes the `create-task` and `run` shell blocks from action.yml against
  * fake `npx` / daemon binaries to pin the `project-id` contract:
@@ -241,6 +244,88 @@ describe('run step with project-id', () => {
   });
 
   const daemonArgs = () => readFileSync(callLog, 'utf8').trim().split('\n');
+
+  it('runs a trusted command with the resolved daemon instead of starting a task worker', () => {
+    const bin = installFakeDaemon();
+    const supervisor = resolve(root, 'review supervisor.cjs');
+    writeFileSync(
+      supervisor,
+      "require('node:fs').writeFileSync(process.env.FAKE_CALL_LOG, process.env.MOLTNET_DAEMON_BIN);",
+    );
+    const result = runStep('run', {
+      ...runEnv(bin),
+      PROJECT_ID: '',
+      RUNTIME_MODULE: '',
+      DAEMON_MODE: 'drain',
+      COMMAND_ENTRY: supervisor,
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readFileSync(callLog, 'utf8')).toBe(bin);
+  });
+
+  it('rejects an invalid command path or conflicting task inputs before setup', () => {
+    for (const inputs of [
+      { 'command-entry': 'relative.js' },
+      { 'command-entry': '/valid.js', 'task-types': 'freeform' },
+      { 'command-entry': '/valid.js', mode: 'drain' },
+      { 'command-entry': '/valid.js', profile: 'profile' },
+      { 'command-entry': '/valid.js', 'running-timeout-sec': '300' },
+      { 'command-entry': '/valid.js', 'max-attempts': '2' },
+    ]) {
+      const result = runStep('command-contract', {
+        ACTION_INPUTS: JSON.stringify(inputs),
+      });
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/command-entry/);
+    }
+  });
+
+  it.each(['SIGINT', 'SIGTERM'] as const)(
+    'forwards %s directly through the command exec boundary',
+    async (signal) => {
+      const binary = installFakeDaemon();
+      const entry = resolve(root, `cancel-${signal}.cjs`);
+      const marker = resolve(root, `signal-${signal}`);
+      const pidFile = resolve(root, `pid-${signal}`);
+      writeFileSync(
+        entry,
+        `const fs = require('node:fs');
+process.on(process.env.MOLTNET_TEST_SIGNAL, () => {
+  fs.writeFileSync(process.env.MOLTNET_TEST_MARKER, 'stopped');
+  process.exit(0);
+});
+fs.writeFileSync(process.env.MOLTNET_TEST_PID_FILE, String(process.pid));
+setInterval(() => {}, 1000);`,
+      );
+      const run = stepById('run');
+      const child = spawn(
+        'bash',
+        ['--noprofile', '--norc', '-eo', 'pipefail', '-c', renderRun(run.run)],
+        {
+          env: {
+            ...process.env,
+            ...runEnv(binary),
+            COMMAND_ENTRY: entry,
+            MOLTNET_TEST_SIGNAL: signal,
+            MOLTNET_TEST_MARKER: marker,
+            MOLTNET_TEST_PID_FILE: pidFile,
+          },
+          stdio: 'ignore',
+        },
+      );
+      const exited = once(child, 'exit');
+      try {
+        for (let n = 0; n < 200 && !existsSync(pidFile); n++)
+          await setTimeout(10);
+        expect(Number(readFileSync(pidFile, 'utf8'))).toBe(child.pid);
+        child.kill(signal);
+        expect((await exited)[0]).toBe(0);
+        expect(readFileSync(marker, 'utf8')).toBe('stopped');
+      } finally {
+        if (child.exitCode === null) child.kill('SIGKILL');
+      }
+    },
+  );
 
   it('forwards a trusted runtime module as one argument without shell expansion', () => {
     const bin = installFakeDaemon();

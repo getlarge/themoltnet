@@ -11,6 +11,7 @@ import {
   logLaneFailure,
   withCreateHook,
 } from './lane.js';
+import { isReviewCoordinatorFailure } from './review-tasks.js';
 
 const DOCS_STAGE_TAG = /^stage:(extract|coverage|docs-check)$/;
 
@@ -114,7 +115,10 @@ export async function runDocsLane(ctx: LaneContext): Promise<LaneResult> {
       config,
       configSource: source,
     },
-    { serialTaskDispatch: true },
+    {
+      serialTaskDispatch: true,
+      shouldPropagateError: isReviewCoordinatorFailure,
+    },
   );
   return docsResult(report, taskIds, stages);
 }

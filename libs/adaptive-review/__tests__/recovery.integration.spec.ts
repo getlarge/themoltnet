@@ -4,13 +4,7 @@ import {
   spawn,
 } from 'node:child_process';
 import { once } from 'node:events';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -18,16 +12,14 @@ import type { WorkflowContext } from '@themoltnet/tasks-orchestrator';
 import { Client } from 'pg';
 import { describe, expect, it } from 'vitest';
 
-import { type CliDeps, runAdaptiveStage } from '../src/cli.js';
 import {
-  ADAPTIVE_STAGE_TASK,
+  ADAPTIVE_WORKFLOW_TASK,
   type AdaptiveReport,
-  createAdaptiveStageApp,
-  executeAdaptiveStage,
-  executionQueue,
+  createAdaptiveWorkflowApp,
+  executeAdaptiveWorkflow,
   type RunOptions,
+  workflowExecutionQueue,
 } from '../src/index.js';
-import { IdempotentReviewTasks, reviewFixture } from './recovery-fixture.js';
 
 const databaseUrl = process.env.ADAPTIVE_TEST_DATABASE_URL as string;
 function output(
@@ -139,124 +131,6 @@ function pinnedInput(cwd: string): Omit<RunOptions, 'tasks' | 'ctx'> {
 }
 
 describe('adaptive review integration (real Absurd; simulated task services)', () => {
-  it.each(['durable', 'ephemeral'] as const)(
-    'runs %s local stages with the appropriate checkpoint lifetime',
-    async (executionMode) => {
-      const repo = reviewFixture();
-      const executionId = `local-stages-${process.pid}-${Date.now()}`;
-      const tasks = new IdempotentReviewTasks();
-      const eventPath = join(repo.cwd, 'event.json');
-      const preparedPath = join(repo.cwd, 'prepared.json');
-      const routePath = join(repo.cwd, 'route.json');
-      const reportPath = join(repo.cwd, 'report.json');
-      writeFileSync(
-        eventPath,
-        JSON.stringify({ issue: { number: 7, pull_request: {} } }),
-      );
-      const deps: CliDeps = {
-        cwd: repo.cwd,
-        env: {
-          GITHUB_REPOSITORY: 'another/project',
-          GITHUB_EVENT_NAME: 'issue_comment',
-          GITHUB_EVENT_PATH: eventPath,
-          ADAPTIVE_EXECUTION_ID: executionId,
-          ADAPTIVE_EXECUTION_MODE: executionMode,
-          ADAPTIVE_DATABASE_URL: databaseUrl,
-          ADAPTIVE_PREPARED: preparedPath,
-          ADAPTIVE_ROUTE: routePath,
-          ADAPTIVE_REPORT: reportPath,
-          ADAPTIVE_MODE: 'shadow',
-          ADAPTIVE_RUNTIME_SHA: repo.base,
-          ADAPTIVE_APP_LOGIN: 'reviewer[bot]',
-          ADAPTIVE_CLASSIFIER_PROFILE: 'classifier',
-          ADAPTIVE_FOCUSED_PROFILE: 'reviewer',
-          MOLTNET_TEAM_ID: 'team',
-          MOLTNET_DIARY_ID: 'diary',
-        },
-        github: {
-          pullRequest: async () => ({
-            number: 7,
-            title: 'Change value',
-            body: '',
-            changed_files: 1,
-            user: { login: 'contributor' },
-            head: { sha: repo.head, repo: { full_name: 'another/project' } },
-            base: { sha: repo.base },
-          }),
-          files: async () => [{ filename: 'example.ts' }],
-          revisions: async () => ({ base: repo.base, head: repo.head }),
-          reviewThreads: async () => [],
-        },
-        connect: async () => ({
-          profiles: async () =>
-            ['classifier', 'reviewer'].map((id) => ({
-              id,
-              name: id,
-              revision: 1,
-            })),
-          tasks,
-        }),
-        stdout: () => {},
-      };
-      const clearStore = async () => {
-        for (const suffix of ['', '-input']) {
-          const app = createAdaptiveStageApp({
-            databaseUrl,
-            queueName: executionQueue(executionId) + suffix,
-            run: async () => null,
-          });
-          await app.dropQueue();
-          await app.close();
-        }
-      };
-      try {
-        for (const stage of ['prepare', 'plan', 'route', 'review']) {
-          expect(await runAdaptiveStage(stage, deps)).toBe(0);
-          // A fresh job-local service has no previous stage's Absurd queues.
-          // Only the handoff files and simulated remote task records survive.
-          if (
-            executionMode === 'ephemeral' &&
-            (stage === 'prepare' || stage === 'route')
-          )
-            await clearStore();
-        }
-        const readReport = () =>
-          JSON.parse(readFileSync(reportPath, 'utf8')) as AdaptiveReport;
-        const report = readReport();
-        expect(report.repo).toBe('another/project');
-        expect(report.head).toBe(repo.head);
-        expect(report.base).toBe(repo.base);
-        expect(report.correlationId).toBe(executionId);
-        expect(report.results.map((lane) => lane.status)).toEqual([
-          'clear',
-          'clear',
-        ]);
-        expect(tasks.requests).toHaveLength(3);
-        expect(report.taskIds).toHaveLength(3);
-        expect(new Set(report.taskIds)).toEqual(
-          new Set(tasks.requests.map(({ id }) => id)),
-        );
-        if (executionMode === 'ephemeral') return;
-        const originals = [preparedPath, routePath, reportPath].map((path) =>
-          readFileSync(path, 'utf8'),
-        );
-        for (const path of [preparedPath, routePath, reportPath]) rmSync(path);
-        for (const stage of ['prepare', 'route', 'review'])
-          expect(await runAdaptiveStage(stage, { ...deps })).toBe(0);
-        expect(readReport()).toEqual(report);
-        expect(
-          [preparedPath, routePath, reportPath].map((path) =>
-            readFileSync(path, 'utf8'),
-          ),
-        ).toEqual(originals);
-        expect(tasks.requests).toHaveLength(3);
-      } finally {
-        await clearStore();
-        repo.close();
-      }
-    },
-  );
-
   it.each(['create', 'await', 'parallel', 'repair'])(
     'recovers %s without replacement tasks or renewed repair budgets',
     async (scenario) => {
@@ -267,7 +141,7 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
       await database.query(`CREATE TABLE IF NOT EXISTS adaptive_recovery_submissions (
       queue text NOT NULL, key text NOT NULL, body jsonb NOT NULL, task jsonb NOT NULL,
       attempts jsonb NOT NULL, requests integer NOT NULL, PRIMARY KEY (queue, key))`);
-      const app = createAdaptiveStageApp({
+      const app = createAdaptiveWorkflowApp({
         databaseUrl,
         queueName,
         run: () => Promise.resolve(null),
@@ -276,7 +150,7 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
       let second: ChildProcessWithoutNullStreams | undefined;
       try {
         await app.createQueue();
-        const spawned = await app.spawn(ADAPTIVE_STAGE_TASK, {
+        const spawned = await app.spawn(ADAPTIVE_WORKFLOW_TASK, {
           operation: 'run',
           input: pinnedInput(cwd),
         });
@@ -367,7 +241,7 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
     60_000,
   );
 
-  it('binds input before execution, reuses a completed stage, and separates explicit new reviews', async () => {
+  it('binds input before execution, reuses a completed workflow, and separates explicit new reviews', async () => {
     const executionId = `binding-${process.pid}-${Date.now()}`;
     let calls = 0;
     const run = (input: { head: string }) => {
@@ -377,18 +251,18 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
     const args = {
       databaseUrl,
       executionId,
-      stage: 'route' as const,
+
       input: { head: 'a'.repeat(40) },
       run,
     };
     try {
-      expect(await executeAdaptiveStage(args)).toEqual(args.input);
-      expect(await executeAdaptiveStage(args)).toEqual(args.input);
+      expect(await executeAdaptiveWorkflow(args)).toEqual(args.input);
+      expect(await executeAdaptiveWorkflow(args)).toEqual(args.input);
       await expect(
-        executeAdaptiveStage({ ...args, input: { head: 'b'.repeat(40) } }),
+        executeAdaptiveWorkflow({ ...args, input: { head: 'b'.repeat(40) } }),
       ).rejects.toThrow('incompatible pinned inputs');
       expect(calls).toBe(1);
-      await executeAdaptiveStage({
+      await executeAdaptiveWorkflow({
         ...args,
         executionId: `${executionId}-new`,
       });
@@ -396,9 +270,9 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
     } finally {
       for (const id of [executionId, `${executionId}-new`]) {
         for (const suffix of ['', '-input']) {
-          const app = createAdaptiveStageApp({
+          const app = createAdaptiveWorkflowApp({
             databaseUrl,
-            queueName: executionQueue(id) + suffix,
+            queueName: workflowExecutionQueue(id) + suffix,
             run,
           });
           await app.dropQueue();
@@ -407,9 +281,9 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
       }
     }
   });
-  it('only explicitly retries a failed stage, retaining its task and budget checkpoints', async () => {
-    const executionId = `failed-stage-${process.pid}-${Date.now()}`;
-    const queueName = executionQueue(executionId);
+  it('only explicitly retries a failed workflow, retaining its task and budget checkpoints', async () => {
+    const executionId = `failed-workflow-${process.pid}-${Date.now()}`;
+    const queueName = workflowExecutionQueue(executionId);
     const input = { repo: 'another/project', head: 'a'.repeat(40) };
     let available = false;
     let submissions = 0;
@@ -423,10 +297,10 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
       if (!available) throw new Error('temporary coordinator failure');
       return state;
     };
-    const app = createAdaptiveStageApp({
+    const app = createAdaptiveWorkflowApp({
       databaseUrl,
       queueName,
-      stage: 'review',
+
       run,
     });
     const database = new Client({ connectionString: databaseUrl });
@@ -434,9 +308,9 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
     try {
       await app.createQueue();
       const spawned = await app.spawn(
-        `${ADAPTIVE_STAGE_TASK}:review`,
+        ADAPTIVE_WORKFLOW_TASK,
         { operation: 'run', input },
-        { idempotencyKey: 'review', maxAttempts: 1 },
+        { idempotencyKey: 'workflow', maxAttempts: 1 },
       );
       await app.workBatch();
       expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe('failed');
@@ -444,14 +318,14 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
       const args = {
         databaseUrl,
         executionId,
-        stage: 'review' as const,
+
         input,
         run,
       };
       available = true;
       for (const retryFailed of [undefined, false]) {
         await expect(
-          executeAdaptiveStage({ ...args, retryFailed }),
+          executeAdaptiveWorkflow({ ...args, retryFailed }),
         ).rejects.toThrow('failed');
         expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe(
           'failed',
@@ -459,7 +333,7 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
         expect(runs).toBe(1);
       }
       expect(
-        await executeAdaptiveStage({ ...args, retryFailed: true }),
+        await executeAdaptiveWorkflow({ ...args, retryFailed: true }),
       ).toEqual({ taskId: 'child-1', spent: 1.5, repairs: 2 });
       expect((await app.fetchTaskResult(spawned.taskID))?.state).toBe(
         'completed',
@@ -470,9 +344,9 @@ describe('adaptive review integration (real Absurd; simulated task services)', (
         `SELECT task_id FROM absurd."t_${queueName}"`,
       );
       expect(tasks.rows).toEqual([{ task_id: spawned.taskID }]);
-      // Retrying an already completed stage just returns its retained result.
+      // Retrying an already completed workflow just returns its retained result.
       expect(
-        await executeAdaptiveStage({ ...args, retryFailed: true }),
+        await executeAdaptiveWorkflow({ ...args, retryFailed: true }),
       ).toEqual({ taskId: 'child-1', spent: 1.5, repairs: 2 });
       expect(runs).toBe(2);
       expect(submissions).toBe(1);

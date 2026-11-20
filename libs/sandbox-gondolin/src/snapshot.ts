@@ -29,6 +29,7 @@ import {
 } from '@earendil-works/gondolin';
 
 import { delay } from './abort-utils.js';
+import { ensureCachedSnapshot } from './snapshot-cache.js';
 
 // ---------------------------------------------------------------------------
 // Sandbox config (loaded from sandbox.json or --sandbox-config flag)
@@ -212,6 +213,8 @@ const DEFAULT_CONFIG: SnapshotConfig = {};
 // ---------------------------------------------------------------------------
 
 function getCacheDir(): string {
+  if (process.env.MOLTNET_GONDOLIN_CACHE_DIR)
+    return path.resolve(process.env.MOLTNET_GONDOLIN_CACHE_DIR);
   if (process.platform === 'darwin') {
     return path.join(
       process.env.HOME ?? '/tmp',
@@ -299,7 +302,9 @@ export async function ensureSnapshot(
     return pending;
   }
 
-  const build = buildCachedSnapshot(snapshotPath, config, options);
+  const build = ensureCachedSnapshot(snapshotPath, (pendingPath) =>
+    buildCachedSnapshot(pendingPath, config, options),
+  );
   pendingSnapshots.set(snapshotPath, build);
   try {
     return await build;
@@ -542,7 +547,8 @@ function pruneOldSnapshots(maxCached: number, currentDir: string): void {
   for (const entry of entries.slice(maxCached + 1)) {
     if (
       entry.path !== currentDir &&
-      !pendingSnapshots.has(path.join(entry.path, 'snapshot.qcow2'))
+      !pendingSnapshots.has(path.join(entry.path, 'snapshot.qcow2')) &&
+      !existsSync(path.join(entry.path, 'snapshot.qcow2.lock'))
     ) {
       rmSync(entry.path, { recursive: true, force: true });
     }

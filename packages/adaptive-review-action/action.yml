@@ -1,85 +1,28 @@
-name: MoltNet adaptive review
-description: Run or publish the classifier-first advisory PR review.
+name: MoltNet adaptive review operations
+description: Record review outcomes or clean up expired executions. Run full reviews through the reusable workflow or run.js.
 author: getlarge
 inputs:
   step:
-    description: prepare, plan, route, review, publish, outcomes, or cleanup
+    description: outcomes or cleanup
     required: true
-outputs:
-  skip:
-    description: Whether the pull request is ineligible for review.
-    value: ${{ steps.prepare.outputs.skip }}
-  prepared:
-    description: The pinned pull request, as JSON.
-    value: ${{ steps.prepare.outputs.prepared }}
-  base:
-    description: The pinned base commit.
-    value: ${{ steps.prepare.outputs.base }}
-  head:
-    description: The pinned head commit.
-    value: ${{ steps.prepare.outputs.head }}
-  correlation:
-    description: The correlation ID shared by this review's tasks.
-    value: ${{ steps.prepare.outputs.correlation }}
-  classifier-needed:
-    description: Whether this review can create classifier tasks.
-    value: ${{ steps.plan.outputs.classifier-needed }}
-  review-enabled:
-    description: Whether policy enables an adaptive review.
-    value: ${{ steps.plan.outputs.review-enabled }}
-  specialists:
-    description: Specialist worker matrix for the routed lanes, as JSON.
-    value: ${{ steps.route.outputs.specialists }}
-  has-specialists:
-    description: Whether any routed lane needs a specialist worker.
-    value: ${{ steps.route.outputs.has-specialists }}
 runs:
   using: composite
   steps:
-    - name: Pin the pull request and check eligibility
-      id: prepare
-      if: inputs.step == 'prepare'
+    - name: Validate operation
       shell: bash
       env:
-        DIST: ${{ github.action_path }}/dist
-        ADAPTIVE_STAGE: prepare
-      run: node "$DIST/review.js"
-    - name: Plan classifier work
-      id: plan
-      if: inputs.step == 'plan'
-      shell: bash
-      env:
-        DIST: ${{ github.action_path }}/dist
-        ADAPTIVE_STAGE: plan
-      run: node "$DIST/review.js"
-    - name: Route adaptive review
-      id: route
-      if: inputs.step == 'route'
-      shell: bash
-      env:
-        DIST: ${{ github.action_path }}/dist
-        ADAPTIVE_STAGE: route
-      run: node "$DIST/review.js"
-    - name: Run routed adaptive review
-      if: inputs.step == 'review'
-      shell: bash
-      env:
-        DIST: ${{ github.action_path }}/dist
-        ADAPTIVE_STAGE: review
-      run: node "$DIST/review.js"
-    - name: Publish adaptive review
-      if: inputs.step == 'publish'
-      shell: bash
-      env:
-        DIST: ${{ github.action_path }}/dist
-      run: node "$DIST/publish.js"
+        OPERATION: ${{ inputs.step }}
+      run: |
+        case "$OPERATION" in
+          outcomes|cleanup) ;;
+          *) echo '::error::step must be outcomes or cleanup; use run.js for reviews' >&2; exit 1 ;;
+        esac
     - name: Clean up expired review executions
       if: inputs.step == 'cleanup'
       shell: bash
       env:
         DIST: ${{ github.action_path }}/dist
-        ADAPTIVE_STAGE: cleanup
-      run: node "$DIST/review.js"
+      run: node "$DIST/run.js" --cleanup
     - name: Record review outcomes
       if: inputs.step == 'outcomes'
       shell: bash

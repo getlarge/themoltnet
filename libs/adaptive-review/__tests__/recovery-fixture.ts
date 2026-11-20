@@ -13,7 +13,10 @@ import { parseReviewTaskBudgets } from '../src/config.js';
 import { canonicalInput } from '../src/execution.js';
 import type { RunOptions } from '../src/workflow.js';
 
-export function reviewFixture(change = 'export const value = 2;\n') {
+export function reviewFixture(
+  change = 'export const value = 2;\n',
+  lanes = ['tests', 'conventions'],
+) {
   const cwd = mkdtempSync(join(tmpdir(), 'adaptive-replay-'));
   const git = (...args: string[]) =>
     execFileSync('git', args, {
@@ -27,7 +30,7 @@ export function reviewFixture(change = 'export const value = 2;\n') {
     join(cwd, '.github/adaptive-review.json'),
     JSON.stringify({
       version: 1,
-      lanes: ['tests', 'conventions'],
+      lanes,
       rules: [],
       checks: [],
     }),
@@ -74,7 +77,10 @@ export function reviewFixture(change = 'export const value = 2;\n') {
         runtimeSha: base,
         mode: 'shadow',
         profiles: { focused: 'reviewer' },
-        taskBudgets: parseReviewTaskBudgets('', ['tests', 'conventions']),
+        taskBudgets: parseReviewTaskBudgets(
+          '',
+          lanes as Parameters<typeof parseReviewTaskBudgets>[1],
+        ),
       };
     },
     close: () => rmSync(cwd, { recursive: true, force: true }),

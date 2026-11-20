@@ -20,6 +20,9 @@
     "@earendil-works/pi-durable": "catalog:",
     "@moltnet/models": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

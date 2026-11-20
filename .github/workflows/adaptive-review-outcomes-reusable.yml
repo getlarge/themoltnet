@@ -23,6 +23,11 @@ on:
       app-id:
         type: string
         default: ''
+      runtime-repository:
+        description: Optional repository containing the pinned runtime (requires runtime-ref).
+        type: string
+        required: false
+        default: ''
       runtime-ref:
         type: string
         default: ''
@@ -56,14 +61,22 @@ jobs:
       - name: Resolve trusted review runtime
         id: runtime
         env:
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_REPOSITORY: ${{ inputs.runtime-repository || job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          EXPLICIT_RUNTIME_REPOSITORY: ${{ inputs.runtime-repository }}
         run: |
           set -euo pipefail
-          if [ -z "$WORKFLOW_REPOSITORY" ]; then
-            echo '::error::job.workflow_repository is required' >&2
+          if [ -n "$EXPLICIT_RUNTIME_REPOSITORY" ] && [ -z "$RUNTIME_REF" ]; then
+            echo '::error::runtime-repository requires runtime-ref' >&2
             exit 1
+          fi
+          if [ -z "$WORKFLOW_REPOSITORY" ]; then
+            if [ -z "$RUNTIME_REF" ]; then
+              echo '::error::runtime-ref is required when workflow repository context is unavailable' >&2
+              exit 1
+            fi
+            WORKFLOW_REPOSITORY=getlarge/themoltnet
           fi
           runtime_ref="${RUNTIME_REF:-$WORKFLOW_SHA}"
           if ! [[ "$runtime_ref" =~ ^[0-9a-f]{40}$ ]]; then

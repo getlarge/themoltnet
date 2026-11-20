@@ -260,6 +260,9 @@
     },
     {
       "path": "./packages/adaptive-review-action"
+    },
+    {
+      "path": "./apps/adaptive-review-e2e"
     }
   ]
 }

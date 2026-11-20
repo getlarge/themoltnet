@@ -16,10 +16,7 @@ import {
 import { createTestRepo, type TestRepo } from './test-repo.js';
 
 type StageOutput =
-  | { summary: string; result: unknown }
-  | Error
-  | 'timeout'
-  | 'max-turns';
+  { summary: string; result: unknown } | Error | 'timeout' | 'max-turns';
 
 /** Scripted task client: each created task completes with the next output. */
 function fakeTasks(
@@ -161,6 +158,42 @@ describe('runDocsImpactReview', () => {
     );
     return { report, created: tasks.created };
   }
+
+  it.each(['extract', 'docs-check'])(
+    'lets an embedding workflow recover coordinator errors in %s',
+    async (stage) => {
+      const head = repo.commit(
+        stage === 'extract'
+          ? { 'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n" }
+          : {
+              'docs/reference/cli.md':
+                '# CLI reference\n\n## Commands\n\n`run --fast`\n',
+            },
+      );
+      const fake = fakeTasks([
+        json({ version: 1, outcome: 'covered', findings: [] }),
+      ]);
+      const failure = new Error('Coordinator transport unavailable');
+      const tasks: TaskClient = {
+        ...fake.client,
+        createTask(body, options) {
+          if (body.tags?.includes(`stage:${stage}`))
+            return Promise.reject(failure);
+          return fake.client.createTask(body, options);
+        },
+      };
+      await expect(
+        runDocsImpactReview(
+          { git: repo.git, tasks, ctx: createSleepingContext() },
+          input(head),
+          {
+            serialTaskDispatch: true,
+            shouldPropagateError: (error) => error === failure,
+          },
+        ),
+      ).rejects.toBe(failure);
+    },
+  );
 
   it('returns not-needed for a test-only change without creating tasks', async () => {
     // Arrange

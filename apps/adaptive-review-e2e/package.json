@@ -1,0 +1,61 @@
+{
+  "name": "@themoltnet/adaptive-review-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@moltnet/adaptive-review": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/agent-daemon": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@types/pg": "catalog:",
+    "pg": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:agent",
+      "platform:cli"
+    ],
+    "implicitDependencies": [
+      "@themoltnet/adaptive-review-action"
+    ],
+    "targets": {
+      "e2e": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@themoltnet/adaptive-review-action"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/adaptive-review-e2e"
+        },
+        "outputs": []
+      }
+    }
+  }
+}

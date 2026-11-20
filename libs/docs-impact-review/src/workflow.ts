@@ -447,7 +447,11 @@ async function settle<T>(
 export async function runDocsImpactReview(
   deps: DocsImpactDeps,
   reviewInput: DocsImpactInput,
-  options: { serialTaskDispatch?: boolean } = {},
+  options: {
+    serialTaskDispatch?: boolean;
+    /** Let an embedding workflow recover infrastructure errors itself. */
+    shouldPropagateError?: (error: unknown) => boolean;
+  } = {},
 ): Promise<DocsImpactReport> {
   const { config, configSource, ...rest } = reviewInput;
   const budgets = resolveBudgets(config.budgets);
@@ -681,7 +685,11 @@ export async function runDocsImpactReview(
         ? [await settle(runCoverage()), await settle(runDocsCheck())]
         : await Promise.allSettled([runCoverage(), runDocsCheck()]);
     for (const result of [coverageResult, docsCheckResult]) {
-      if (result.status === 'rejected' && isWorkflowInterruption(result.reason))
+      if (
+        result.status === 'rejected' &&
+        (isWorkflowInterruption(result.reason) ||
+          options.shouldPropagateError?.(result.reason))
+      )
         throw result.reason;
     }
     if (coverageResult.status === 'rejected') throw coverageResult.reason;
@@ -720,7 +728,8 @@ export async function runDocsImpactReview(
       docsFindings.length > 0 ? 'updates-needed' : coverageOutcome;
     return finish();
   } catch (error) {
-    if (isWorkflowInterruption(error)) throw error;
+    if (isWorkflowInterruption(error) || options.shouldPropagateError?.(error))
+      throw error;
     if (error instanceof StageBudgetExceeded) {
       report.outcome = 'incomplete';
       report.gaps.push({

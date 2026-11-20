@@ -14,8 +14,10 @@ export {
   type SetupGitHubAgentResult,
 } from './setup.js';
 export {
+  EXPIRY_BUFFER_MS,
   findInstallationForOwner,
   getInstallationToken,
+  getRepositoryInstallationToken,
   type GitHubAppKeyInput,
   type GitHubAppKeySource,
   githubAppKeySourceFromConfig,

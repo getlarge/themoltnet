@@ -1,19 +1,10 @@
-import { readFileSync } from 'node:fs';
-
 import {
   findPaginated,
-  GitHubApi,
   listPaginated,
 } from '@moltnet/docs-impact-review/github-api';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-import {
-  assertPreparedExecution,
-  env,
-  type ReviewExecutionMode,
-} from './config.js';
-import { executeAdaptiveStage } from './execution.js';
 import { PriorFindingReviewSchema } from './prior-findings.js';
 import {
   ADAPTIVE_REVIEW_MARKER,
@@ -29,7 +20,6 @@ import {
   type ThreadSummary,
 } from './report.js';
 import {
-  createGraphQL,
   fetchReviewThreads,
   type GraphQL,
   isReviewerThread,
@@ -465,61 +455,4 @@ export async function publishAdaptiveReport(
   throw new Error(
     'PR changed while publishing review; replaced it with a stale notice',
   );
-}
-
-export async function publishAdaptiveReportFromEnv(): Promise<void> {
-  const path = env().ADAPTIVE_REPORT;
-  const token = env().GH_TOKEN;
-  const runUrl = env().ADAPTIVE_RUN_URL;
-  const appLogin = env().ADAPTIVE_APP_LOGIN;
-  if (!path || !token || !runUrl || !appLogin)
-    throw new Error('report, App token, run URL, and App login are required');
-  const report: unknown = JSON.parse(readFileSync(path, 'utf8'));
-  assertReport(report);
-  const prepared = JSON.parse(
-    readFileSync(env().ADAPTIVE_PREPARED ?? '', 'utf8'),
-  ) as {
-    repo: string;
-    pr: number;
-    base: string;
-    head: string;
-    correlationId: string;
-    executionMode?: ReviewExecutionMode;
-    executionAttempt?: string;
-  };
-  assertPreparedExecution(prepared, env());
-  const route = JSON.parse(
-    readFileSync(env().ADAPTIVE_ROUTE ?? '', 'utf8'),
-  ) as {
-    policyDigest: string;
-    referenceDigests: Record<string, string>;
-    runtimeSha: string;
-  };
-  const expected = { ...prepared, ...route };
-  const api = new GitHubApi({ token, apiUrl: env().GITHUB_API_URL });
-  const request: Request = (url, method = 'GET', body) =>
-    api.request(url, {
-      method,
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    });
-  const inlineFindings = env().ADAPTIVE_INLINE_FINDINGS !== 'false';
-  await executeAdaptiveStage({
-    databaseUrl: env().ADAPTIVE_DATABASE_URL ?? '',
-    executionId: report.correlationId,
-    stage: 'publish',
-    input: { report, expected, runUrl, appLogin, inlineFindings },
-    retryFailed: env().ADAPTIVE_RETRY_FAILED === 'true',
-    run: async () => {
-      await publishAdaptiveReport(report, {
-        request,
-        graphql: createGraphQL(token, env().GITHUB_GRAPHQL_URL || undefined),
-        runUrl,
-        appLogin,
-        expected,
-        inlineFindings,
-        recoverStale: true,
-      });
-      return { published: true };
-    },
-  });
 }

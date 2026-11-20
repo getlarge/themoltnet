@@ -823,6 +823,45 @@ importers:
         specifier: 'catalog:'
         version: 0.1.0(vitest@5.1.1)
 
+  apps/adaptive-review-e2e:
+    devDependencies:
+      '@moltnet/adaptive-review':
+        specifier: workspace:*
+        version: link:../../libs/adaptive-review
+      '@moltnet/bootstrap':
+        specifier: workspace:*
+        version: link:../../libs/bootstrap
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
+      '@themoltnet/agent-daemon':
+        specifier: workspace:*
+        version: link:../agent-daemon
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(jsdom@31.0.1(@noble/hashes@2.4.0))(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
   apps/agent-daemon:
     dependencies:
       '@earendil-works/gondolin':
@@ -1046,6 +1085,15 @@ importers:
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../../libs/pi-runtime
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -1951,6 +1999,9 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@themoltnet/github-agent':
+        specifier: workspace:*
+        version: link:../../packages/github-agent
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -3322,10 +3373,16 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.14.0
+      proper-lockfile:
+        specifier: 'catalog:'
+        version: 4.1.2
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
+      '@types/proper-lockfile':
+        specifier: 'catalog:'
+        version: 4.1.4
       tsx:
         specifier: 'catalog:'
         version: 4.23.15
@@ -3846,6 +3903,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

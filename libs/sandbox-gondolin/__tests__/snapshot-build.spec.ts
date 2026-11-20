@@ -17,6 +17,13 @@ const cacheFs = vi.hoisted(() => ({
   statSync: vi.fn(),
 }));
 
+vi.mock('../src/snapshot-cache.js', () => ({
+  ensureCachedSnapshot: (
+    path: string,
+    build: (path: string) => Promise<unknown>,
+  ) => build(path),
+}));
+
 vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),

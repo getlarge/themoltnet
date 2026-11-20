@@ -40,6 +40,7 @@ jobs:
       pull-requests: write
     secrets: inherit
     with:
+      runtime-ref: 12ab937584b0b58dae0d10f41b13c437aa7524ad
       environment: legreffier
       # Checkpoints live in job-local Postgres; rerun all jobs for a new review.
       execution-mode: ephemeral

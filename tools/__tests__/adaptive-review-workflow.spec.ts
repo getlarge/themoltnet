@@ -1,6 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -21,7 +20,7 @@ interface Step {
   run?: string;
   if?: string;
   env?: Record<string, string>;
-  with?: Record<string, string>;
+  with?: Record<string, string | boolean>;
 }
 
 interface Job {
@@ -53,47 +52,18 @@ const caller = parse(read('../../.github/workflows/adaptive-review.yml')) as {
   on: Record<string, unknown>;
   jobs: Record<string, Job & { uses: string; with: Record<string, string> }>;
 };
-const action = parse(
-  read('../../packages/adaptive-review-action/action.yml'),
-) as {
-  outputs: Record<string, { value: string }>;
-  runs: { steps: Step[] };
-};
-const focusedPolicy = JSON.parse(
-  read(
-    '../../.github/runtime-policies/legreffier-adaptive-focused-readonly-v1.json',
-  ),
-) as { shellCommands: unknown[]; tools: string[] };
+
 const fetchScriptPath = fileURLToPath(
   new URL('../fetch-adaptive-review-head.sh', import.meta.url),
 );
-const fetchScript = readFileSync(fetchScriptPath, 'utf8');
 const digestScriptPath = fileURLToPath(
   new URL('../adaptive-review-action-digest.sh', import.meta.url),
 );
-const BUNDLE = '.adaptive-review-runtime/packages/adaptive-review-action/dist';
-
-const RUNTIME_ACTION =
-  './.adaptive-review-runtime/packages/adaptive-review-action';
-const FETCH_STEP = 'Fetch reviewed head as inert Git data';
-const WORKERS = ['classifier-worker', 'specialist-workers'];
-
 function job(name: string): Job {
-  const value = workflow.jobs[name];
-  if (!value) throw new Error(`Job ${name} is missing`);
-  return value;
+  const found = workflow.jobs[name];
+  if (!found) throw new Error(`Missing job ${name}`);
+  return found;
 }
-
-function stepIndex(name: string, predicate: (step: Step) => boolean): number {
-  const index = job(name).steps.findIndex(predicate);
-  if (index < 0) throw new Error(`Step is missing in ${name}`);
-  return index;
-}
-
-function step(name: string, predicate: (step: Step) => boolean): Step {
-  return job(name).steps[stepIndex(name, predicate)];
-}
-
 /** Runs a step's inline script the way Actions does, returning its outputs. */
 function runStep(
   run: string | undefined,
@@ -130,344 +100,170 @@ function runStep(
   }
 }
 
-function workerAction(name: string): Step {
-  return step(
-    name,
-    (item) =>
-      item.uses === './.adaptive-review-runtime/packages/agent-daemon-action',
-  );
-}
-
-describe('adaptive review workflow trust gates', () => {
-  it('defaults to durable and confines ephemeral services to the coordinator jobs', () => {
-    expect(workflow.on.workflow_call.inputs['execution-mode'].default).toBe(
-      'durable',
+describe('adaptive review consumer', () => {
+  it('delegates the entire review graph to one supervisor invocation', () => {
+    expect(Object.keys(workflow.jobs)).toEqual(['review']);
+    const run = job('review').steps.filter(
+      (step) => step.with?.['command-entry'],
     );
-    expect(caller.jobs.review.with['execution-mode']).toBe('ephemeral');
+    expect(run).toHaveLength(1);
+    expect(run[0].with?.['command-entry']).toMatch(/dist\/run\.js$/);
     expect(
-      workflow.on.workflow_call.secrets.ADAPTIVE_DATABASE_URL.required,
+      job('review').steps.some((step) =>
+        ['prepare', 'route', 'review', 'publish'].includes(
+          String(step.with?.step ?? ''),
+        ),
+      ),
     ).toBe(false);
-    for (const name of ['prepare', 'route', 'review']) {
-      expect(job(name).env).toMatchObject({
-        ADAPTIVE_EXECUTION_MODE: '${{ inputs.execution-mode }}',
-        ADAPTIVE_DATABASE_URL:
-          "${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}",
-        ADAPTIVE_RETRY_FAILED:
-          "${{ inputs.execution-mode == 'durable' && github.run_attempt > 1 }}",
-      });
-      expect(job(name).services?.absurd.image).toContain(
-        "inputs.execution-mode == 'ephemeral'",
-      );
-      expect(job(name).services?.absurd.ports).toEqual([5432]);
-      const setup = step(
-        name,
-        (item) => item.name === 'Configure review database',
-      );
-      expect(setup.env).toEqual({
-        ADAPTIVE_POSTGRES_PORT: "${{ job.services.absurd.ports['5432'] }}",
-        ADAPTIVE_POSTGRES_CONTAINER: '${{ job.services.absurd.id }}',
-      });
-      const stage = stepIndex(name, (item) => item.with?.step === name);
-      expect(stepIndex(name, (item) => item === setup)).toBeLessThan(stage);
-    }
-    for (const name of WORKERS) expect(job(name).services).toBeUndefined();
-  });
-
-  it('gates every downstream job that can reach credentials', () => {
-    expect(job('prepare').if).toContain(
-      "github.event_name == 'pull_request' && github.event.pull_request.draft == false",
-    );
-    expect(job('route').if).toContain("needs.prepare.outputs.skip == 'false'");
-    expect(job('review').if).toBe("needs.route.result == 'success'");
-    expect(job('classifier-worker').if).toBe(
-      "needs.prepare.outputs.classifier-needed == 'true'",
-    );
-    expect(job('specialist-workers').if).toBe(
-      "needs.route.outputs.has-specialists == 'true'",
-    );
-    expect(job('route').needs).toBe('prepare');
-    expect(job('classifier-worker').needs).toBe('prepare');
-    expect(job('review').needs).toEqual(['prepare', 'route']);
-    expect(job('specialist-workers').needs).toEqual(['prepare', 'route']);
-  });
-
-  it('skips unless the pin step explicitly admits the pull request', () => {
-    // Fail closed: a pin that never ran (pre-screened, or failed) skips.
-    expect(job('prepare').outputs?.skip).toBe(
-      "${{ steps.pin.outputs.skip != 'false' || steps.plan.outputs.review-enabled != 'true' }}",
-    );
-  });
-
-  it('screens fork and Dependabot pull requests before installing', () => {
-    const screen = stepIndex('prepare', (item) => item.id === 'screen');
-    const setup = stepIndex('prepare', (item) =>
-      Boolean(item.uses?.endsWith('/adaptive-review-action/setup')),
-    );
-    const pin = stepIndex('prepare', (item) => item.id === 'pin');
-    expect(screen).toBeLessThan(setup);
-    for (const index of [setup, pin]) {
-      expect(job('prepare').steps[index].if).toBe(
-        "steps.screen.outputs.eligible == 'true'",
-      );
-    }
-  });
-
-  it('protects only the callers that run from the pull request revision', () => {
-    // The reusable workflow is pinned to a released bundle commit and the
-    // runtime defaults to that commit, so review code changed by the PR
-    // never executes.
-    expect(caller.jobs.review.uses).toMatch(
-      /adaptive-review-reusable\.yml@[0-9a-f]{40}$/,
-    );
-    expect(caller.jobs.review.with['runtime-ref']).toBeUndefined();
     expect(
-      caller.jobs.review.with['protected-paths'].trim().split('\n'),
-    ).toEqual([
-      '.github/workflows/adaptive-review.yml',
-      '.github/workflows/adaptive-review-outcomes.yml',
-    ]);
+      job('review').steps.some((step) =>
+        step.uses?.startsWith('actions/download-artifact'),
+      ),
+    ).toBe(false);
   });
-
-  it('reruns on a review request from a trusted commenter only', () => {
-    const condition = caller.jobs.review.if;
-    expect(caller.on).toHaveProperty('issue_comment.types', ['created']);
+  it('preserves trusted comment authorization in both consumer and reusable host', () => {
     for (const guard of [
       'github.event.issue.pull_request != null',
       "github.event.issue.state == 'open'",
       "github.event.comment.body == '/review'",
       "github.event.comment.user.type == 'User'",
-      'contains(fromJSON(\'["OWNER","MEMBER","COLLABORATOR"]\'), github.event.comment.author_association)',
+      'github.event.comment.author_association',
     ]) {
-      expect(condition).toContain(guard);
-      expect(job('prepare').if).toContain(guard);
-    }
-    expect(caller.jobs.review.with.mode).toBe(
-      "${{ github.event_name == 'issue_comment' && 'shadow' || vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'active' }}",
-    );
-    const resolve = step('prepare', (item) => item.id === 'pr');
-    expect(resolve.if).toBe("github.event_name == 'issue_comment'");
-    expect(stepIndex('prepare', (item) => item.id === 'pr')).toBeLessThan(
-      stepIndex('prepare', (item) => item.id === 'screen'),
-    );
-  });
-
-  it('checks eligibility in the pinned runtime before fetching head data', () => {
-    const pin = step('prepare', (item) => item.id === 'pin');
-    expect(pin.uses).toBe(RUNTIME_ACTION);
-    expect(pin.with).toEqual({ step: 'prepare' });
-    expect(pin.env).toEqual({
-      GH_TOKEN: '${{ github.token }}',
-      PROTECTED_PATHS: '${{ inputs.protected-paths }}',
-    });
-    const pinAt = stepIndex('prepare', (item) => item.id === 'pin');
-    const planAt = stepIndex('prepare', (item) => item.id === 'plan');
-    const gated = job('prepare').steps.slice(pinAt + 1, planAt + 1);
-    expect(gated.map((item) => item.name ?? item.id)).toEqual([
-      FETCH_STEP,
-      'Write pinned planner input',
-      'Check classifier work budget',
-    ]);
-    for (const item of gated)
-      expect(item.if).toBe("steps.pin.outputs.skip == 'false'");
-    expect(
-      step(
-        'prepare',
-        (item) => item.uses?.startsWith('actions/checkout@') ?? false,
-      ).with?.ref,
-    ).toBe(
-      '${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}',
-    );
-  });
-
-  it('exposes the stage outputs the jobs consume', () => {
-    const stepOutput = (id: string, key: string) =>
-      `\${{ steps.${id}.outputs.${key} }}`;
-    for (const key of ['skip', 'prepared', 'base', 'head', 'correlation'])
-      expect(action.outputs[key].value).toBe(stepOutput('prepare', key));
-    for (const key of ['review-enabled', 'classifier-needed'])
-      expect(action.outputs[key].value).toBe(stepOutput('plan', key));
-    for (const key of ['specialists', 'has-specialists'])
-      expect(action.outputs[key].value).toBe(stepOutput('route', key));
-    expect(job('prepare').outputs?.['review-enabled']).toBe(
-      stepOutput('plan', 'review-enabled'),
-    );
-    expect(job('route').outputs).toEqual({
-      specialists: stepOutput('route', 'specialists'),
-      'has-specialists': stepOutput('route', 'has-specialists'),
-      'route-artifact-id': '${{ steps.route-artifact.outputs.artifact-id }}',
-    });
-    expect(
-      action.runs.steps
-        .filter((item) => item.id)
-        .map((item) => [item.id, item.if]),
-    ).toEqual([
-      ['prepare', "inputs.step == 'prepare'"],
-      ['plan', "inputs.step == 'plan'"],
-      ['route', "inputs.step == 'route'"],
-    ]);
-  });
-
-  it('builds the action from the pinned runtime in prepare', () => {
-    const runtime = stepIndex(
-      'prepare',
-      (item) => item.with?.path === '.adaptive-review-runtime',
-    );
-    const setup = stepIndex(
-      'prepare',
-      (item) => item.uses === `${RUNTIME_ACTION}/setup`,
-    );
-    const firstStage = stepIndex(
-      'prepare',
-      (item) => item.uses === RUNTIME_ACTION,
-    );
-    expect(runtime).toBeLessThan(setup);
-    expect(setup).toBeLessThan(firstStage);
-    for (const name of ['route', 'review'])
-      expect(
-        step(name, (item) => item.with?.path === '.adaptive-review-runtime')
-          .with?.ref,
-      ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
-  });
-
-  it('keeps coordinator recovery independent of Actions job liveness', () => {
-    for (const name of ['route', 'review'])
-      expect(job(name).permissions).toEqual({
-        contents: 'read',
-        'pull-requests': 'read',
-      });
-    expect(caller.jobs.review.permissions).toMatchObject({ actions: 'read' });
-  });
-
-  it('keeps the focused runtime on bounded read tools', () => {
-    expect(focusedPolicy.shellCommands).toEqual([]);
-    expect(focusedPolicy.tools).toEqual(['find', 'grep', 'ls', 'read']);
-  });
-
-  it('passes every declared provider secret to both worker jobs', () => {
-    for (const name of WORKERS) {
-      const env = workerAction(name).env ?? {};
-      for (const provider of [
-        'OLLAMA',
-        'OPENAI',
-        'ANTHROPIC',
-        'OPENROUTER',
-        'GEMINI',
-      ]) {
-        expect(env[`${provider}_API_KEY`]).toBe(
-          `\${{ secrets.${provider}_API_KEY }}`,
-        );
-      }
+      expect(caller.jobs.review.if).toContain(guard);
+      expect(job('review').if).toContain(guard);
     }
   });
-
-  it('passes the producer project scope to both worker types', () => {
-    for (const name of WORKERS)
-      expect(workerAction(name).with?.['project-id']).toBe(
-        '${{ inputs.project-id }}',
+  it('keeps review runtime separate from inert head data and pins its release explicitly', () => {
+    const outcomes = parse(
+      read('../../.github/workflows/adaptive-review-outcomes.yml'),
+    ) as typeof caller;
+    for (const consumer of [caller.jobs.review, outcomes.jobs.record]) {
+      expect(consumer.uses).toMatch(
+        /adaptive-review(?:-outcomes)?-reusable\.yml@[a-f0-9]{40}$/,
       );
-  });
-
-  it('consumes the producer artifact when only a failed downstream job is rerun', () => {
-    const name =
-      'adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}';
-    expect(
-      step('route', (item) => item.name === 'Upload routing decision').with
-        ?.name,
-    ).toBe(name);
-    expect(job('route').outputs?.['route-artifact-id']).toBe(
-      '${{ steps.route-artifact.outputs.artifact-id }}',
+      expect(consumer.with['runtime-ref']).toBe(consumer.uses.split('@')[1]);
+    }
+    const checkouts = job('review').steps.filter((step) =>
+      step.uses?.startsWith('actions/checkout'),
     );
+    expect(checkouts).toHaveLength(2);
+    expect(checkouts[0].with?.ref).toContain('pull_request.base.sha');
+    expect(checkouts[1].with?.path).toBe('.adaptive-review-runtime');
     expect(
-      step('route', (item) => item.name === 'Upload routing decision').id,
-    ).toBe('route-artifact');
-    expect(
-      step('review', (item) => item.name === 'Download routing decision').with,
-    ).toMatchObject({
-      'artifact-ids': '${{ needs.route.outputs.route-artifact-id }}',
-      'merge-multiple': true,
-    });
-    expect(
-      step('review', (item) => item.name === 'Download routing decision').with
-        ?.name,
-    ).toBeUndefined();
-    expect(
-      step('review', (item) => item.name === 'Upload review report').with?.name,
-    ).toBe(
-      'adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}',
+      checkouts.every((step) => step.with?.['persist-credentials'] === false),
+    ).toBe(true);
+  });
+  it('has one disposable database lifetime for the complete execution and defaults to persistent state', () => {
+    expect(workflow.on.workflow_call.inputs['execution-mode'].default).toBe(
+      'durable',
+    );
+    expect(job('review').services?.absurd.image).toContain(
+      "inputs.execution-mode == 'ephemeral'",
+    );
+    expect(job('review').env?.ADAPTIVE_DATABASE_URL).toContain(
+      "inputs.execution-mode == 'durable'",
     );
   });
-
-  it('runs one pinned authenticated fetch script in every job', () => {
-    for (const name of Object.keys(workflow.jobs)) {
-      const fetch = step(name, (item) => item.name === FETCH_STEP);
-      expect(fetch.run).toBe(
-        'bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh',
-      );
-      expect(fetch.env?.GH_TOKEN).toBe('${{ github.token }}');
-      expect(fetch.env?.BASE_SHA).toMatch(/^\$\{\{ .+\.base \}\}$/);
-      expect(fetch.env?.HEAD_SHA).toMatch(/^\$\{\{ .+\.head \}\}$/);
-      const base = step(
-        name,
-        (item) =>
-          Boolean(item.uses?.startsWith('actions/checkout@')) &&
-          item.with?.path === undefined,
-      );
-      expect(base.with?.['fetch-depth']).toBe(1);
-      expect(base.with?.ref).not.toContain('head');
-    }
-    for (const name of WORKERS) {
-      expect(
-        step(name, (item) => item.with?.path === '.adaptive-review-runtime')
-          .with,
-      ).toMatchObject({
-        repository: '${{ job.workflow_repository }}',
-        ref: '${{ needs.prepare.outputs.runtime-sha }}',
-      });
-    }
-    const temp = mkdtempSync(join(tmpdir(), 'adaptive-fetch-'));
+  it('keeps provider credentials on the review host and supplies the exact paired daemon', () => {
+    for (const secret of [
+      'OLLAMA_API_KEY',
+      'OPENAI_API_KEY',
+      'ANTHROPIC_API_KEY',
+      'OPENROUTER_API_KEY',
+      'GEMINI_API_KEY',
+    ])
+      expect(job('review').env?.[secret]).toContain(`secrets.${secret}`);
+    const run = job('review').steps.find(
+      (step) => step.with?.['command-entry'],
+    );
+    expect(run?.with?.['daemon-version']).toContain(
+      'steps.worker.outputs.version',
+    );
+    expect(run?.env?.ADAPTIVE_REVIEW_DIARY_IDS).toContain(
+      'inputs.focused-diary-ids',
+    );
+    expect(run?.env?.ADAPTIVE_FOCUSED_RUNTIME).toContain(
+      'steps.diary-runtime.outputs.module',
+    );
+  });
+  it('accepts an explicit runtime pin without job workflow identity context', () => {
+    const step = job('review').steps.find((step) => step.id === 'intent')!;
+    const dir = mkdtempSync(join(tmpdir(), 'review-intent-'));
     try {
-      const capture = join(temp, 'capture');
-      const fakeGit = join(temp, 'git');
-      writeFileSync(
-        fakeGit,
-        '#!/bin/sh\ncase "$1" in\n  fetch) printf "%s\\n" "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$@" > "$TEST_CAPTURE";;\n  merge-base) exit 0;;\nesac\n',
+      const envFile = join(dir, 'env');
+      writeFileSync(envFile, '');
+      const result = runStep(step.run, {
+        EXPLICIT_RUNTIME_REPOSITORY: '',
+        RUNTIME_REF: 'a'.repeat(40),
+        WORKFLOW_SHA: '',
+        WORKFLOW_REPOSITORY: '',
+        ADAPTIVE_EXECUTION_MODE: 'durable',
+        ADAPTIVE_REPOSITORY: 'another/repo',
+        GITHUB_RUN_ID: '123',
+        GITHUB_RUN_ATTEMPT: '1',
+        GITHUB_ENV: envFile,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.outputs.ref).toBe('a'.repeat(40));
+      expect(result.outputs.repository).toBe('getlarge/themoltnet');
+      expect(readFileSync(envFile, 'utf8')).toContain(
+        'ADAPTIVE_JOB_STARTED_MS=',
       );
-      chmodSync(fakeGit, 0o755);
-      const base = 'a'.repeat(40);
-      const head = 'b'.repeat(40);
-      const env = {
-        ...process.env,
-        PATH: `${temp}:${process.env.PATH ?? ''}`,
-        BASE_SHA: base,
-        HEAD_SHA: head,
-        GH_TOKEN: 'fixture-token',
-        GITHUB_SERVER_URL: 'https://github.com',
-        TEST_CAPTURE: capture,
-      };
-      const valid = spawnSync('bash', [fetchScriptPath], {
-        env,
-        encoding: 'utf8',
-      });
-      expect(valid.status, valid.stderr).toBe(0);
-      expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
-        '1',
-        'http.https://github.com/.extraheader',
-        `AUTHORIZATION: basic ${Buffer.from('x-access-token:fixture-token').toString('base64')}`,
-        'fetch',
-        '--no-tags',
-        '--depth=1',
-        'origin',
-        head,
-      ]);
-      const invalid = spawnSync('bash', [fetchScriptPath], {
-        env: { ...env, HEAD_SHA: '--upload-pack=evil' },
-        encoding: 'utf8',
-      });
-      expect(invalid.status).toBe(2);
     } finally {
-      rmSync(temp, { recursive: true, force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
+  it('rejects missing repository context unless a runtime pin is explicit', () => {
+    const step = job('review').steps.find((step) => step.id === 'intent')!;
+    const result = runStep(step.run, {
+      WORKFLOW_REPOSITORY: '',
+      WORKFLOW_SHA: 'a'.repeat(40),
+      RUNTIME_REF: '',
+      EXPLICIT_RUNTIME_REPOSITORY: '',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('runtime-ref is required');
+  });
+  it.each([
+    ['another/repo', 'contributor', true],
+    ['fork/repo', 'contributor', false],
+    ['another/repo', 'dependabot[bot]', false],
+    [null, 'contributor', false],
+  ])(
+    'checks event eligibility before any App token or provider setup (%s %s)',
+    (head, author, admitted) => {
+      const dir = mkdtempSync(join(tmpdir(), 'review-admission-'));
+      try {
+        const bin = join(dir, 'gh');
+        writeFileSync(
+          bin,
+          `#!${process.execPath}\nconsole.log(${JSON.stringify(JSON.stringify([head, author]))});\n`,
+          { mode: 0o700 },
+        );
+        const step = job('review').steps.find(
+          (item) => item.id === 'eligibility',
+        )!;
+        const result = runStep(step.run, {
+          PATH: `${dir}:${process.env.PATH ?? ''}`,
+          RUNNER_TEMP: dir,
+          REVIEW_REPOSITORY: 'another/repo',
+          REVIEW_PR: '7',
+        });
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.outputs.eligible).toBe(String(admitted));
+        const order = job('review').steps;
+        expect(order.indexOf(step)).toBeLessThan(
+          order.findIndex((item) => item.id === 'app-token'),
+        );
+        expect(order.find((item) => item.id === 'run')?.if).toContain(
+          'steps.eligibility.outputs.eligible',
+        );
+        expect(job('review').outputs?.skip).toContain('{"skip":true}');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('finds a merge base and reads complete blobs for production three-dot diffs', () => {
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-shallow-'));
@@ -482,6 +278,7 @@ describe('adaptive review workflow trust gates', () => {
       git(source, 'init', '-b', 'main');
       git(source, 'config', 'user.name', 'Test');
       git(source, 'config', 'user.email', 'test@example.invalid');
+      git(source, 'config', 'commit.gpgsign', 'false');
       writeFileSync(join(source, 'review.txt'), 'common content\n');
       git(source, 'add', 'review.txt');
       git(source, 'commit', '-m', 'common');
@@ -536,100 +333,40 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
-  it('pins runtime code separately from caller policy and head data', () => {
-    const runtime = step('prepare', (item) => item.id === 'runtime');
-    expect(runtime.env).toMatchObject({
-      WORKFLOW_REPOSITORY: '${{ job.workflow_repository }}',
-      WORKFLOW_SHA: '${{ job.workflow_sha }}',
-    });
-    for (const name of ['route', 'review'])
-      expect(job(name).env?.ADAPTIVE_RUNTIME_SHA).toBe(
-        '${{ needs.prepare.outputs.runtime-sha }}',
-      );
-    expect(fetchScript).toContain(
-      'authenticated_fetch --depth=1 origin "$HEAD_SHA"',
-    );
-    expect(fetchScript).toContain('GIT_CONFIG_COUNT=1');
-    expect(caller.jobs.review.with['classifier-profile']).toBe(
-      'legreffier-issue-classifier-v2',
-    );
-  });
-
-  it('builds the standalone action through Nx dependencies without an Nx Cloud lifecycle', () => {
+  it('takes the released fast path only when both review and worker entries are tracked', () => {
     const setup = parse(
       read('../../packages/adaptive-review-action/setup/action.yml'),
     ) as { runs: { steps: Step[] } };
-    const build = setup.runs.steps.find(
-      (item) => item.name === 'Install and build the trusted action',
-    )!;
-    expect(build.env).toMatchObject({
-      NX_NO_CLOUD: 'true',
-      NX_DAEMON: 'false',
-    });
-    expect(build.run).toContain('pnpm install --frozen-lockfile');
-    expect(build.run).toContain(
-      'pnpm exec nx run @themoltnet/adaptive-review-action:build',
-    );
-    expect(build.run).not.toContain('--excludeTaskDependencies');
-    expect(build.run).not.toContain('@themoltnet/agent-daemon-action:build');
-  });
-
-  it('builds the review action once and verifies it before later jobs run it', () => {
-    const prepare = job('prepare');
-    const plan = stepIndex('prepare', (item) => item.id === 'plan');
-    const bundle = stepIndex('prepare', (item) => item.id === 'bundle');
-    const upload = stepIndex(
-      'prepare',
-      (item) =>
-        Boolean(item.uses?.startsWith('actions/upload-artifact@')) &&
-        item.with?.path === BUNDLE,
-    );
-    expect(plan).toBeLessThan(bundle);
-    expect(bundle).toBeLessThan(upload);
-    expect(prepare.outputs?.['action-digest']).toBe(
-      '${{ steps.bundle.outputs.digest }}',
-    );
-    expect(prepare.steps[upload].id).toBe('action-artifact');
-    expect(prepare.outputs?.['action-artifact-id']).toBe(
-      '${{ steps.action-artifact.outputs.artifact-id }}',
-    );
-    expect(prepare.steps[upload].with?.['retention-days']).toBe(14);
-    for (const name of ['route', 'review']) {
-      const steps = job(name).steps;
-      expect(
-        steps.some((item) =>
-          item.uses?.endsWith('/adaptive-review-action/setup'),
-        ),
-      ).toBe(false);
-      const download = stepIndex(
-        name,
-        (item) =>
-          Boolean(item.uses?.startsWith('actions/download-artifact@')) &&
-          item.with?.path === BUNDLE,
+    const detect = setup.runs.steps.find((s) => s.id === 'bundle')!;
+    const root = mkdtempSync(join(tmpdir(), 'packaged-worker-setup-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: root });
+    try {
+      git('init', '-q');
+      const files = [
+        'run.js',
+        'review-worker.js',
+        'outcomes.js',
+        'diary-runtime.js',
+        'release-dependencies.json',
+        'worker-action/main.js',
+      ];
+      const dir = join(root, 'packages/adaptive-review-action/dist');
+      mkdirSync(join(dir, 'worker-action'), { recursive: true });
+      for (const file of files) writeFileSync(join(dir, file), '{}');
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
+      git('add', 'packages');
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('true');
+      git(
+        'rm',
+        '--cached',
+        'packages/adaptive-review-action/dist/worker-action/main.js',
       );
-      expect(steps[download].with).toMatchObject({
-        'artifact-ids': '${{ needs.prepare.outputs.action-artifact-id }}',
-        'merge-multiple': true,
-      });
-      expect(steps[download].with?.name).toBeUndefined();
-      const verify = stepIndex(name, (item) =>
-        Boolean(
-          item.run?.includes('adaptive-review-action-digest.sh --verify'),
-        ),
-      );
-      expect(steps[verify].env?.EXPECTED_DIGEST).toBe(
-        '${{ needs.prepare.outputs.action-digest }}',
-      );
-      const firstAction = stepIndex(
-        name,
-        (item) => item.uses === RUNTIME_ACTION,
-      );
-      expect(download).toBeLessThan(verify);
-      expect(verify).toBeLessThan(firstAction);
+      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
   });
 });
-
 describe('review action bundle digest', () => {
   function bundle(files: Record<string, string>): string {
     const dir = mkdtempSync(join(tmpdir(), 'adaptive-bundle-'));
@@ -671,285 +408,6 @@ describe('review action bundle digest', () => {
     } finally {
       for (const dir of [original, ...variants])
         rmSync(dir, { recursive: true, force: true });
-    }
-  });
-});
-
-describe('adaptive review inline step scripts', () => {
-  const runtimeStep = () => step('prepare', (item) => item.id === 'runtime');
-  const sha = 'c'.repeat(40);
-  const runtimeEnv = {
-    ADAPTIVE_EXECUTION_MODE: 'durable',
-    ADAPTIVE_DATABASE_URL: 'postgresql://external/review',
-    WORKFLOW_REPOSITORY: 'getlarge/themoltnet',
-    WORKFLOW_SHA: sha,
-    RUNTIME_REF: '',
-    PROVIDERS: 'id=ollama-cloud base-url=https://ollama.com/v1',
-  };
-
-  it('resolves the runtime from the workflow commit or an explicit ref', () => {
-    expect(runStep(runtimeStep().run, runtimeEnv).outputs).toEqual({
-      repository: 'getlarge/themoltnet',
-      ref: sha,
-    });
-    const ref = 'd'.repeat(40);
-    expect(
-      runStep(runtimeStep().run, { ...runtimeEnv, RUNTIME_REF: ref }).outputs
-        .ref,
-    ).toBe(ref);
-  });
-
-  it('accepts ephemeral execution without a database secret', () => {
-    expect(
-      runStep(runtimeStep().run, {
-        ...runtimeEnv,
-        ADAPTIVE_EXECUTION_MODE: 'ephemeral',
-        ADAPTIVE_DATABASE_URL: '',
-      }).status,
-    ).toBe(0);
-  });
-
-  it.each([
-    [{ ADAPTIVE_EXECUTION_MODE: 'automatic' }, 'execution-mode must be'],
-    [{ ADAPTIVE_DATABASE_URL: '' }, 'ADAPTIVE_DATABASE_URL is required'],
-    [{ PROVIDERS: '  # only a comment' }, 'providers needs at least one'],
-    [{ WORKFLOW_REPOSITORY: '' }, 'job.workflow_repository is required'],
-    [{ RUNTIME_REF: 'main' }, 'must be a full commit SHA'],
-    [{ WORKFLOW_SHA: 'C'.repeat(40) }, 'must be a full commit SHA'],
-  ])('refuses runtime input %j', (env, message) => {
-    const result = runStep(runtimeStep().run, { ...runtimeEnv, ...env });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(message);
-    expect(result.outputs).toEqual({});
-  });
-
-  it.each([
-    ['getlarge/themoltnet', 'someone', 'true'],
-    ['someone/themoltnet', 'someone', 'false'],
-    ['', 'someone', 'false'],
-    ['getlarge/themoltnet', 'dependabot[bot]', 'false'],
-  ])('screens head %j by %j as eligible=%s', (head, author, eligible) => {
-    const screen = step('prepare', (item) => item.id === 'screen');
-    expect(
-      runStep(screen.run, {
-        GITHUB_REPOSITORY: 'getlarge/themoltnet',
-        HEAD_REPOSITORY: head,
-        AUTHOR: author,
-      }).outputs,
-    ).toEqual({ eligible });
-  });
-
-  it('detects only a nonempty review report', () => {
-    const detect = step('review', (item) => item.id === 'report-file');
-    const temp = mkdtempSync(join(tmpdir(), 'adaptive-report-'));
-    try {
-      const report = join(temp, 'report.json');
-      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual(
-        {},
-      );
-      writeFileSync(report, '');
-      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual(
-        {},
-      );
-      writeFileSync(report, '{}');
-      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual({
-        exists: 'true',
-      });
-    } finally {
-      rmSync(temp, { recursive: true, force: true });
-    }
-  });
-});
-
-it('resolves the reviewer identity read-only before review and mints publication access later', () => {
-  const steps = job('review').steps;
-  const identity = steps.findIndex((step) => step.id === 'reviewer-app');
-  const review = steps.findIndex((step) => step.id === 'review');
-  const publishToken = steps.findIndex((step) => step.id === 'app-token');
-  expect(identity).toBeGreaterThan(-1);
-  expect(identity).toBeLessThan(review);
-  expect(publishToken).toBeGreaterThan(review);
-  expect(steps[identity].with?.['permission-pull-requests']).toBe('read');
-  expect(steps[review].env).toMatchObject({
-    GH_TOKEN: '${{ github.token }}',
-    ADAPTIVE_APP_LOGIN: '${{ steps.reviewer-app.outputs.app-slug }}[bot]',
-  });
-});
-
-describe('optional focused diary runtime delivery', () => {
-  it('keeps the default worker and gates the trusted custom runtime separately', () => {
-    const normal = step(
-      'specialist-workers',
-      (item) => item.name === 'Drain selected review tasks',
-    );
-    const custom = step(
-      'specialist-workers',
-      (item) => item.name === 'Drain diary-enabled focused review tasks',
-    );
-    expect(normal.uses).toBe(
-      './.adaptive-review-runtime/packages/agent-daemon-action',
-    );
-    expect(normal.if).toBe(
-      "inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile",
-    );
-    expect(custom.if).toBe(
-      "inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile",
-    );
-    expect(custom.uses).toBe(
-      './.adaptive-review-runtime/packages/agent-daemon-action',
-    );
-    expect(custom.with?.['runtime-module']).toBe(
-      '${{ steps.diary-runtime.outputs.module }}',
-    );
-    expect(custom.env?.ADAPTIVE_REVIEW_DIARY_IDS).toBe(
-      '${{ inputs.focused-diary-ids }}',
-    );
-    expect(
-      stepIndex(
-        'specialist-workers',
-        (item) => item.name === 'Verify review and worker bundle',
-      ),
-    ).toBeLessThan(
-      stepIndex('specialist-workers', (item) => item.id === 'diary-runtime'),
-    );
-    expect(
-      step(
-        'specialist-workers',
-        (item) => item.name === 'Download review and worker bundle',
-      ).with?.['artifact-ids'],
-    ).toBe('${{ needs.prepare.outputs.action-artifact-id }}');
-  });
-
-  it.each([
-    ['latest', '["11111111-1111-4111-8111-111111111111"]'],
-    ['workspace', '["11111111-1111-4111-8111-111111111111"]'],
-    ['0.74.1', '[]'],
-    ['0.74.1', '["untrusted-source"]'],
-  ])(
-    'rejects invalid runtime setup before installing dependencies (%s, %s)',
-    (version, ids) => {
-      const result = spawnSync(
-        'bash',
-        [
-          fileURLToPath(
-            new URL(
-              '../setup-adaptive-review-diary-runtime.sh',
-              import.meta.url,
-            ),
-          ),
-          '/nonexistent',
-        ],
-        {
-          env: {
-            ...process.env,
-            DAEMON_VERSION: version,
-            ADAPTIVE_REVIEW_DIARY_IDS: ids,
-          },
-          encoding: 'utf8',
-        },
-      );
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).not.toContain('npm error');
-      expect(result.stderr).toMatch(/exact released|1–8 UUIDs/);
-    },
-  );
-});
-
-describe('packaged review workers', () => {
-  it('verifies and restores the same artifact before every worker can run', () => {
-    for (const name of WORKERS) {
-      const download = step(
-        name,
-        (s) => s.name === 'Download review and worker bundle',
-      );
-      const verify = stepIndex(
-        name,
-        (s) => s.name === 'Verify review and worker bundle',
-      );
-      const restore = stepIndex(
-        name,
-        (s) => s.name === 'Restore bundled worker action',
-      );
-      const run = stepIndex(
-        name,
-        (s) =>
-          s.uses === './.adaptive-review-runtime/packages/agent-daemon-action',
-      );
-      expect(download.if).toBeUndefined();
-      expect(download.with?.['artifact-ids']).toBe(
-        '${{ needs.prepare.outputs.action-artifact-id }}',
-      );
-      expect(verify).toBeLessThan(restore);
-      expect(restore).toBeLessThan(run);
-      expect(workerAction(name).with?.['daemon-version']).toBe(
-        '${{ needs.prepare.outputs.daemon-version }}',
-      );
-    }
-  });
-
-  it('uses the packaged daemon by default, allows exact overrides and rejects floating versions', () => {
-    const root = mkdtempSync(join(tmpdir(), 'packaged-worker-'));
-    try {
-      const dir = join(root, BUNDLE);
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(
-        join(dir, 'release-dependencies.json'),
-        JSON.stringify({
-          schemaVersion: 1,
-          daemonVersion: '0.75.0',
-          workerActionVersion: '0.9.0',
-        }),
-      );
-      const resolve = step('prepare', (s) => s.id === 'worker');
-      const run = (version: string) =>
-        runStep(resolve.run, { REQUESTED_DAEMON_VERSION: version }, root);
-      expect(run('').outputs).toEqual({ 'daemon-version': '0.75.0' });
-      expect(run('0.75.1').outputs).toEqual({ 'daemon-version': '0.75.1' });
-      expect(run('0.75.1-rc.1').status).not.toBe(0);
-      expect(run('0.75.1-rc.1').outputs).toEqual({});
-      expect(run('latest').status).not.toBe(0);
-      expect(run('0.75.1\ninjected=value').outputs).toEqual({});
-      writeFileSync(
-        join(dir, 'release-dependencies.json'),
-        JSON.stringify({ schemaVersion: 2, daemonVersion: '0.75.0' }),
-      );
-      expect(run('').status).not.toBe(0);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it('takes the released fast path only when both review and worker entries are tracked', () => {
-    const setup = parse(
-      read('../../packages/adaptive-review-action/setup/action.yml'),
-    ) as { runs: { steps: Step[] } };
-    const detect = setup.runs.steps.find((s) => s.id === 'bundle')!;
-    const root = mkdtempSync(join(tmpdir(), 'packaged-worker-setup-'));
-    const git = (...args: string[]) => execFileSync('git', args, { cwd: root });
-    try {
-      git('init', '-q');
-      const files = [
-        'review.js',
-        'publish.js',
-        'outcomes.js',
-        'diary-runtime.js',
-        'release-dependencies.json',
-        'worker-action/main.js',
-      ];
-      const dir = join(root, 'packages/adaptive-review-action/dist');
-      mkdirSync(join(dir, 'worker-action'), { recursive: true });
-      for (const file of files) writeFileSync(join(dir, file), '{}');
-      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
-      git('add', 'packages');
-      expect(runStep(detect.run, {}, root).outputs.released).toBe('true');
-      git(
-        'rm',
-        '--cached',
-        'packages/adaptive-review-action/dist/worker-action/main.js',
-      );
-      expect(runStep(detect.run, {}, root).outputs.released).toBe('false');
-    } finally {
-      rmSync(root, { recursive: true, force: true });
     }
   });
 });

@@ -25,31 +25,30 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
 
-  issue-lifecycle-db:
+  absurd-db:
     image: postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657
     ports:
-      - '${ISSUE_LIFECYCLE_POSTGRES_BIND:-55434:5432}'
+      - '${ABSURD_POSTGRES_BIND:-55434:5432}'
     environment:
-      POSTGRES_USER: ${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle}
-      POSTGRES_PASSWORD: ${ISSUE_LIFECYCLE_POSTGRES_PASSWORD:-issue_lifecycle_secret}
-      POSTGRES_DB: ${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}
+      POSTGRES_USER: ${ABSURD_POSTGRES_USER:-absurd}
+      POSTGRES_PASSWORD: ${ABSURD_POSTGRES_PASSWORD:-absurd_secret}
+      POSTGRES_DB: ${ABSURD_POSTGRES_DB:-absurd}
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'pg_isready -U ${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle} -d ${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}',
+          'pg_isready -U ${ABSURD_POSTGRES_USER:-absurd} -d ${ABSURD_POSTGRES_DB:-absurd}',
         ]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  issue-lifecycle-db-migrate:
+  absurd-db-migrate:
     build:
       context: .
       dockerfile: infra/absurd/Dockerfile
     environment:
-      ABSURD_DATABASE_URL: postgresql://${ISSUE_LIFECYCLE_POSTGRES_USER:-issue_lifecycle}:${ISSUE_LIFECYCLE_POSTGRES_PASSWORD:-issue_lifecycle_secret}@issue-lifecycle-db:5432/${ISSUE_LIFECYCLE_POSTGRES_DB:-issue_lifecycle}
-      ABSURD_QUEUE_NAME: ${ISSUE_LIFECYCLE_QUEUE_NAME:-issue-lifecycle}
+      ABSURD_DATABASE_URL: postgresql://${ABSURD_POSTGRES_USER:-absurd}:${ABSURD_POSTGRES_PASSWORD:-absurd_secret}@absurd-db:5432/${ABSURD_POSTGRES_DB:-absurd}
     command:
       - sh
       - -ec
@@ -57,9 +56,8 @@ services:
         if psql "$${ABSURD_DATABASE_URL}" -tAc "select to_regprocedure('absurd.create_queue(text)')" | grep -q create_queue; then
           echo "Absurd schema already initialized"
         else
-          uvx absurdctl init
+          uvx absurdctl init --ref 0.4.0
         fi
-        uvx absurdctl create-queue "$${ABSURD_QUEUE_NAME}"
 
   kratos-postgres:
     image: postgres:16@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657

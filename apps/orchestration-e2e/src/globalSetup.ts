@@ -3,15 +3,15 @@
  *
  * The durability suite proves that `@themoltnet/tasks-orchestrator`'s `ctx.step`
  * checkpoints replay from a REAL Absurd store after a mid-run crash. That needs
- * an Absurd-initialized Postgres — the `issue-lifecycle-db` service in
- * docker-compose.e2e.yaml, whose `issue-lifecycle-db-migrate` sibling installs
+ * an Absurd-initialized Postgres — the `absurd-db` service in
+ * docker-compose.e2e.yaml, whose `absurd-db-migrate` sibling installs
  * the Absurd schema. The Compose stack is brought up before the suite runs (CI,
  * or `pnpm run e2e:up` locally); we only wait for the DB to accept connections.
  */
 import { Client } from 'pg';
 
 const ABSURD_URL_DEFAULT =
-  'postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle';
+  'postgresql://absurd:absurd_secret@localhost:55434/absurd';
 
 async function waitForPostgres(url: string, maxAttempts = 60): Promise<void> {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

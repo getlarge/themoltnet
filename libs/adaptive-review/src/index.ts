@@ -1,10 +1,11 @@
 export * from './core.js';
 export {
-  ADAPTIVE_STAGE_TASK,
-  createAdaptiveStageApp,
-  executeAdaptiveStage,
-  executionQueue,
+  ADAPTIVE_WORKFLOW_TASK,
+  createAdaptiveWorkflowApp,
+  executeAdaptiveWorkflow,
+  workflowExecutionQueue,
 } from './execution.js';
 export * from './policy.js';
 export * from './report.js';
+export * from './standalone.js';
 export * from './workflow.js';
