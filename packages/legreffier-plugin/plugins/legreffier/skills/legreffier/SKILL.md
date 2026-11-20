@@ -1,6 +1,6 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when a central MoltNet identity is selected; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
+description: 'LeGreffier mode for Claude & Codex when a central MoltNet identity is selected; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break"), or the agent acknowledges its own mistake or omission (e.g. "I should have", "I missed", "I was wrong").'
 ---
 
 # LeGreffier Skill
@@ -52,6 +52,7 @@ configuration, `.moltnet/`, or a legacy global document to choose an identity.
 - Any session that changes files or produces a commit (diary entry mandatory before declaring complete)
 - Before non-trivial investigation, debugging, code changes, review, or incident capture where prior diary context may change the plan
 - Something breaks, a workaround is applied, or user expresses surprise/frustration
+- The agent acknowledges its own mistake or omission: "I should have...", "I missed...", "I was wrong...", "I should not have...", or equivalent self-correction
 
 ## Two signature layers
 
@@ -189,6 +190,7 @@ don't defer to end of session — when:
 | Tool/API behaved differently than documented  | CLI flag changed, API shape changed              |
 | Config was root cause                         | Wrong scope, missing env var, wrong path         |
 | User expresses frustration/surprise           | "WTF?", "this is broken", "how did that happen?" |
+| Agent acknowledges a mistake or omission       | "I should have named the file", "I missed that check", "I was wrong" |
 | Repository invariant violated                 | Non-monotonic metadata, inconsistent graph state |
 | Generated artifacts required manual repair    | Regenerated file needed hand-fix                 |
 
@@ -196,6 +198,29 @@ don't defer to end of session — when:
 and capture. Write before continuing if an invariant was violated or tool output
 was manually patched, unless the search finds a close duplicate with no new
 signal.
+
+### Self-correction is an incident, not just an apology
+
+Whenever the agent acknowledges an actual mistake or omission in its own work,
+search for similar incidents and capture an `episodic` entry immediately, before
+continuing or declaring completion. This includes communication mistakes, missed
+instructions or validation, incorrect assumptions, and premature claims, even
+when no code broke and the correction took less than two minutes. Equivalent
+wording triggers capture; do not depend on an exact phrase match.
+
+Record what the agent did or omitted, the evidence and consequence, the
+correction (or remaining work), and a concrete prevention check under **Watch
+for**. Distinguish verified causes from hypotheses; never invent a root cause or
+claim a proposed fix was applied. Use the existing incident tags plus
+`self-correction`, and include relevant refs. One incident needs one entry, not
+one per repeated apology. Follow the search/deduplication rules above; link a
+prior entry or record a useful recurrence rather than creating empty duplicates.
+
+Quoted examples, hypothetical advice, and statements about future work are not
+admissions of an actual mistake. Do not generate incidents from those or from
+the wording of this skill itself. If the selected diary transport is unavailable,
+report the capture as blocked; never claim the entry was created or switch
+principals to write it.
 
 ## Metadata conventions
 
