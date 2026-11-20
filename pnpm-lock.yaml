@@ -594,11 +594,11 @@ catalogs:
       specifier: ^1.2.8
       version: 1.4.7
     typescript:
-      specifier: ~5.9.2
-      version: 5.9.3
+      specifier: ~6.0.3
+      version: 6.0.3
     typescript-eslint:
-      specifier: ^8.58.0
-      version: 8.72.2
+      specifier: ^8.73.0
+      version: 8.73.0
     undici:
       specifier: ^7.29.1
       version: 7.30.2
@@ -679,7 +679,7 @@ importers:
     devDependencies:
       '@commitlint/cli':
         specifier: 'catalog:'
-        version: 20.5.3(@types/node@22.20.5)(conventional-commits-parser@6.4.0)(typescript@5.9.3)
+        version: 20.5.3(@types/node@22.20.5)(conventional-commits-parser@6.4.0)(typescript@6.0.3)
       '@commitlint/config-conventional':
         specifier: 'catalog:'
         version: 20.5.3
@@ -694,34 +694,34 @@ importers:
         version: 2.3.0
       '@nx-go/nx-go':
         specifier: 'catalog:'
-        version: 4.1.1(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+        version: 4.1.1(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       '@nx/devkit':
         specifier: 'catalog:'
-        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       '@nx/docker':
         specifier: 'catalog:'
-        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       '@nx/eslint':
         specifier: 'catalog:'
-        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       '@nx/eslint-plugin':
         specifier: 'catalog:'
-        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)(typescript@5.9.3)
+        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@typescript-eslint/parser@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)(typescript@6.0.3)
       '@nx/js':
         specifier: 'catalog:'
-        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       '@nx/playwright':
         specifier: 'catalog:'
-        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+        version: 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       '@nx/vite':
         specifier: 'catalog:'
-        version: 24.0.6(bc305e0fa44feb4ce73e47398d721ad5)
+        version: 24.0.6(9e4ea5eefa730277aa760631c41e2f91)
       '@nx/vitest':
         specifier: 'catalog:'
-        version: 24.0.6(bc305e0fa44feb4ce73e47398d721ad5)
+        version: 24.0.6(9e4ea5eefa730277aa760631c41e2f91)
       '@nx/web':
         specifier: 'catalog:'
-        version: 24.0.6(9020035781a5f18150c4452ca0c65131)
+        version: 24.0.6(f6bb675e88130a056076ce727c9c136e)
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.65.1
@@ -736,7 +736,7 @@ importers:
         version: 13.1.0
       '@swc-node/register':
         specifier: 'catalog:'
-        version: 1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3)
+        version: 1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3)
       '@swc/core':
         specifier: 'catalog:'
         version: 1.15.47(@swc/helpers@0.5.24)
@@ -790,7 +790,7 @@ importers:
         version: 16.4.0
       nx:
         specifier: 'catalog:'
-        version: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
+        version: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
       prettier:
         specifier: 'catalog:'
         version: 3.10.1
@@ -805,10 +805,10 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       typescript-eslint:
         specifier: 'catalog:'
-        version: 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+        version: 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -983,13 +983,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1044,7 +1044,7 @@ importers:
         version: link:../../libs/pi-runtime
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1102,7 +1102,7 @@ importers:
         version: 25.0.1(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1160,7 +1160,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1239,7 +1239,7 @@ importers:
         version: 25.0.1(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1270,7 +1270,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
 
   apps/issue-lifecycle:
     dependencies:
@@ -1325,13 +1325,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1469,7 +1469,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1500,7 +1500,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1555,7 +1555,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1583,7 +1583,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1821,7 +1821,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1879,7 +1879,7 @@ importers:
         version: 5.12.8
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1913,19 +1913,19 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitepress:
         specifier: 'catalog:'
-        version: 1.6.4(@algolia/client-search@5.64.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@5.9.3)
+        version: 1.6.4(@algolia/client-search@5.64.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3)
       vitepress-mermaid-renderer:
         specifier: 'catalog:'
-        version: 1.2.3(mermaid@11.17.2)(vue@3.5.45(typescript@5.9.3))
+        version: 1.2.3(mermaid@11.17.2)(vue@3.5.45(typescript@6.0.3))
       vitepress-plugin-llms:
         specifier: 'catalog:'
         version: 1.15.0(supports-color@10.2.2)
       vue:
         specifier: 'catalog:'
-        version: 3.5.45(typescript@5.9.3)
+        version: 3.5.45(typescript@6.0.3)
 
   libs/adaptive-review:
     dependencies:
@@ -1980,7 +1980,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -1999,7 +1999,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2008,10 +2008,10 @@ importers:
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
-        version: 0.99.0(magicast@0.3.5)(typescript@5.9.3)
+        version: 0.99.0(magicast@0.3.5)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2033,7 +2033,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2058,7 +2058,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2110,13 +2110,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2125,13 +2125,13 @@ importers:
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
-        version: 0.99.0(magicast@0.3.5)(typescript@5.9.3)
+        version: 0.99.0(magicast@0.3.5)(typescript@6.0.3)
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.107.1(@types/react@19.3.0)(react@19.3.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2177,7 +2177,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2193,7 +2193,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2230,7 +2230,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2255,7 +2255,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2264,7 +2264,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2289,7 +2289,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2326,13 +2326,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vite-plugin-static-copy:
         specifier: 'catalog:'
         version: 4.1.1(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
@@ -2357,13 +2357,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vite-plugin-static-copy:
         specifier: 'catalog:'
         version: 4.1.1(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
@@ -2394,7 +2394,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
 
   libs/ctap:
     dependencies:
@@ -2410,13 +2410,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2453,7 +2453,7 @@ importers:
         version: 0.31.11
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2490,13 +2490,13 @@ importers:
         version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2530,7 +2530,7 @@ importers:
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2567,7 +2567,7 @@ importers:
         version: 25.0.1(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2594,7 +2594,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2606,7 +2606,7 @@ importers:
     dependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
     devDependencies:
       vitest:
         specifier: 'catalog:'
@@ -2623,7 +2623,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2663,7 +2663,7 @@ importers:
         version: 25.0.1(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2703,7 +2703,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2719,7 +2719,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2732,7 +2732,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2754,7 +2754,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2773,7 +2773,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2795,7 +2795,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2808,7 +2808,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
 
   libs/n8n-nodes-moltnet:
     devDependencies:
@@ -2817,7 +2817,7 @@ importers:
         version: link:../api-client
       '@n8n/node-cli':
         specifier: 'catalog:'
-        version: 0.45.5(e28a0f2966a904330db17cffcdf1d524)
+        version: 0.45.5(3e02a9816da64e4cbb6916ff89f24d80)
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
@@ -2832,7 +2832,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2854,7 +2854,7 @@ importers:
         version: 1.3.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2872,13 +2872,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2891,7 +2891,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2967,7 +2967,7 @@ importers:
         version: 13.2.0
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -2986,7 +2986,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3017,13 +3017,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3144,13 +3144,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3190,13 +3190,13 @@ importers:
         version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3217,7 +3217,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3230,7 +3230,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3255,7 +3255,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3271,7 +3271,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3308,7 +3308,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3327,13 +3327,13 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3394,13 +3394,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3425,7 +3425,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3437,7 +3437,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3453,7 +3453,7 @@ importers:
         version: 0.25.1
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3462,10 +3462,10 @@ importers:
     devDependencies:
       '@hey-api/openapi-ts':
         specifier: 'catalog:'
-        version: 0.99.0(magicast@0.3.5)(typescript@5.9.3)
+        version: 0.99.0(magicast@0.3.5)(typescript@6.0.3)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3493,7 +3493,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3518,7 +3518,7 @@ importers:
         version: 2.4.0
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3534,7 +3534,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3562,7 +3562,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3581,7 +3581,7 @@ importers:
         version: 25.0.1(supports-color@10.2.2)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3603,7 +3603,7 @@ importers:
         version: link:../tasks
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3652,7 +3652,7 @@ importers:
         version: 1.4.7
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3695,13 +3695,13 @@ importers:
         version: 19.3.1(react@19.3.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3723,7 +3723,7 @@ importers:
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3745,7 +3745,7 @@ importers:
     devDependencies:
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3776,13 +3776,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3807,13 +3807,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3844,7 +3844,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3875,7 +3875,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3943,13 +3943,13 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-dts:
         specifier: 'catalog:'
-        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1))
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -3961,7 +3961,7 @@ importers:
         version: 22.20.5
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vite:
         specifier: 'catalog:'
         version: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -4057,7 +4057,7 @@ importers:
         version: 1.5.2(esbuild@0.28.2)(ws@8.23.0)
       '@nx/devkit':
         specifier: 'catalog:'
-        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+        version: 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
@@ -4078,7 +4078,7 @@ importers:
         version: 4.23.15
       typescript:
         specifier: 'catalog:'
-        version: 5.9.3
+        version: 6.0.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
@@ -8880,8 +8880,23 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/eslint-plugin@8.73.0':
+    resolution: {integrity: sha512-UkygMFer53Yzn29MCYFTHf34hGXf5KJhiDWfIm1tXtXRrym1CS6l5H9Y3yCtPWChpC0/f93H88gdj8tN0dd4kw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      '@typescript-eslint/parser': ^8.73.0
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/parser@8.72.2':
     resolution: {integrity: sha512-llP+T1YuJOLlxEciP6OyQGtz5SMxyn+9LA2BvZw5RmToGVa1y4beEDVQL6Gje7T5WFYh19WREjDCN9Ev4gm5AA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/parser@8.73.0':
+    resolution: {integrity: sha512-AuL45bVcmssHfZ3Di3cs9Q0l4gBm4ZFVrJOQEE7VpqW+PVgQaEwSwazz4TVIiFabXkk6U51EprYDwqw+HR8ePw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
@@ -8893,12 +8908,28 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/project-service@8.73.0':
+    resolution: {integrity: sha512-/pEf8Rc4Mjk+qJnY0uO1+Gadeal8uv50xpuic+srG2vIVatA0XxvWMUeMtFvs6OCHqftiQ7/+qH4aehG5stzIA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/scope-manager@8.72.2':
     resolution: {integrity: sha512-iIoMJ6/8c1/QpFNyFjU0d1YzPco4MsZjQw0k3V+vfzNWAFmUmvhlyMoYEoYYDQZXc+J6Gi1X5XcxlzW2taIIGQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/scope-manager@8.73.0':
+    resolution: {integrity: sha512-/TjD738Iq2rzj5z0ixVOi+TsvgjAzZPLPaH1yWdDBytR/HTR5gMpyYWZeCe5WTQZLwk3ho8AV7U3muoQCRtXBQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/tsconfig-utils@8.72.2':
     resolution: {integrity: sha512-+h3iCgZXuTNtoLXcnnjP12ZUHLMqoUcIHPfQrFEXTUqvb9dF8QK9b5nv5VtSo5fLkdHuks8ehbTzZj3rImAm9w==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.1.0'
+
+  '@typescript-eslint/tsconfig-utils@8.73.0':
+    resolution: {integrity: sha512-lmtCFOfYaJfpqZywGuXi4FpNtE+NQ+YLe3T0K9rtEDcW8ZuGWvfI++pj8r05sYMI8vWT2CYK4rWyedmD6Rp4og==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
@@ -8910,8 +8941,19 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/type-utils@8.73.0':
+    resolution: {integrity: sha512-MOC9i4xy1F7KcDde7Ip8jf1SrRiALb2Km4UWxGNjUE2YlhjIEo1ayE27GHIwIQyfWuHTmEonQT14uyurlyC6aA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/types@8.72.2':
     resolution: {integrity: sha512-Xfn37OLZx03+PCU7qWx9DTv2FCRh1E6fk2+wONeNY15HXIwtcwuveaSwVpGAUptkNmPQegRxW5JyRel9T7wrog==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/types@8.73.0':
+    resolution: {integrity: sha512-O/1ytYzflF16QDKXx4/qOXg1IuZp+n7hr9t+S0nv7N/2Tl8rJiNCshztV1gcSUvHbPtoX3+zmNbtSAyVbzxVfw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/typescript-estree@8.72.2':
@@ -8920,6 +8962,16 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/typescript-estree@8.73.0':
+    resolution: {integrity: sha512-InjlBkSdWceIwIBWSwS3ENUp+i0O02PGX3Zv2wnihWJC1WDVGvG7mTHuf8b57uAaITj94d6tRPDH+sUEtXdRQQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      '@typescript/native': npm:typescript@>=7.1.0-dev.20261009.1 || >=7.1.0-beta <7.1.0-dev
+      typescript: '>=4.8.4 <6.1.0'
+    peerDependenciesMeta:
+      '@typescript/native':
+        optional: true
+
   '@typescript-eslint/utils@8.72.2':
     resolution: {integrity: sha512-hv3eRYbpPbbpezuax1EfGrzpa3C4ySgNZkPUkLOWOAjU8HsOKowEDAr8C7nsNl1C+SBSKDpvno6VKHnlhvp9iA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -8927,8 +8979,19 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
+  '@typescript-eslint/utils@8.73.0':
+    resolution: {integrity: sha512-j2SVJJvVkXdUL0WcEzo4vEH1mO1vIi8KlVukcYA2MgMZvYN2LlZR4PmsW+GTSxSW24j6Q/EP7+MOifLtg5hmsA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
+
   '@typescript-eslint/visitor-keys@8.72.2':
     resolution: {integrity: sha512-NAGrjn0Pitjqzq/GkgMC4kBYm233PQ8GffyQ9+kTA3AlNQYEzOf25EIM02BAHZv5FRJSpHpJk+OGUxVkOB93GQ==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/visitor-keys@8.73.0':
+    resolution: {integrity: sha512-k4lsFVpRZICbltkIEEH4hZRkwXkqDF1GHBpClKQOHQY+RkoZAAuyc1ci3I6p+CB6v3U4jaHIUshc4RzzQXZWLg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@ungap/structured-clone@1.4.0':
@@ -14742,10 +14805,12 @@ packages:
       eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
       typescript: '>=4.8.4 <6.1.0'
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
+  typescript-eslint@8.73.0:
+    resolution: {integrity: sha512-+EnKy9rkYPun4l+kG2bDuYWQ6y1tGVgdR/tY1U9AC6h21CjEwOoc7gsjwe0FXB8uWFzk4QiCFbuRWgX758PiAg==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0 || ^10.0.0
+      typescript: '>=4.8.4 <6.1.0'
 
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
@@ -16706,11 +16771,11 @@ snapshots:
 
   '@colors/colors@1.6.1': {}
 
-  '@commitlint/cli@20.5.3(@types/node@22.20.5)(conventional-commits-parser@6.4.0)(typescript@5.9.3)':
+  '@commitlint/cli@20.5.3(@types/node@22.20.5)(conventional-commits-parser@6.4.0)(typescript@6.0.3)':
     dependencies:
       '@commitlint/format': 20.5.0
       '@commitlint/lint': 20.5.3
-      '@commitlint/load': 20.5.3(@types/node@22.20.5)(typescript@5.9.3)
+      '@commitlint/load': 20.5.3(@types/node@22.20.5)(typescript@6.0.3)
       '@commitlint/read': 20.5.0(conventional-commits-parser@6.4.0)
       '@commitlint/types': 20.5.0
       tinyexec: 1.3.1
@@ -16755,14 +16820,14 @@ snapshots:
       '@commitlint/rules': 20.5.3
       '@commitlint/types': 20.5.0
 
-  '@commitlint/load@20.5.3(@types/node@22.20.5)(typescript@5.9.3)':
+  '@commitlint/load@20.5.3(@types/node@22.20.5)(typescript@6.0.3)':
     dependencies:
       '@commitlint/config-validator': 20.5.0
       '@commitlint/execute-rule': 20.0.0
       '@commitlint/resolve-extends': 20.5.3
       '@commitlint/types': 20.5.0
-      cosmiconfig: 9.0.2(typescript@5.9.3)
-      cosmiconfig-typescript-loader: 6.3.0(@types/node@22.20.5)(cosmiconfig@9.0.2(typescript@5.9.3))(typescript@5.9.3)
+      cosmiconfig: 9.0.2(typescript@6.0.3)
+      cosmiconfig-typescript-loader: 6.3.0(@types/node@22.20.5)(cosmiconfig@9.0.2(typescript@6.0.3))(typescript@6.0.3)
       es-toolkit: 1.53.2
       is-plain-obj: 4.1.0
       picocolors: 1.1.1
@@ -17631,7 +17696,7 @@ snapshots:
       '@types/json-schema': 7.0.15
       js-yaml: 4.2.0
 
-  '@hey-api/openapi-ts@0.99.0(magicast@0.3.5)(typescript@5.9.3)':
+  '@hey-api/openapi-ts@0.99.0(magicast@0.3.5)(typescript@6.0.3)':
     dependencies:
       '@hey-api/codegen-core': 0.9.1(magicast@0.3.5)
       '@hey-api/json-schema-ref-parser': 1.4.4
@@ -17643,7 +17708,7 @@ snapshots:
       color-support: 1.1.3
       commander: 15.0.0
       get-tsconfig: 4.14.0
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - magicast
 
@@ -18645,10 +18710,10 @@ snapshots:
     dependencies:
       callsites: 3.1.0
 
-  '@n8n/eslint-plugin-community-nodes@0.29.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(n8n-workflow@2.16.0)(supports-color@10.2.2)(typescript@5.9.3)':
+  '@n8n/eslint-plugin-community-nodes@0.29.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(n8n-workflow@2.16.0)(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
       fastest-levenshtein: 1.0.16
       n8n-workflow: 2.16.0
@@ -18683,18 +18748,18 @@ snapshots:
       title-case: 3.0.3
       transliteration: 2.3.5
 
-  '@n8n/node-cli@0.45.5(e28a0f2966a904330db17cffcdf1d524)':
+  '@n8n/node-cli@0.45.5(3e02a9816da64e4cbb6916ff89f24d80)':
     dependencies:
       '@clack/prompts': 0.11.0
       '@eslint/js': 9.39.5
       '@n8n/ai-node-sdk': 0.26.5(fff6c14939f581046ed0e633805233ca)
-      '@n8n/eslint-plugin-community-nodes': 0.29.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(n8n-workflow@2.16.0)(supports-color@10.2.2)(typescript@5.9.3)
+      '@n8n/eslint-plugin-community-nodes': 0.29.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(n8n-workflow@2.16.0)(supports-color@10.2.2)(typescript@6.0.3)
       '@oclif/core': 4.14.0
       change-case: 5.4.4
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
-      eslint-import-resolver-typescript: 4.4.5(eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
-      eslint-plugin-import-x: 4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
-      eslint-plugin-n8n-nodes-base: 1.16.7(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      eslint-import-resolver-typescript: 4.4.5(eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
+      eslint-plugin-import-x: 4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
+      eslint-plugin-n8n-nodes-base: 1.16.7(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       fast-glob: 3.3.3
       handlebars: 4.7.9
       picocolors: 1.0.1
@@ -18702,7 +18767,7 @@ snapshots:
       prompts: 2.4.2
       rimraf: 6.0.1
       ts-morph: 27.0.2
-      typescript-eslint: 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      typescript-eslint: 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
     transitivePeerDependencies:
       - '@arcjet/redact'
       - '@aws-crypto/sha256-js'
@@ -18958,47 +19023,47 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.3
 
-  '@nx-go/nx-go@4.1.1(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
+  '@nx-go/nx-go@4.1.1(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
     dependencies:
-      '@nx/devkit': 22.7.12(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/devkit': 22.7.12(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       tslib: 2.9.1
     transitivePeerDependencies:
       - nx
 
-  '@nx/devkit@22.7.12(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
+  '@nx/devkit@22.7.12(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
     dependencies:
       '@zkochan/js-yaml': 0.0.7
       ejs: 5.0.1
       enquirer: 2.3.6
       minimatch: 10.2.6
-      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
+      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
       semver: 7.8.6
       tslib: 2.9.1
       yargs-parser: 21.1.1
 
-  '@nx/devkit@24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
+  '@nx/devkit@24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
     dependencies:
       ejs: 5.0.1
       minimatch: 10.2.6
-      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
+      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
       semver: 7.8.6
       tslib: 2.9.1
       yargs-parser: 21.1.1
 
-  '@nx/docker@24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
+  '@nx/docker@24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       tslib: 2.9.1
     transitivePeerDependencies:
       - nx
 
-  '@nx/eslint-plugin@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@nx/eslint-plugin@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@typescript-eslint/parser@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@phenomnomnominal/tsquery': 6.2.0(typescript@5.9.3)
-      '@typescript-eslint/type-utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@phenomnomnominal/tsquery': 6.2.0(typescript@6.0.3)
+      '@typescript-eslint/type-utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       confusing-browser-globals: 1.0.11
       globals: 17.14.0
       jsonc-eslint-parser: 2.4.2
@@ -19006,7 +19071,7 @@ snapshots:
       semver: 7.8.6
       tslib: 2.9.1
     optionalDependencies:
-      '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -19018,10 +19083,10 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nx/eslint@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
+  '@nx/eslint@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
       semver: 7.8.6
       tslib: 2.9.1
@@ -19037,7 +19102,7 @@ snapshots:
       - supports-color
       - verdaccio
 
-  '@nx/js@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
+  '@nx/js@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
     dependencies:
       '@babel/core': 7.29.13(supports-color@10.2.2)
       '@babel/plugin-proposal-decorators': 7.29.7(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2)
@@ -19049,8 +19114,8 @@ snapshots:
       '@babel/preset-env': 7.29.14(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/preset-typescript': 7.29.7(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/runtime': 7.29.14
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/workspace': 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/workspace': 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
       '@zkochan/js-yaml': 0.0.7
       babel-plugin-const-enum: 1.2.0(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2)
       babel-plugin-macros: 3.1.0
@@ -19105,11 +19170,11 @@ snapshots:
   '@nx/nx-win32-x64-msvc@24.0.6':
     optional: true
 
-  '@nx/playwright@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
+  '@nx/playwright@24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
       minimatch: 10.2.6
       semver: 7.8.6
@@ -19128,12 +19193,12 @@ snapshots:
       - supports-color
       - verdaccio
 
-  '@nx/vite@24.0.6(bc305e0fa44feb4ce73e47398d721ad5)':
+  '@nx/vite@24.0.6(9e4ea5eefa730277aa760631c41e2f91)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@nx/vitest': 24.0.6(bc305e0fa44feb4ce73e47398d721ad5)
-      '@phenomnomnominal/tsquery': 6.2.0(typescript@5.9.3)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/vitest': 24.0.6(9e4ea5eefa730277aa760631c41e2f91)
+      '@phenomnomnominal/tsquery': 6.2.0(typescript@6.0.3)
       ajv: 8.20.0
       picomatch: 4.0.7
       semver: 7.8.6
@@ -19151,15 +19216,15 @@ snapshots:
       - verdaccio
       - vitest
 
-  '@nx/vitest@24.0.6(bc305e0fa44feb4ce73e47398d721ad5)':
+  '@nx/vitest@24.0.6(9e4ea5eefa730277aa760631c41e2f91)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@phenomnomnominal/tsquery': 6.2.0(typescript@5.9.3)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@phenomnomnominal/tsquery': 6.2.0(typescript@6.0.3)
       semver: 7.8.6
       tslib: 2.9.1
     optionalDependencies:
-      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
       vitest: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -19172,18 +19237,18 @@ snapshots:
       - typescript
       - verdaccio
 
-  '@nx/web@24.0.6(9020035781a5f18150c4452ca0c65131)':
+  '@nx/web@24.0.6(f6bb675e88130a056076ce727c9c136e)':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
-      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/js': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
       detect-port: 2.1.0
       http-server: 14.1.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       picocolors: 1.1.1
       tslib: 2.9.1
     optionalDependencies:
-      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@nx/playwright': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
-      '@nx/vite': 24.0.6(bc305e0fa44feb4ce73e47398d721ad5)
+      '@nx/eslint': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/playwright': 24.0.6(@babel/traverse@7.29.14(supports-color@10.2.2))(@playwright/test@1.65.1)(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))(@zkochan/js-yaml@0.0.7)(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))(supports-color@10.2.2)
+      '@nx/vite': 24.0.6(9e4ea5eefa730277aa760631c41e2f91)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@swc-node/register'
@@ -19194,12 +19259,12 @@ snapshots:
       - supports-color
       - verdaccio
 
-  '@nx/workspace@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))':
+  '@nx/workspace@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))':
     dependencies:
-      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
+      '@nx/devkit': 24.0.6(nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)))
       '@zkochan/js-yaml': 0.0.7
       chalk: 4.1.2
-      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
+      nx: 24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24))
       picomatch: 4.0.7
       semver: 7.8.6
       tslib: 2.9.1
@@ -19767,11 +19832,11 @@ snapshots:
   '@oxc-resolver/binding-win32-x64-msvc@11.24.2':
     optional: true
 
-  '@phenomnomnominal/tsquery@6.2.0(typescript@5.9.3)':
+  '@phenomnomnominal/tsquery@6.2.0(typescript@6.0.3)':
     dependencies:
       '@types/esquery': 1.5.4
       esquery: 1.7.0
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   '@pinojs/redact@0.4.0': {}
 
@@ -20292,7 +20357,7 @@ snapshots:
       '@swc/core': 1.15.47(@swc/helpers@0.5.24)
       '@swc/types': 0.1.28
 
-  '@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3)':
+  '@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@swc-node/core': 1.15.0(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)
       '@swc-node/sourcemap-support': 0.6.1
@@ -20302,7 +20367,7 @@ snapshots:
       oxc-resolver: 11.24.2
       pirates: 4.0.7
       tslib: 2.9.1
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - '@swc/types'
       - supports-color
@@ -20929,40 +20994,79 @@ snapshots:
       '@types/node': 22.20.5
     optional: true
 
-  '@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.3
-      '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/scope-manager': 8.72.2
-      '@typescript-eslint/type-utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/type-utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/visitor-keys': 8.72.2
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
       ignore: 7.0.14
       natural-compare: 1.4.0
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/eslint-plugin@8.73.0(@typescript-eslint/parser@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@eslint-community/regexpp': 4.12.3
+      '@typescript-eslint/parser': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/scope-manager': 8.73.0
+      '@typescript-eslint/type-utils': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/visitor-keys': 8.73.0
+      eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
+      ignore: 7.0.14
+      natural-compare: 1.4.0
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@typescript/native'
+      - supports-color
+
+  '@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/scope-manager': 8.72.2
       '@typescript-eslint/types': 8.72.2
-      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/visitor-keys': 8.72.2
       debug: 4.4.3(supports-color@10.2.2)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/project-service@8.72.2(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/parser@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.72.2(typescript@5.9.3)
+      '@typescript-eslint/scope-manager': 8.73.0
+      '@typescript-eslint/types': 8.73.0
+      '@typescript-eslint/typescript-estree': 8.73.0(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/visitor-keys': 8.73.0
+      debug: 4.4.3(supports-color@10.2.2)
+      eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@typescript/native'
+      - supports-color
+
+  '@typescript-eslint/project-service@8.72.2(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@typescript-eslint/tsconfig-utils': 8.72.2(typescript@6.0.3)
       '@typescript-eslint/types': 8.72.2
       debug: 4.4.3(supports-color@10.2.2)
-      typescript: 5.9.3
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/project-service@8.73.0(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@typescript-eslint/tsconfig-utils': 8.73.0(typescript@6.0.3)
+      '@typescript-eslint/types': 8.73.0
+      debug: 4.4.3(supports-color@10.2.2)
+      typescript: 6.0.3
     transitivePeerDependencies:
       - supports-color
 
@@ -20971,53 +21075,109 @@ snapshots:
       '@typescript-eslint/types': 8.72.2
       '@typescript-eslint/visitor-keys': 8.72.2
 
-  '@typescript-eslint/tsconfig-utils@8.72.2(typescript@5.9.3)':
+  '@typescript-eslint/scope-manager@8.73.0':
     dependencies:
-      typescript: 5.9.3
+      '@typescript-eslint/types': 8.73.0
+      '@typescript-eslint/visitor-keys': 8.73.0
 
-  '@typescript-eslint/type-utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/tsconfig-utils@8.72.2(typescript@6.0.3)':
+    dependencies:
+      typescript: 6.0.3
+
+  '@typescript-eslint/tsconfig-utils@8.73.0(typescript@6.0.3)':
+    dependencies:
+      typescript: 6.0.3
+
+  '@typescript-eslint/type-utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/types': 8.72.2
-      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       debug: 4.4.3(supports-color@10.2.2)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
     transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/type-utils@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@typescript-eslint/types': 8.73.0
+      '@typescript-eslint/typescript-estree': 8.73.0(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      debug: 4.4.3(supports-color@10.2.2)
+      eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   '@typescript-eslint/types@8.72.2': {}
 
-  '@typescript-eslint/typescript-estree@8.72.2(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/types@8.73.0': {}
+
+  '@typescript-eslint/typescript-estree@8.72.2(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
-      '@typescript-eslint/project-service': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/tsconfig-utils': 8.72.2(typescript@5.9.3)
+      '@typescript-eslint/project-service': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/tsconfig-utils': 8.72.2(typescript@6.0.3)
       '@typescript-eslint/types': 8.72.2
       '@typescript-eslint/visitor-keys': 8.72.2
       debug: 4.4.3(supports-color@10.2.2)
       minimatch: 10.2.6
       semver: 7.8.6
       tinyglobby: 0.2.17
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)':
+  '@typescript-eslint/typescript-estree@8.73.0(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@typescript-eslint/project-service': 8.73.0(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/tsconfig-utils': 8.73.0(typescript@6.0.3)
+      '@typescript-eslint/types': 8.73.0
+      '@typescript-eslint/visitor-keys': 8.73.0
+      debug: 4.4.3(supports-color@10.2.2)
+      minimatch: 10.2.6
+      semver: 7.8.6
+      tinyglobby: 0.2.17
+      ts-api-utils: 2.5.0(typescript@6.0.3)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))
       '@typescript-eslint/scope-manager': 8.72.2
       '@typescript-eslint/types': 8.72.2
-      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/utils@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
+    dependencies:
+      '@eslint-community/eslint-utils': 4.10.1(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))
+      '@typescript-eslint/scope-manager': 8.73.0
+      '@typescript-eslint/types': 8.73.0
+      '@typescript-eslint/typescript-estree': 8.73.0(supports-color@10.2.2)(typescript@6.0.3)
+      eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@typescript/native'
       - supports-color
 
   '@typescript-eslint/visitor-keys@8.72.2':
     dependencies:
       '@typescript-eslint/types': 8.72.2
+      eslint-visitor-keys: 5.0.1
+
+  '@typescript-eslint/visitor-keys@8.73.0':
+    dependencies:
+      '@typescript-eslint/types': 8.73.0
       eslint-visitor-keys: 5.0.1
 
   '@ungap/structured-clone@1.4.0': {}
@@ -21102,10 +21262,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@22.20.5)(lightningcss@1.33.0))(vue@3.5.45(typescript@5.9.3))':
+  '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@22.20.5)(lightningcss@1.33.0))(vue@3.5.45(typescript@6.0.3))':
     dependencies:
       vite: 5.4.21(@types/node@22.20.5)(lightningcss@1.33.0)
-      vue: 3.5.45(typescript@5.9.3)
+      vue: 3.5.45(typescript@6.0.3)
 
   '@vitest/coverage-v8@3.2.7(supports-color@10.2.2)(vitest@3.2.7)':
     dependencies:
@@ -21200,25 +21360,25 @@ snapshots:
     dependencies:
       '@volar/source-map': 2.4.31
 
-  '@volar/language-service@2.4.31(typescript@5.9.3)':
+  '@volar/language-service@2.4.31(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.31
       vscode-languageserver-protocol: 3.18.5
       vscode-languageserver-textdocument: 1.0.16
       vscode-uri: 3.2.0
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   '@volar/source-map@2.4.31': {}
 
-  '@volar/typescript@2.4.31(typescript@5.9.3)':
+  '@volar/typescript@2.4.31(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.31
-      '@volar/language-service': 2.4.31(typescript@5.9.3)
+      '@volar/language-service': 2.4.31(typescript@6.0.3)
       path-browserify: 1.0.1
       vscode-uri: 3.2.0
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   '@vue/compiler-core@3.5.45':
     dependencies:
@@ -21273,7 +21433,7 @@ snapshots:
     dependencies:
       rfdc: 1.4.1
 
-  '@vue/language-core@2.2.0(typescript@5.9.3)':
+  '@vue/language-core@2.2.0(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.31
       '@vue/compiler-dom': 3.5.45
@@ -21284,7 +21444,7 @@ snapshots:
       muggle-string: 0.4.1
       path-browserify: 1.0.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   '@vue/reactivity@3.5.45':
     dependencies:
@@ -21310,20 +21470,20 @@ snapshots:
 
   '@vue/shared@3.5.45': {}
 
-  '@vueuse/core@12.8.2(typescript@5.9.3)':
+  '@vueuse/core@12.8.2(typescript@6.0.3)':
     dependencies:
       '@types/web-bluetooth': 0.0.21
       '@vueuse/metadata': 12.8.2
-      '@vueuse/shared': 12.8.2(typescript@5.9.3)
-      vue: 3.5.45(typescript@5.9.3)
+      '@vueuse/shared': 12.8.2(typescript@6.0.3)
+      vue: 3.5.45(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
 
-  '@vueuse/integrations@12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@5.9.3)':
+  '@vueuse/integrations@12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)':
     dependencies:
-      '@vueuse/core': 12.8.2(typescript@5.9.3)
-      '@vueuse/shared': 12.8.2(typescript@5.9.3)
-      vue: 3.5.45(typescript@5.9.3)
+      '@vueuse/core': 12.8.2(typescript@6.0.3)
+      '@vueuse/shared': 12.8.2(typescript@6.0.3)
+      vue: 3.5.45(typescript@6.0.3)
     optionalDependencies:
       axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       change-case: 5.4.4
@@ -21333,9 +21493,9 @@ snapshots:
 
   '@vueuse/metadata@12.8.2': {}
 
-  '@vueuse/shared@12.8.2(typescript@5.9.3)':
+  '@vueuse/shared@12.8.2(typescript@6.0.3)':
     dependencies:
-      vue: 3.5.45(typescript@5.9.3)
+      vue: 3.5.45(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
 
@@ -22445,12 +22605,12 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
-  cosmiconfig-typescript-loader@6.3.0(@types/node@22.20.5)(cosmiconfig@9.0.2(typescript@5.9.3))(typescript@5.9.3):
+  cosmiconfig-typescript-loader@6.3.0(@types/node@22.20.5)(cosmiconfig@9.0.2(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
       '@types/node': 22.20.5
-      cosmiconfig: 9.0.2(typescript@5.9.3)
+      cosmiconfig: 9.0.2(typescript@6.0.3)
       jiti: 2.6.1
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   cosmiconfig@7.1.0:
     dependencies:
@@ -22460,14 +22620,14 @@ snapshots:
       path-type: 4.0.0
       yaml: 2.9.1
 
-  cosmiconfig@9.0.2(typescript@5.9.3):
+  cosmiconfig@9.0.2(typescript@6.0.3):
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
       js-yaml: 4.3.2
       parse-json: 5.2.0
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   cpu-features@0.0.10:
     dependencies:
@@ -23290,7 +23450,7 @@ snapshots:
     optionalDependencies:
       unrs-resolver: 1.13.0
 
-  eslint-import-resolver-typescript@4.4.5(eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2):
+  eslint-import-resolver-typescript@4.4.5(eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
@@ -23301,11 +23461,11 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.13.0
     optionalDependencies:
-      eslint-plugin-import-x: 4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
+      eslint-plugin-import-x: 4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2):
+  eslint-plugin-import-x@4.18.1(@typescript-eslint/utils@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:
       '@typescript-eslint/types': 8.72.2
       cjs-module-lexer: 2.3.0
@@ -23320,7 +23480,7 @@ snapshots:
       stable-hash-x: 0.2.0
       unrs-resolver: 1.13.0
     optionalDependencies:
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -23343,9 +23503,9 @@ snapshots:
       safe-regex-test: 1.1.0
       string.prototype.includes: 2.0.1
 
-  eslint-plugin-n8n-nodes-base@1.16.7(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3):
+  eslint-plugin-n8n-nodes-base@1.16.7(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3):
     dependencies:
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       camel-case: 4.1.2
       indefinite: 2.5.2
       pascal-case: 3.1.2
@@ -25751,7 +25911,7 @@ snapshots:
 
   nwsapi@2.2.28: {}
 
-  nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)):
+  nx@24.0.6(@swc-node/register@1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3))(@swc/core@1.15.47(@swc/helpers@0.5.24)):
     dependencies:
       '@clack/core': 1.4.3
       '@clack/prompts': 1.7.0
@@ -25852,7 +26012,7 @@ snapshots:
       '@nx/nx-linux-x64-musl': 24.0.6
       '@nx/nx-win32-arm64-msvc': 24.0.6
       '@nx/nx-win32-x64-msvc': 24.0.6
-      '@swc-node/register': 1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@5.9.3)
+      '@swc-node/register': 1.11.1(@swc/core@1.15.47(@swc/helpers@0.5.24))(@swc/types@0.1.28)(supports-color@10.2.2)(typescript@6.0.3)
       '@swc/core': 1.15.47(@swc/helpers@0.5.24)
 
   object-assign@4.1.1: {}
@@ -27670,9 +27830,9 @@ snapshots:
 
   ts-algebra@2.0.0: {}
 
-  ts-api-utils@2.5.0(typescript@5.9.3):
+  ts-api-utils@2.5.0(typescript@6.0.3):
     dependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   ts-dedent@2.3.0: {}
 
@@ -27763,18 +27923,28 @@ snapshots:
       possible-typed-array-names: 1.1.0
       reflect.getprototypeof: 1.0.10
 
-  typescript-eslint@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3):
+  typescript-eslint@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.72.2(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@5.9.3)
+      '@typescript-eslint/eslint-plugin': 8.72.2(@typescript-eslint/parser@8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/parser': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.72.2(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.72.2(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - supports-color
 
-  typescript@5.9.3: {}
+  typescript-eslint@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3):
+    dependencies:
+      '@typescript-eslint/eslint-plugin': 8.73.0(@typescript-eslint/parser@8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/parser': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.73.0(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript-eslint/utils': 8.73.0(eslint@9.39.5(jiti@2.4.2)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      eslint: 9.39.5(jiti@2.4.2)(supports-color@10.2.2)
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - '@typescript/native'
+      - supports-color
 
   typescript@6.0.3: {}
 
@@ -27978,18 +28148,18 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-plugin-dts@4.5.4(@types/node@22.20.5)(rollup@4.68.3)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@microsoft/api-extractor': 7.60.1(@types/node@22.20.5)
       '@rollup/pluginutils': 5.5.1(rollup@4.68.3)
-      '@volar/typescript': 2.4.31(typescript@5.9.3)
-      '@vue/language-core': 2.2.0(typescript@5.9.3)
+      '@volar/typescript': 2.4.31(typescript@6.0.3)
+      '@vue/language-core': 2.2.0(typescript@6.0.3)
       compare-versions: 6.1.1
       debug: 4.4.3(supports-color@10.2.2)
       kolorist: 1.8.0
       local-pkg: 1.2.1
       magic-string: 0.30.21
-      typescript: 5.9.3
+      typescript: 6.0.3
     optionalDependencies:
       vite: 8.3.8(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.4.2)(tsx@4.23.15)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -28053,10 +28223,10 @@ snapshots:
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vitepress-mermaid-renderer@1.2.3(mermaid@11.17.2)(vue@3.5.45(typescript@5.9.3)):
+  vitepress-mermaid-renderer@1.2.3(mermaid@11.17.2)(vue@3.5.45(typescript@6.0.3)):
     dependencies:
       mermaid: 11.17.2
-      vue: 3.5.45(typescript@5.9.3)
+      vue: 3.5.45(typescript@6.0.3)
 
   vitepress-plugin-llms@1.15.0(supports-color@10.2.2):
     dependencies:
@@ -28077,7 +28247,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vitepress@1.6.4(@algolia/client-search@5.64.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@5.9.3):
+  vitepress@1.6.4(@algolia/client-search@5.64.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.64.0)(search-insights@2.17.3)
@@ -28086,17 +28256,17 @@ snapshots:
       '@shikijs/transformers': 2.5.0
       '@shikijs/types': 2.5.0
       '@types/markdown-it': 14.2.0
-      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@22.20.5)(lightningcss@1.33.0))(vue@3.5.45(typescript@5.9.3))
+      '@vitejs/plugin-vue': 5.2.4(vite@5.4.21(@types/node@22.20.5)(lightningcss@1.33.0))(vue@3.5.45(typescript@6.0.3))
       '@vue/devtools-api': 7.7.10
       '@vue/shared': 3.5.45
-      '@vueuse/core': 12.8.2(typescript@5.9.3)
-      '@vueuse/integrations': 12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@5.9.3)
+      '@vueuse/core': 12.8.2(typescript@6.0.3)
+      '@vueuse/integrations': 12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)
       focus-trap: 7.8.0
       mark.js: 8.11.1
       minisearch: 7.2.0
       shiki: 2.5.0
       vite: 5.4.21(@types/node@22.20.5)(lightningcss@1.33.0)
-      vue: 3.5.45(typescript@5.9.3)
+      vue: 3.5.45(typescript@6.0.3)
     optionalDependencies:
       postcss: 8.5.33
     transitivePeerDependencies:
@@ -28194,7 +28364,7 @@ snapshots:
 
   vscode-uri@3.2.0: {}
 
-  vue@3.5.45(typescript@5.9.3):
+  vue@3.5.45(typescript@6.0.3):
     dependencies:
       '@vue/compiler-dom': 3.5.45
       '@vue/compiler-sfc': 3.5.45
@@ -28202,7 +28372,7 @@ snapshots:
       '@vue/server-renderer': 3.5.45
       '@vue/shared': 3.5.45
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   w3c-keyname@2.2.8: {}
 
