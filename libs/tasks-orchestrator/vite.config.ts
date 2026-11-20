@@ -49,13 +49,6 @@ export default defineConfig({
         testing: 'src/testing.ts',
       },
     },
-    rolldownOptions: {
-      external,
-      input: {
-        index: 'src/index.ts',
-        testing: 'src/testing.ts',
-      },
-    },
   },
   ssr: {
     // Bundle the private @moltnet/* workspace packages into the JS output.

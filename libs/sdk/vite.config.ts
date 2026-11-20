@@ -81,14 +81,6 @@ export default defineConfig({
         node: 'src/node.ts',
       },
     },
-    rolldownOptions: {
-      external,
-      input: {
-        human: 'src/human.ts',
-        index: 'src/index.ts',
-        node: 'src/node.ts',
-      },
-    },
   },
   ssr: {
     // Bundle private workspace packages into the SDK JS output.

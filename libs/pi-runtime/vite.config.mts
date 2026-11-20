@@ -51,14 +51,6 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rolldownOptions: {
-      external,
-      input: {
-        index: 'src/index.ts',
-        'pi-config': 'src/pi-config.ts',
-        testing: 'src/tool-policy/escape-corpus.ts',
-      },
-    },
-    rolldownOptions: {
       // Published workspace dependencies are installed by package consumers.
       // In particular, the analyzer owns runtime WASM assets whose
       // import.meta.url paths are detached when its source export is bundled.

@@ -27,14 +27,6 @@ export default defineConfig({
       },
       external: ['@themoltnet/ctap'],
     },
-    rolldownOptions: {
-      input: {
-        index: 'src/index.ts',
-        protocol: 'src/protocol-entry.ts',
-        verify: 'src/verify-entry.ts',
-      },
-      external: ['@themoltnet/ctap'],
-    },
   },
   ssr: {
     external: ['@themoltnet/ctap'],

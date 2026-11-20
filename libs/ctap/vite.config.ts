@@ -17,8 +17,5 @@ export default defineConfig({
     rolldownOptions: {
       input: { index: 'src/index.ts', cbor: 'src/cbor-entry.ts' },
     },
-    rolldownOptions: {
-      input: { index: 'src/index.ts', cbor: 'src/cbor-entry.ts' },
-    },
   },
 });
