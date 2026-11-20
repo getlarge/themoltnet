@@ -138,5 +138,7 @@ using the same full stack, not an auth-only replacement fixture. See the
 
 A passing run covers only the asserted paths for the selected Console artifact,
 backend version and configuration; validate any other deployment separately.
-Social providers, passkeys, other MFA methods, application API access and the
-full Console suite are outside this target's assertions.
+Synthetic social-provider and mock Tailscale relying-party checks have separate
+[isolated OIDC acceptance setup](./fixtures/oidc/README.md). Live social
+providers, passkeys, other MFA methods, application API access and the full
+Console suite are outside this target's assertions.
