@@ -289,14 +289,27 @@ describe('run step with project-id', () => {
       const pidFile = resolve(root, `pid-${signal}`);
       writeFileSync(
         entry,
-        `const fs = require('node:fs'); process.on('${signal}',()=>{fs.writeFileSync(${JSON.stringify(marker)},'stopped');process.exit(0)}); fs.writeFileSync(${JSON.stringify(pidFile)},String(process.pid)); setInterval(()=>{},1000);`,
+        `const fs = require('node:fs');
+process.on(process.env.MOLTNET_TEST_SIGNAL, () => {
+  fs.writeFileSync(process.env.MOLTNET_TEST_MARKER, 'stopped');
+  process.exit(0);
+});
+fs.writeFileSync(process.env.MOLTNET_TEST_PID_FILE, String(process.pid));
+setInterval(() => {}, 1000);`,
       );
       const run = stepById('run');
       const child = spawn(
         'bash',
         ['--noprofile', '--norc', '-eo', 'pipefail', '-c', renderRun(run.run)],
         {
-          env: { ...process.env, ...runEnv(binary), COMMAND_ENTRY: entry },
+          env: {
+            ...process.env,
+            ...runEnv(binary),
+            COMMAND_ENTRY: entry,
+            MOLTNET_TEST_SIGNAL: signal,
+            MOLTNET_TEST_MARKER: marker,
+            MOLTNET_TEST_PID_FILE: pidFile,
+          },
           stdio: 'ignore',
         },
       );
