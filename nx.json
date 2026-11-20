@@ -35,6 +35,10 @@
       "{workspaceRoot}/tools/postinstall.mjs",
       "{workspaceRoot}/tools/prepare.mjs"
     ],
+    "eslintConfig": [
+      "{workspaceRoot}/eslint.config.mjs",
+      "{projectRoot}/eslint.config.mjs"
+    ],
     "production": [
       "default",
       "!{projectRoot}/__tests__/**/*",
