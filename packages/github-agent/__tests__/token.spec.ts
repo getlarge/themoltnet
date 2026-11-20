@@ -51,7 +51,7 @@ describe('getInstallationToken', () => {
         status: 201,
         json: async () => ({
           token: 'ghs_test123',
-          expires_at: '2026-02-16T20:00:00Z',
+          expires_at: '2099-02-16T20:00:00Z',
         }),
       })),
     );
@@ -82,7 +82,7 @@ describe('getInstallationToken', () => {
         status: 201,
         json: async () => ({
           token: 'ghs_test123',
-          expires_at: '2026-02-16T20:00:00Z',
+          expires_at: '2099-02-16T20:00:00Z',
         }),
       })),
     );
@@ -97,7 +97,7 @@ describe('getInstallationToken', () => {
     // Assert
     expect(result).toEqual({
       token: 'ghs_test123',
-      expiresAt: '2026-02-16T20:00:00Z',
+      expiresAt: '2099-02-16T20:00:00Z',
     });
   });
 

@@ -33,10 +33,10 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:",
     "@types/pg": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "nx": {
     "projectType": "library",
@@ -90,12 +90,13 @@
     "@moltnet/security-review": "workspace:*",
     "@moltnet/task-schemas": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
+    "absurd-sdk": "catalog:",
+    "pg": "catalog:",
     "re2js": "catalog:",
     "typebox": "catalog:",
-    "yaml": "catalog:",
-    "absurd-sdk": "catalog:",
-    "pg": "catalog:"
+    "yaml": "catalog:"
   }
 }

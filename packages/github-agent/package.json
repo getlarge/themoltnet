@@ -54,7 +54,8 @@
     "tags": [
       "type:client",
       "scope:identity",
-      "platform:cli"
+      "platform:cli",
+      "platform:server"
     ],
     "targets": {
       "check:externals": {}

@@ -1963,6 +1963,9 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@themoltnet/github-agent':
+        specifier: workspace:*
+        version: link:../../packages/github-agent
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk

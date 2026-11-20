@@ -27,10 +27,11 @@ interface TokenCache {
   /** Identity the cached token was minted for; records without it are stale. */
   app_id?: string;
   installation_id?: string;
+  scope_key?: string;
 }
 
 /** Minimum remaining validity before we consider a cached token expired. */
-const EXPIRY_BUFFER_MS = 5 * 60 * 1000;
+export const EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
 /**
  * Read a cached token from disk. Returns null if missing, corrupt, expired,
@@ -41,16 +42,30 @@ async function readTokenCache(
   cachePath: string,
   appId: string,
   installationId: string,
+  scopeKey?: string,
 ): Promise<{ token: string; expiresAt: string } | null> {
   try {
     const raw = await readFile(cachePath, 'utf-8');
     const cached = JSON.parse(raw) as TokenCache;
-    if (!cached.token || !cached.expires_at) return null;
-    if (cached.app_id !== appId || cached.installation_id !== installationId) {
+    if (
+      typeof cached.token !== 'string' ||
+      !cached.token.trim() ||
+      typeof cached.expires_at !== 'string'
+    )
+      return null;
+    if (
+      cached.app_id !== appId ||
+      cached.installation_id !== installationId ||
+      cached.scope_key !== scopeKey
+    ) {
       return null;
     }
     const expiresAt = new Date(cached.expires_at).getTime();
-    if (Date.now() + EXPIRY_BUFFER_MS >= expiresAt) return null;
+    if (
+      !Number.isFinite(expiresAt) ||
+      Date.now() + EXPIRY_BUFFER_MS >= expiresAt
+    )
+      return null;
     return { token: cached.token, expiresAt: cached.expires_at };
   } catch {
     return null;
@@ -131,7 +146,9 @@ async function loadPrivateKeyPem(source: GitHubAppKeyInput): Promise<string> {
   return readFile(source.privateKeyPath, 'utf-8');
 }
 
-function tokenCachePath(source: GitHubAppKeySource): string {
+function tokenCachePath(
+  source: GitHubAppKeyInput & { cacheDir?: string },
+): string {
   const dir =
     source.cacheDir ??
     (source.privateKeyPath !== undefined
@@ -214,16 +231,36 @@ export async function getInstallationToken(
     appId: string;
     installationId: string;
     forceRefresh?: boolean;
-  } & GitHubAppKeySource,
+    cache?: false;
+    cacheDir?: string;
+    apiUrl?: string;
+    repositories?: string[];
+    permissions?: Record<string, 'read' | 'write'>;
+  } & GitHubAppKeyInput,
 ): Promise<{ token: string; expiresAt: string }> {
-  const cachePath = tokenCachePath(opts);
+  const cachePath = opts.cache === false ? undefined : tokenCachePath(opts);
+  const scopeKey =
+    opts.apiUrl || opts.repositories || opts.permissions
+      ? JSON.stringify({
+          apiUrl: opts.apiUrl ?? 'https://api.github.com',
+          repositories: opts.repositories?.slice().sort(),
+          permissions:
+            opts.permissions &&
+            Object.fromEntries(
+              Object.entries(opts.permissions).sort(([a], [b]) =>
+                a.localeCompare(b),
+              ),
+            ),
+        })
+      : undefined;
 
   // Try cache first — only a record minted for this App/installation counts.
-  if (!opts.forceRefresh) {
+  if (cachePath && !opts.forceRefresh) {
     const cached = await readTokenCache(
       cachePath,
       opts.appId,
       opts.installationId,
+      scopeKey,
     );
     if (cached) return cached;
   }
@@ -233,9 +270,17 @@ export async function getInstallationToken(
   const jwt = createAppJWT(opts.appId, privateKeyPem);
 
   const response = await fetch(
-    `https://api.github.com/app/installations/${opts.installationId}/access_tokens`,
+    `${opts.apiUrl ?? 'https://api.github.com'}/app/installations/${opts.installationId}/access_tokens`,
     {
       method: 'POST',
+      ...(opts.repositories || opts.permissions
+        ? {
+            body: JSON.stringify({
+              repositories: opts.repositories,
+              permissions: opts.permissions,
+            }),
+          }
+        : {}),
       headers: {
         Authorization: `Bearer ${jwt}`,
         Accept: 'application/vnd.github+json',
@@ -254,15 +299,61 @@ export async function getInstallationToken(
     expires_at: string;
   };
 
+  if (
+    typeof data.token !== 'string' ||
+    !data.token.trim() ||
+    typeof data.expires_at !== 'string' ||
+    !Number.isFinite(Date.parse(data.expires_at)) ||
+    Date.parse(data.expires_at) <= Date.now()
+  ) {
+    throw new Error('GitHub returned an invalid or expired installation token');
+  }
   const result = { token: data.token, expiresAt: data.expires_at };
 
   // Write cache (best-effort)
-  await writeTokenCache(cachePath, {
-    token: result.token,
-    expires_at: result.expiresAt,
-    app_id: opts.appId,
-    installation_id: opts.installationId,
-  });
+  if (cachePath)
+    await writeTokenCache(cachePath, {
+      token: result.token,
+      expires_at: result.expiresAt,
+      app_id: opts.appId,
+      installation_id: opts.installationId,
+      ...(scopeKey ? { scope_key: scopeKey } : {}),
+    });
 
   return result;
+}
+
+/** Repository lookup and restricted exchange without writing credentials to disk. */
+export async function getRepositoryInstallationToken(opts: {
+  appId: string;
+  privateKeyPem: string;
+  repository: string;
+  apiUrl?: string;
+  permissions: Record<string, 'read' | 'write'>;
+}): Promise<{ token: string; expiresAt: string }> {
+  if (!/^[\w.-]+\/[\w.-]+$/.test(opts.repository))
+    throw new Error('Expected owner/repository');
+  const apiUrl = (opts.apiUrl ?? 'https://api.github.com').replace(/\/$/, '');
+  const response = await fetch(
+    `${apiUrl}/repos/${opts.repository}/installation`,
+    {
+      headers: {
+        Authorization: `Bearer ${createAppJWT(opts.appId, opts.privateKeyPem)}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    },
+  );
+  if (!response.ok)
+    throw new Error(`GitHub installation lookup failed (${response.status})`);
+  const installation = (await response.json()) as { id?: unknown };
+  if (!Number.isSafeInteger(installation.id) || Number(installation.id) < 1)
+    throw new Error('GitHub returned an invalid installation');
+  return getInstallationToken({
+    ...opts,
+    apiUrl,
+    installationId: String(installation.id),
+    repositories: [opts.repository.split('/')[1]],
+    cache: false,
+  });
 }
