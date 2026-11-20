@@ -132,8 +132,25 @@ export function AuthPage({ page }: { page: PageKind }) {
       setState({ kind: 'flow', loaded });
     };
     void run()
-      .catch(() => {
+      .catch(async (error: unknown) => {
+        const failure = await flowFailure(error);
         if (!controller.signal.aborted) {
+          if (
+            page === 'settings' &&
+            failure?.status === 401 &&
+            failure.body.error?.id === 'session_inactive'
+          ) {
+            // Resume with a fresh settings flow after login. Keep return_to
+            // nested here so Kratos still validates it when settings restarts.
+            const destination = new URL(authUrl('settings'));
+            const parameters = new URLSearchParams(search);
+            parameters.delete('flow');
+            destination.search = parameters.toString();
+            const login = new URL(authUrl('login'));
+            login.searchParams.set('return_to', destination.toString());
+            navigateToOryRedirect(login.toString());
+            return;
+          }
           setState({
             kind: 'failed',
             message:
