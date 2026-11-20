@@ -3,7 +3,13 @@
   "name": "legreffier-adaptive-knowledge-readonly-v1",
   "shellCommands": [
     {
-      "argvPrefix": ["git", "diff", "--no-ext-diff", "--no-textconv"]
+      "argvPrefix": [
+        "git",
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--end-of-options"
+      ]
     }
   ],
   "tools": [
