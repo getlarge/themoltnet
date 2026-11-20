@@ -5,10 +5,13 @@
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
-  "exclude": ["src/**/*.spec.ts"],
+  "exclude": ["__tests__/**/*.spec.ts"],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
+    {
+      "path": "../secret-scanner/tsconfig.lib.json"
+    },
     {
       "path": "../embedding-service/tsconfig.lib.json"
     },
