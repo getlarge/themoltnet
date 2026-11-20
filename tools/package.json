@@ -19,7 +19,8 @@
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
     "test:agent-bundle": "node --test __tests__/release/agent-bundle/agent-bundle.spec.mjs __tests__/release/cli/install.spec.mjs __tests__/release/cli/p12-chain.spec.mjs __tests__/release/sync-cli-consumer-pins.spec.mjs __tests__/release/adaptive-review-release.spec.mjs __tests__/release/sync-adaptive-review-consumer-pins.spec.mjs __tests__/release/action-release-state.spec.mjs",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:ory-ui-contract": "node --test __tests__/ory-ui-contract.spec.mjs"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
@@ -100,6 +101,9 @@
               "@moltnet/entry-explore-mcp-app"
             ]
           }
+        ],
+        "dependsOn": [
+          "test:ory-ui-contract"
         ]
       },
       "test:agent-bundle": {
@@ -149,6 +153,15 @@
         "executor": "nx:noop",
         "dependsOn": [
           "test"
+        ]
+      },
+      "test:ory-ui-contract": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/apps/console/src/auth/routes.json",
+          "{workspaceRoot}/infra/ory/**",
+          "{workspaceRoot}/deploy/ory/**"
         ]
       }
     }
