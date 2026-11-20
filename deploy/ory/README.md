@@ -41,6 +41,23 @@ For a database outside the private Docker network, explicitly use
 `ORY_DB_SSLMODE=verify-full` and a server certificate trusted by the containers;
 only `disable` and `verify-full` are supported by the provisioner.
 
+The Console serves authentication screens under `/auth/*`, using its existing
+`kratosUrl` and `consoleUrl` runtime settings for either Ory Network or this
+self-hosted module. The canonical routes live in
+`apps/console/src/auth/routes.json`; the configuration contract test checks the
+Network template, local configuration, and this module against them. Point
+Kratos flow UI URLs and Hydra login/registration/error URLs at those Console
+routes. Keep allowed return URLs, credentialed CORS, and same-site cookies
+aligned with the public origins. Registration returns to login so the login
+hook completes human onboarding. OAuth consent remains on REST API at
+`/oauth2/consent`.
+
+The reference UI remains available for Hydra's logout-challenge handler.
+Removing it requires separate OAuth logout and callback acceptance; ordinary
+Console session logout already uses Kratos. The browser test procedure and
+its validation limits are documented in `apps/console-e2e/README.md` in the
+source checkout. Do not change live project settings as part of packaging.
+
 The other configuration variables match `../self-host/.env.example`.
 `IDENTITY_DOMAIN` and `OAUTH_DOMAIN` remain independent for standalone ingress;
 a consumer with one auth host sets both to that hostname and routes Kratos/UI
