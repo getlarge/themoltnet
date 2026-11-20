@@ -95,11 +95,25 @@ describe('analyzeCommand — simple commands', () => {
     ]);
   });
 
-  it('surfaces normalized argv and preserves dynamic argument positions', async () => {
-    expect(await invocationArgv('/usr/bin/git diff --stat')).toEqual([
-      ['git', 'diff', '--stat'],
-    ]);
+  it('preserves executable paths and dynamic argument positions in argv', async () => {
+    for (const executable of ['git', '/usr/bin/git', './git', 'tools/git']) {
+      expect(await invocationArgv(`${executable} diff --stat`)).toEqual([
+        [executable, 'diff', '--stat'],
+      ]);
+      expect(await toolNames(`${executable} diff --stat`)).toEqual(['git']);
+    }
     expect(await invocationArgv('git "$ACTION"')).toEqual([['git', null]]);
+  });
+
+  it('preserves executable paths through wrappers and nested commands', async () => {
+    expect(await invocationArgv('/usr/bin/env ./git diff')).toEqual([
+      ['/usr/bin/env', './git', 'diff'],
+      ['./git', 'diff'],
+    ]);
+    expect(await invocationArgv('find . -exec ./git diff \\;')).toEqual([
+      ['find', '.', '-exec', './git', 'diff', null],
+      ['./git', 'diff'],
+    ]);
   });
 
   it('surfaces arbitrarily nested CLI command paths', async () => {
