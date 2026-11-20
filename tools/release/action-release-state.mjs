@@ -79,6 +79,23 @@ async function packageVersion(api, component, ref) {
 // Source manifests opt into co-packaging; old immutable releases retain their
 // original entry contract during reconciliation and exact-version retries.
 export function actionEntries(component, metadata) {
+  const command = metadata.nx?.targets?.['publish-action']?.options?.command;
+  if (component === 'adaptive-review-action' && command !== undefined) {
+    const declared = command.match(/(?:^|\s)--entries(?:=|\s+)([^\s]+)/)?.[1];
+    const entries = declared?.split(',');
+    if (
+      !entries?.length ||
+      entries.some(
+        (entry) =>
+          !/^[a-zA-Z0-9_./-]+$/.test(entry) ||
+          entry.startsWith('/') ||
+          entry.split('/').includes('..'),
+      )
+    )
+      throw new Error('Invalid adaptive-review publisher entry contract');
+    return entries;
+  }
+  // Older releases predate an explicit publisher contract.
   const entries = actions[component].entries;
   return component === 'adaptive-review-action' &&
     metadata.devDependencies?.['@themoltnet/agent-daemon-action'] ===

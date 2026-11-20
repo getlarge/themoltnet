@@ -184,3 +184,57 @@ test('updates the explicit runtime pin together with the reusable workflow pin',
     assert.ok(source.includes(`runtime-ref: ${bundleSha}`));
   }
 });
+
+async function completeWorkflowBundle(f) {
+  const metadata = JSON.parse(
+    await readFile(
+      new URL(
+        '../../../packages/adaptive-review-action/package.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  metadata.version = '0.1.2';
+  f.responses[`contents/${packageRoot}/package.json?ref=${bundleSha}`] = {
+    content: Buffer.from(JSON.stringify(metadata)).toString('base64'),
+  };
+  f.responses[`git/trees/${bundleSha}?recursive=1`].tree = [
+    `${packageRoot}/action.yml`,
+    ...pinFiles.map((file) => file.replace('.yml', '-reusable.yml')),
+    ...[
+      'run.js',
+      'review-worker.js',
+      'outcomes.js',
+      'diary-runtime.js',
+      'worker-action/main.js',
+      'release-dependencies.json',
+    ].map((entry) => `${packageRoot}/dist/${entry}`),
+  ].map((path) => ({ path, type: 'blob', size: 100 }));
+  for (const [index, file] of pinFiles.entries())
+    await writeFile(
+      join(f.root, file),
+      f.originals[index] + `    with:\n      runtime-ref: ${oldSha}\n`,
+    );
+}
+
+test('automatically adopts the complete workflow bundle and runtime pins without legacy entries', async (t) => {
+  const f = await fixture(t);
+  await completeWorkflowBundle(f);
+  await main(f);
+  for (const source of await f.contents()) {
+    assert.ok(source.includes(`@${bundleSha} # adaptive-review-action-v0`));
+    assert.ok(source.includes(`runtime-ref: ${bundleSha}`));
+  }
+});
+
+test('retains both pins if the complete workflow bundle lacks its worker guardian', async (t) => {
+  const f = await fixture(t);
+  await completeWorkflowBundle(f);
+  f.responses[`git/trees/${bundleSha}?recursive=1`].tree = f.responses[
+    `git/trees/${bundleSha}?recursive=1`
+  ].tree.filter(({ path }) => !path.endsWith('/review-worker.js'));
+  const original = await f.contents();
+  await assert.rejects(main(f), /missing required/);
+  assert.deepEqual(await f.contents(), original);
+});
