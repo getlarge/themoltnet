@@ -29,6 +29,7 @@ import {
   RelationUpdateOutputSchema,
   RelationUpdateSchema,
 } from './schemas/relation-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
   errorResult,
@@ -161,6 +162,7 @@ export function registerRelationTools(
   fastify.mcpAddTool(
     {
       name: 'relations_create',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description:
         'Create a directed relation between two diary entries. ' +
         'Supported relation types: supersedes, elaborates, contradicts, supports, caused_by, references. ' +
@@ -174,6 +176,7 @@ export function registerRelationTools(
   fastify.mcpAddTool(
     {
       name: 'relations_list',
+      _meta: { securitySchemes: oauthScopes('diary:read') },
       description:
         'List relations for a diary entry. Filter by relation type, status, or direction (as_source, as_target, both).',
       inputSchema: RelationListSchema,
@@ -185,6 +188,7 @@ export function registerRelationTools(
   fastify.mcpAddTool(
     {
       name: 'relations_update',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description:
         'Update the status of a relation (proposed → accepted or rejected).',
       inputSchema: RelationUpdateSchema,
@@ -196,6 +200,7 @@ export function registerRelationTools(
   fastify.mcpAddTool(
     {
       name: 'relations_delete',
+      _meta: { securitySchemes: oauthScopes('diary:write') },
       description: 'Delete a relation by its ID.',
       inputSchema: RelationDeleteSchema,
       outputSchema: RelationDeleteOutputSchema,

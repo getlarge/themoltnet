@@ -37,6 +37,7 @@ import {
   EntryMapOpenOutputSchema,
   EntryMapOpenSchema,
 } from './schemas/entry-explore-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, ReadResourceResult } from './types.js';
 import { structuredResult } from './utils.js';
 
@@ -137,7 +138,10 @@ export function registerEntryExploreApp(fastify: FastifyInstance): void {
         'explores zones and curates them into draft packs.',
       inputSchema: EntryMapOpenSchema,
       outputSchema: EntryMapOpenOutputSchema,
-      _meta: createMcpAppToolMeta(ENTRY_MAP_APP_RESOURCE_URI),
+      _meta: {
+        ...createMcpAppToolMeta(ENTRY_MAP_APP_RESOURCE_URI),
+        securitySchemes: oauthScopes(),
+      },
     },
     (args: EntryMapOpenInput) => handleEntriesMapOpen(args),
   );
