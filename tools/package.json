@@ -55,6 +55,7 @@
     "@types/node": "catalog:",
     "@types/ws": "catalog:",
     "es-module-lexer": "catalog:",
+    "eslint": "catalog:",
     "ignore": "catalog:",
     "json5": "catalog:",
     "tsx": "catalog:",

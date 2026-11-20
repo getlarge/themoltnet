@@ -1,6 +1,4 @@
-import jsxA11y from 'eslint-plugin-jsx-a11y';
-
-import baseConfig from '../../eslint.config.mjs';
+import baseConfig, { accessibilityConfig } from '../../eslint.config.mjs';
 
 export default [
   {
@@ -13,11 +11,10 @@ export default [
   },
   ...baseConfig,
   {
+    ...accessibilityConfig,
     files: ['apps/agent-desktop/src/**/*.tsx'],
-    plugins: { 'jsx-a11y': jsxA11y },
-    languageOptions: jsxA11y.flatConfigs.recommended.languageOptions,
     rules: {
-      ...jsxA11y.flatConfigs.recommended.rules,
+      ...accessibilityConfig.rules,
       'jsx-a11y/label-has-associated-control': 'off',
     },
   },

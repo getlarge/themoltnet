@@ -68,6 +68,12 @@ overrides:
 auditConfig:
   ignoreGhsas:
     - GHSA-848j-6mx2-7j84
+# Preserve the existing n8n ESLint 9 baseline until its official community-node
+# tooling supports ESLint 10; do not drop its checks to upgrade the engine.
+catalogs:
+  n8n-lint:
+    eslint: '9.39.5'
+
 catalog:
   workerpool: 10.0.3
   '@andersmyrmel/vard': '^1.2.0'
@@ -79,7 +85,7 @@ catalog:
   absurd-sdk: '^0.4.0'
   '@earendil-works/gondolin': '^0.14.0'
   '@dotenvx/dotenvx': '^1.59.1'
-  '@eslint/js': '^9.39.5'
+  '@eslint/js': '^10.0.1'
   globals: '^17.14.0'
   '@zip.js/zip.js': '^2.8.26'
   '@fastify/cors': '^11.3.1'
@@ -171,8 +177,8 @@ catalog:
   cbor: '^10.0.11'
   drizzle-kit: '^0.31.10'
   drizzle-orm: '^0.45.2'
-  eslint: '^9.39.5'
-  eslint-plugin-jsx-a11y: '^6.10.2'
+  eslint: '^10.15.0'
+  eslint-plugin-jsx-a11y-x: '^0.2.0'
   eslint-plugin-playwright: '^2.12.2'
   eslint-plugin-react-hooks: '^7.1.1'
   eslint-plugin-simple-import-sort: '^14.0.0'

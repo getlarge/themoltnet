@@ -1,10 +1,24 @@
 import eslint from '@eslint/js';
 import nxPlugin from '@nx/eslint-plugin';
 import * as jsoncParser from 'jsonc-eslint-parser';
+import jsxA11y from 'eslint-plugin-jsx-a11y-x';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+
+// Keep the existing rule namespace so inline suppressions and project
+// overrides survive the switch to the ESLint 10-compatible implementation.
+export const accessibilityConfig = {
+  ...jsxA11y.configs.recommended,
+  plugins: { 'jsx-a11y': jsxA11y },
+  rules: Object.fromEntries(
+    Object.entries(jsxA11y.configs.recommended.rules).map(([name, value]) => [
+      name.replace('jsx-a11y-x/', 'jsx-a11y/'),
+      value,
+    ]),
+  ),
+};
 
 export const moduleBoundaryOptions = {
   enforceBuildableLibDependency: false,
@@ -217,8 +231,17 @@ export default tseslint.config(
     ],
   },
 
-  // Base recommended rules
-  eslint.configs.recommended,
+  // Preserve the ESLint 9 policy while upgrading the engine. These three
+  // rules joined recommended in v10; adopting them is a separate policy change.
+  {
+    ...eslint.configs.recommended,
+    rules: {
+      ...eslint.configs.recommended.rules,
+      'no-unassigned-vars': 'off',
+      'no-useless-assignment': 'off',
+      'preserve-caught-error': 'off',
+    },
+  },
   ...tseslint.configs.recommended,
 
   // Plain JavaScript files are Node scripts and configs; TypeScript resolves

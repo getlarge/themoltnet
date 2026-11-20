@@ -54,7 +54,7 @@
     "@moltnet/api-client": "workspace:*",
     "@n8n/node-cli": "catalog:",
     "@types/node": "catalog:",
-    "eslint": "catalog:",
+    "eslint": "catalog:n8n-lint",
     "n8n-workflow": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
