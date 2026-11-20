@@ -199,9 +199,13 @@ describe('desktop team enrollment', () => {
       expect(
         screen.getByRole('button', { name: 'Cancel approval' }),
       ).toBeEnabled();
-      act(() => reject(new Error(message)));
+      await act(async () => {
+        reject(new Error(message));
+      });
       expect(await screen.findByText(title)).toBeInTheDocument();
-      expect(screen.getByText(title).closest('[tabindex]')).toHaveFocus();
+      await waitFor(() => {
+        expect(screen.getByText(title).closest('[tabindex]')).toHaveFocus();
+      });
       expect(screen.getByRole('alert')).toHaveTextContent(hint);
       expect(
         screen.queryByRole('button', { name: 'Waiting for approval…' }),
