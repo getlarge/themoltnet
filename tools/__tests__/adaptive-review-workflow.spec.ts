@@ -134,12 +134,15 @@ describe('adaptive review consumer', () => {
     }
   });
   it('keeps review runtime separate from inert head data and pins its release explicitly', () => {
-    expect(caller.jobs.review.uses).toMatch(
-      /adaptive-review-reusable\.yml@[a-f0-9]{40}$/,
-    );
-    expect(caller.jobs.review.with['runtime-ref']).toBe(
-      caller.jobs.review.uses.split('@')[1],
-    );
+    const outcomes = parse(
+      read('../../.github/workflows/adaptive-review-outcomes.yml'),
+    ) as typeof caller;
+    for (const consumer of [caller.jobs.review, outcomes.jobs.record]) {
+      expect(consumer.uses).toMatch(
+        /adaptive-review(?:-outcomes)?-reusable\.yml@[a-f0-9]{40}$/,
+      );
+      expect(consumer.with['runtime-ref']).toBe(consumer.uses.split('@')[1]);
+    }
     const checkouts = job('review').steps.filter((step) =>
       step.uses?.startsWith('actions/checkout'),
     );

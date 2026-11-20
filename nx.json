@@ -87,6 +87,7 @@
         "apps/rest-api-e2e/**/*",
         "apps/mcp-server-e2e/**/*",
         "apps/agent-daemon-e2e/**/*",
+        "apps/adaptive-review-e2e/**/*",
         "apps/orchestration-e2e/**/*"
       ],
       "options": {
