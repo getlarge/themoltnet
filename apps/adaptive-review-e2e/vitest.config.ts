@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['src/adaptive-review.e2e.spec.ts'],
-    globalSetup: ['./src/globalSetup.ts', './src/fixtures/api-readiness.ts'],
+    globalSetup: './src/globalSetup.ts',
     testTimeout: 150_000,
     hookTimeout: 120_000,
     fileParallelism: false,

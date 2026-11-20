@@ -77,7 +77,7 @@ it('owns full adaptive review E2E outside the neutral daemon lanes', () => {
   expect(review.needs).toContain('orchestrator');
   expect(
     review.steps.some((step) =>
-      step.run?.includes('@themoltnet/orchestration-e2e:e2e:adaptive-review'),
+      step.run?.includes('@themoltnet/adaptive-review-e2e:e2e'),
     ),
   ).toBe(true);
   const daemon = Object.values(workflow.jobs).filter((job) =>

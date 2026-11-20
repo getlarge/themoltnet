@@ -491,7 +491,7 @@ Task execution and GitHub publication remain simulated in these integration test
 
 ### Complete launcher end-to-end test
 
-The [standalone e2e suite](../../apps/orchestration-e2e/src/adaptive-review.e2e.spec.ts)
+The [standalone e2e suite](../../apps/adaptive-review-e2e/src/adaptive-review.e2e.spec.ts)
 runs the built `run.js`, real Absurd checkpoints, the REST API, and separate
 real daemon processes. It covers classifier-selected and screened branches,
 correlation filtering, signed executor completion, publication, and a fresh
@@ -503,12 +503,12 @@ Start the full e2e stack before running it:
 
 ```bash
 pnpm run e2e:up
-NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/orchestration-e2e:e2e:adaptive-review
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/adaptive-review-e2e:e2e
 pnpm run e2e:down
 ```
 
-CI runs this full-stack target in its own adaptive-review job. The default
-orchestration e2e target remains database-only.
+CI runs this dedicated app in the `e2e-adaptive-review` job.
+`orchestration-e2e` remains a separate database-only suite.
 
 ### Real Pi cold-cache preparation
 

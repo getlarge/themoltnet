@@ -507,7 +507,7 @@ jobs:
             echo "e2e-orchestration=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
+          if contains "@themoltnet/adaptive-review-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
             echo "e2e-adaptive-review=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-adaptive-review=false" >> "$GITHUB_OUTPUT"
@@ -516,7 +516,7 @@ jobs:
           # e2e-any: true iff any suite should run. The e2e stack images
           # (rest-api, mcp-server, db-migrate, console, mcp-host) are shared by
           # all suites, so this single flag gates the image builds.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap" "@moltnet/agent-desktop-e2e" "@themoltnet/orchestration-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap" "@moltnet/agent-desktop-e2e" "@themoltnet/adaptive-review-e2e" "@moltnet/adaptive-review" "@themoltnet/adaptive-review-action"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -1986,9 +1986,9 @@ jobs:
             echo 'Could not resolve the Absurd Postgres host port' >&2
             exit 1
           fi
-          echo "ORCHESTRATION_ABSURD_URL=postgresql://absurd:absurd_secret@127.0.0.1:${db_port}/absurd" >> "$GITHUB_ENV"
+          echo "ADAPTIVE_TEST_DATABASE_URL=postgresql://absurd:absurd_secret@127.0.0.1:${db_port}/absurd" >> "$GITHUB_ENV"
       - name: Run complete adaptive review E2E
-        run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e:adaptive-review
+        run: pnpm exec nx run @themoltnet/adaptive-review-e2e:e2e
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50

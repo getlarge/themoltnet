@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../agent-daemon"
+    },
+    {
+      "path": "../../libs/tasks"
+    },
+    {
+      "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/adaptive-review"
+    },
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

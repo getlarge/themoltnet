@@ -40,7 +40,7 @@ const workerEntry = resolve(
   'fixtures/adaptive-review-worker.mts',
 );
 const absurdUrl =
-  process.env.ORCHESTRATION_ABSURD_URL ??
+  process.env.ADAPTIVE_TEST_DATABASE_URL ??
   'postgresql://absurd:absurd_secret@localhost:55434/absurd';
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
