@@ -63,8 +63,9 @@ client. Its loopback redirect, scopes, and audiences match the Desktop
 provisioning flow. Other OAuth clients can use Hydra dynamic registration; the
 REST API serves the shared consent page at `/oauth2/consent`. Keto loads the
 bundled permission model from `infra/ory/permissions.ts`. The identity hostname
-sends browser pages such as `/login`, `/registration`, and `/recovery` to the
-Kratos self-service UI; `/self-service/*` requests go to Kratos itself.
+serves the Kratos public API. It redirects legacy browser paths such as
+`/login`, `/registration`, and `/recovery` to the matching Console `/auth/*`
+page, which renders every self-service screen.
 
 ## Collect logs and telemetry
 

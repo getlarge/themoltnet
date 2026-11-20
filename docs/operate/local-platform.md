@@ -262,6 +262,10 @@ services:
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: http://localhost:15174/auth/verification
       SELFSERVICE_FLOWS_SETTINGS_UI_URL: http://localhost:15174/auth/settings
       SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:15174/auth/error
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: http://localhost:15174/
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_DEFAULT_BROWSER_RETURN_URL: http://localhost:15174/auth/login
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_DEFAULT_BROWSER_RETURN_URL: http://localhost:15174/auth/login
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: http://localhost:15174/
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:15174,http://localhost:18080
 
   hydra:
@@ -274,6 +278,7 @@ services:
       URLS_LOGIN: http://localhost:15174/auth/login
       URLS_CONSENT: http://localhost:18080/oauth2/consent
       URLS_LOGOUT: http://localhost:15174/auth/logout
+      URLS_ERROR: http://localhost:15174/auth/error
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS: http://localhost:15174,http://localhost:18080
 
   keto:
