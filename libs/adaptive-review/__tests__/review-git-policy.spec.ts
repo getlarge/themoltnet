@@ -3,10 +3,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { decideToolCall } from '@themoltnet/pi-runtime';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import { afterEach, beforeAll, expect, it } from 'vitest';
-
-import { decideToolCall } from '../../src/tool-policy/gate.js';
 
 const roots: string[] = [];
 let analyzer: ShellCommandAnalyzer;
@@ -27,7 +26,7 @@ it.each([
     readFileSync(
       resolve(
         import.meta.dirname,
-        '../../../../.github/runtime-policies',
+        '../../../.github/runtime-policies',
         `${name}.json`,
       ),
       'utf8',
@@ -53,6 +52,22 @@ it.each([
       allowedShellCommands: policy.shellCommands,
       analyze: (command) => analyzer.analyze(command),
     });
+  for (const command of [
+    ['git', 'checkout', 'main'],
+    ['git', 'diff', '--ext-diff'],
+    ['bash', '-c', 'echo execute'],
+  ])
+    expect(check(command)).toMatchObject({ allow: false });
+  expect(
+    decideToolCall({
+      toolName: 'bash',
+      command: `${prefix.join(' ')} HEAD; git checkout main`,
+      enforcement: 'enforce',
+      allowedTools: new Set(policy.tools),
+      allowedShellCommands: policy.shellCommands,
+      analyze: (command) => analyzer.analyze(command),
+    }),
+  ).toMatchObject({ allow: false });
   const root = mkdtempSync(join(tmpdir(), 'review-git-options-'));
   roots.push(root);
   const git = (args: string[]) =>
@@ -73,6 +88,26 @@ it.each([
   git(['commit', '-am', 'after']);
   const head = git(['rev-parse', 'HEAD']).trim();
   const range = `${base}...${head}`;
+  const executableMarker = join(root, 'executable-marker');
+  const localGit = join(root, 'git');
+  writeFileSync(
+    localGit,
+    `#!/bin/sh\nprintf invoked > '${executableMarker}'\n`,
+    {
+      mode: 0o700,
+    },
+  );
+  // A local executable remains distinct from the installed command, including
+  // when its path is quoted or absolute.
+  for (const executable of ['./git', localGit])
+    expect(check([executable, ...prefix.slice(1), range])).toMatchObject({
+      allow: false,
+    });
+  const localResult = spawnSync(localGit, prefix.slice(1), { cwd: root });
+  expect(localResult.status).toBe(0);
+  expect(readFileSync(executableMarker, 'utf8')).toBe('invoked');
+  rmSync(executableMarker);
+
   const marker = join(root, 'helper-marker');
   const helper = join(root, 'helper.sh');
   writeFileSync(

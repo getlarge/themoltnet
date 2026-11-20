@@ -59,50 +59,6 @@ beforeAll(async () => {
   analyzeRealCommand = (command) => analyzer.analyze(command);
 });
 
-it.each([
-  'legreffier-adaptive-focused-readonly-v1',
-  'legreffier-adaptive-knowledge-readonly-v1',
-  'legreffier-security-review-readonly-v1',
-])(
-  'allows pinned diff inspection without granting other commands in %s',
-  (name) => {
-    const policy = JSON.parse(
-      readFileSync(
-        resolve(
-          import.meta.dirname,
-          '../../../../.github/runtime-policies',
-          `${name}.json`,
-        ),
-        'utf8',
-      ),
-    ) as {
-      tools: string[];
-      shellCommands: Array<{ argvPrefix: [string, ...string[]] }>;
-    };
-    const check = (command: string) =>
-      decideToolCall({
-        toolName: 'bash',
-        command,
-        enforcement: 'enforce',
-        allowedTools: new Set(policy.tools),
-        allowedShellCommands: policy.shellCommands,
-        analyze: analyzeRealCommand,
-      });
-    expect(
-      check(
-        `git diff --no-ext-diff --no-textconv --end-of-options ${'a'.repeat(40)}...${'b'.repeat(40)} -- src/file.ts`,
-      ),
-    ).toMatchObject({ allow: true });
-    for (const command of [
-      'git checkout main',
-      'git diff --ext-diff',
-      'git diff --no-ext-diff --no-textconv --end-of-options HEAD; git checkout main',
-      'bash -c "echo execute"',
-    ])
-      expect(check(command)).toMatchObject({ allow: false });
-  },
-);
-
 const base = (over: Partial<GateInput>): GateInput => ({
   toolName: 'read',
   enforcement: 'enforce',
@@ -113,6 +69,32 @@ const base = (over: Partial<GateInput>): GateInput => ({
 });
 
 describe('decideToolCall', () => {
+  it('matches executable paths literally rather than by basename', () => {
+    const check = (command: string, executable = 'git') =>
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command,
+          allowedShellCommands: [{ argvPrefix: [executable, 'status'] }],
+          analyze: analyzeRealCommand,
+        }),
+      );
+    expect(check('git status')).toMatchObject({ allow: true });
+    for (const executable of [
+      './git',
+      'tools/git',
+      '/workspace/git',
+      '/usr/bin/git',
+    ])
+      expect(check(`${executable} status`)).toMatchObject({ allow: false });
+    expect(check('/usr/bin/git status', '/usr/bin/git')).toMatchObject({
+      allow: true,
+    });
+    expect(check('./git status', '/usr/bin/git')).toMatchObject({
+      allow: false,
+    });
+  });
+
   it('off allows anything', () => {
     expect(
       decideToolCall(base({ toolName: 'write', enforcement: 'off' })),
@@ -704,5 +686,3 @@ describe('decideToolCall', () => {
     });
   });
 });
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';

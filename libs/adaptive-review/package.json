@@ -24,6 +24,8 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@themoltnet/pi-runtime": "workspace:*",
+    "@themoltnet/shell-command-analyzer": "workspace:*",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "tsx": "catalog:",
@@ -42,7 +44,33 @@
         "inputs": [
           "default",
           "^production",
-          "{workspaceRoot}/.github/runtime-profiles/*.json"
+          "{workspaceRoot}/.github/runtime-profiles/*.json",
+          "{workspaceRoot}/.github/runtime-policies/*.json",
+          {
+            "runtime": "git --version"
+          }
+        ]
+      },
+      "test-ci--__tests__/review-git-policy.spec.ts": {
+        "inputs": [
+          "default",
+          "^production",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          },
+          {
+            "env": "CI"
+          },
+          {
+            "dependentTasksOutputFiles": "**/*.js",
+            "transitive": true
+          },
+          "{workspaceRoot}/.github/runtime-policies/*.json",
+          {
+            "runtime": "git --version"
+          }
         ]
       },
       "test-ci--__tests__/budget-contract.spec.ts": {

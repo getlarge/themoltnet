@@ -33,9 +33,9 @@ export interface ToolInvocation {
   /** Base executable name (directory and, for interpreters, version stripped). */
   name: string;
   /**
-   * Normalized argv for this executable. The executable is the base name in
-   * position zero; statically-known argument tokens are decoded literals and
-   * dynamic tokens are `null`.
+   * Literal argv for this executable. Position zero preserves the executable
+   * path as written; statically-known argument tokens are decoded literals and
+   * dynamic tokens are `null`. Use `name` for basename-based classification.
    */
   argv: readonly (string | null)[];
   /** Coarse risk tier for this executable. */
@@ -159,7 +159,7 @@ function invocationFor(words: Word[]): ResolvedInvocation | null {
   const name = baseName(head);
   return {
     name,
-    argv: [name, ...words.slice(1).map((word) => word.name)],
+    argv: [head, ...words.slice(1).map((word) => word.name)],
   };
 }
 

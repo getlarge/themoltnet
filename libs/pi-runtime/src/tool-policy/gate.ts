@@ -27,7 +27,8 @@ export interface GateInput {
   allowedTools: ReadonlySet<string>;
   /**
    * Shell argv rules, the only authority for shell invocations. Each rule
-   * matches the first N statically known tokens.
+   * matches the first N statically known tokens, including the literal
+   * executable path. A bare name does not grant path-qualified executables.
    */
   allowedShellCommands: readonly ShellCommandRule[];
   /**
