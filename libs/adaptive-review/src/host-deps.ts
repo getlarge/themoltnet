@@ -6,6 +6,7 @@ import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
 import { type CliDeps, type PullRequest, pullRequestFiles } from './cli.js';
 import { env, required } from './config.js';
+import { githubChildEnvironment } from './github-environment.js';
 import { createGraphQL, fetchReviewThreads } from './threads.js';
 
 export function createReviewCliDeps(
@@ -17,7 +18,7 @@ export function createReviewCliDeps(
   const gh = async (args: string[]) => {
     const { stdout } = await promisify(execFile)('gh', args, {
       cwd,
-      env: { ...source, GH_TOKEN: await token() },
+      env: githubChildEnvironment(source, await token()),
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
       timeout: 30_000,

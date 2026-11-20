@@ -7,7 +7,13 @@ import { GitHubApi } from '@moltnet/docs-impact-review/github-api';
 import type { Prepared } from './cli.js';
 import { parseReviewTaskBudgets, required } from './config.js';
 import { reviewGithubToken } from './github-auth.js';
+import { githubChildEnvironment } from './github-environment.js';
 import { createReviewCliDeps } from './host-deps.js';
+import { reuseHostPreparation } from './host-preparation.js';
+import {
+  DEFAULT_HOST_TIMEOUT_SEC,
+  hostTimeoutSeconds,
+} from './host-settings.js';
 import { publishAdaptiveReport } from './publish.js';
 import { reviewRetentionPolicy } from './retention.js';
 import {
@@ -17,6 +23,7 @@ import {
 } from './standalone.js';
 import { withReviewWorkers } from './supervisor.js';
 import { createGraphQL } from './threads.js';
+import type { ReviewCapacity } from './workers.js';
 
 /** The CLI and Actions translate intent once; neither sequences review stages. */
 export function standaloneCommand(
@@ -37,7 +44,7 @@ export function standaloneCommand(
       workers: { type: 'string', default: 'local' },
       publish: { type: 'boolean', default: false },
       report: { type: 'string' },
-      'timeout-sec': { type: 'string', default: '7200' },
+      'timeout-sec': { type: 'string' },
     },
   });
   const repo = values.repo ?? required('ADAPTIVE_REPOSITORY', env);
@@ -47,7 +54,14 @@ export function standaloneCommand(
   ).toLowerCase();
   const mode = env.ADAPTIVE_MODE ?? 'active';
   const workers = values.workers;
-  const timeoutSec = Number(values['timeout-sec']);
+  const timeoutSec = hostTimeoutSeconds(
+    env,
+    Number(
+      values['timeout-sec'] ??
+        env.ADAPTIVE_TIMEOUT_SEC ??
+        DEFAULT_HOST_TIMEOUT_SEC,
+    ),
+  );
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo))
     throw new Error('repo must be owner/repository');
   if (!Number.isSafeInteger(pr) || pr < 1)
@@ -62,8 +76,7 @@ export function standaloneCommand(
     throw new Error('ADAPTIVE_MODE must be active or shadow');
   if (workers !== 'local' && workers !== 'external')
     throw new Error('workers must be local or external');
-  if (!Number.isSafeInteger(timeoutSec) || timeoutSec < 1 || timeoutSec > 86400)
-    throw new Error('timeout-sec must be between 1 and 86400');
+
   const runtimeSha = required('ADAPTIVE_RUNTIME_SHA', env);
   if (!/^[a-f0-9]{40}$/.test(runtimeSha))
     throw new Error('ADAPTIVE_RUNTIME_SHA must be a full commit SHA');
@@ -115,7 +128,7 @@ export async function ensureReviewGit(
     (
       await promisify(execFile)('git', args, {
         cwd,
-        env,
+        env: githubChildEnvironment(env, env.GH_TOKEN ?? ''),
         maxBuffer: 16 * 1024 * 1024,
         timeout: 60_000,
       })
@@ -130,7 +143,7 @@ export async function ensureReviewGit(
   }
   const server = env.GITHUB_SERVER_URL ?? 'https://github.com';
   const fetchEnv = {
-    ...env,
+    ...githubChildEnvironment(env, required('GH_TOKEN', env)),
     GIT_CONFIG_COUNT: '1',
     GIT_CONFIG_KEY_0: `http.${server}/.extraheader`,
     GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${required('GH_TOKEN', env)}`).toString('base64')}`,
@@ -148,7 +161,9 @@ export async function ensureReviewGit(
       ],
       { cwd, env: fetchEnv, maxBuffer: 16 * 1024 * 1024, timeout: 60_000 },
     );
-  await fetch('--depth=1');
+  const shallow =
+    (await git('rev-parse', '--is-shallow-repository')) === 'true';
+  await fetch(...(shallow ? ['--depth=1'] : []));
   for (let deepen = 32; ; deepen *= 2) {
     try {
       await git('merge-base', prepared.base, prepared.head);
@@ -173,13 +188,16 @@ export async function runStandaloneFromHost(
   signal?: AbortSignal,
 ): Promise<StandaloneReviewResult> {
   const command = standaloneCommand(argv, env);
-  const token = reviewGithubToken(command.input.repo, env);
+  const token = reviewGithubToken(
+    command.input.repo,
+    env,
+    command.input.publication,
+  );
   const deps = createReviewCliDeps(env, cwd, token);
-  const services = {
+  const services = reuseHostPreparation({
     cwd,
     github: deps.github,
-    connect: (teamId: string, signal?: AbortSignal) =>
-      deps.connect(teamId, signal),
+    connect: deps.connect,
     ensureGit: async (prepared: Prepared) =>
       ensureReviewGit(prepared, cwd, { ...env, GH_TOKEN: await token() }),
     async publish(
@@ -211,36 +229,39 @@ export async function runStandaloneFromHost(
         recoverStale: true,
       });
     },
-  };
-  const run = (hostSignal?: AbortSignal, onBound?: () => Promise<void>) =>
+  });
+  const run = (
+    hostSignal?: AbortSignal,
+    ensureCapacity?: (capacity?: readonly ReviewCapacity[]) => Promise<void>,
+  ) =>
     runStandaloneReview({
       databaseUrl: required('ADAPTIVE_DATABASE_URL', env),
       input: command.input,
-      services,
+      services: { ...services, ensureCapacity },
       retryFailed: env.ADAPTIVE_RETRY_FAILED === 'true',
       retention: reviewRetentionPolicy(env),
       signal: hostSignal,
-      onBound,
     });
+  const hostSignal = AbortSignal.any([
+    AbortSignal.timeout(command.timeoutSec * 1000),
+    ...(signal ? [signal] : []),
+  ]);
+  process.stderr.write(
+    `Adaptive review execution ${command.input.correlationId} (${command.workers} workers)\n`,
+  );
   const result =
     command.workers === 'local'
       ? await withReviewWorkers({
           input: command.input,
           cwd,
           env,
-          binary: env.ADAPTIVE_DAEMON_BIN ?? 'moltnet-agent',
+          binary: env.MOLTNET_DAEMON_BIN ?? 'moltnet-agent',
           agent: required('MOLTNET_AGENT_NAME', env),
-          timeoutSec: command.timeoutSec,
           focusedRuntime: env.ADAPTIVE_FOCUSED_RUNTIME,
-          signal,
+          signal: hostSignal,
           run,
         })
-      : await run(
-          AbortSignal.any([
-            AbortSignal.timeout(command.timeoutSec * 1000),
-            ...(signal ? [signal] : []),
-          ]),
-        );
+      : await run(hostSignal);
   if (command.reportPath && result.status === 'completed')
     writeFileSync(
       command.reportPath,

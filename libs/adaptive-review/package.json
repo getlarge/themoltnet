@@ -22,7 +22,7 @@
       "import": "./src/outcomes.ts",
       "types": "./src/outcomes.ts"
     },
-    "./run": {
+    "./run-main": {
       "import": "./src/run-main.ts",
       "types": "./src/run-main.ts"
     }

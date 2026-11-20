@@ -97,7 +97,6 @@ describe('review worker lifetime', () => {
         binary: fixture.binary,
         agent: 'test-agent',
         env: { ...process.env, TEST_WORKER_PIDS: fixture.pids },
-        timeoutSec: 5,
         run: async (_signal, startWorkers) => {
           await startWorkers();
           pid = await fixture.ready();
@@ -120,7 +119,6 @@ describe('review worker lifetime', () => {
         binary: fixture.binary,
         agent: 'test-agent',
         env: { ...process.env, TEST_WORKER_PIDS: fixture.pids },
-        timeoutSec: 5,
         signal: host.signal,
         run: async (signal, startWorkers) => {
           await startWorkers();
@@ -135,7 +133,7 @@ describe('review worker lifetime', () => {
           return stopped;
         },
       }),
-    ).rejects.toThrow('Review host interrupted');
+    ).rejects.toThrow(/Review .* host interrupted/);
     expect(aborted).toBe(true);
     const pid = Number(readFileSync(fixture.pids, 'utf8').trim());
     expect(() => process.kill(pid, 0)).toThrow();
@@ -150,7 +148,7 @@ describe('review worker lifetime', () => {
         binary: fixture.binary,
         agent: 'test-agent',
         env: process.env,
-        timeoutSec: 0.01,
+        signal: AbortSignal.timeout(10),
         run: (signal) =>
           new Promise((_resolve, reject) => {
             signal.addEventListener('abort', () =>

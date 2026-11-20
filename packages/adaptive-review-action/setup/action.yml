@@ -16,6 +16,7 @@ runs:
       run: |
         if git ls-files --error-unmatch \
           packages/adaptive-review-action/dist/run.js \
+          packages/adaptive-review-action/dist/review-worker.js \
           packages/adaptive-review-action/dist/review.js \
           packages/adaptive-review-action/dist/publish.js \
           packages/adaptive-review-action/dist/outcomes.js \

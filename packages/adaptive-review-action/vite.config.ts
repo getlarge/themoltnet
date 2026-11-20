@@ -51,13 +51,18 @@ export default defineConfig({
       input: {
         review: 'src/review.ts',
         run: 'src/run.ts',
+        'review-worker': '../../libs/adaptive-review/src/review-worker.ts',
         publish: 'src/publish.ts',
         outcomes: 'src/outcomes.ts',
         'diary-runtime': 'src/diary-runtime.ts',
       },
       // The optional runtime resolves these from its isolated pinned install.
       external: [/^@themoltnet\/(agent-daemon|pi-runtime)(\/|$)/],
-      output: { format: 'esm', entryFileNames: '[name].js' },
+      output: {
+        format: 'esm',
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name]-[hash].js',
+      },
     },
   },
   ssr: { noExternal: true },

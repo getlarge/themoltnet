@@ -197,7 +197,7 @@ describe('standalone adaptive review (e2e)', () => {
       writeFileSync(githubState, JSON.stringify(pullRequest));
       executable(
         join(bin, 'gh'),
-        `#!${process.execPath}\nconst fs = require('node:fs');\nconst pr = JSON.parse(fs.readFileSync(process.env.ADAPTIVE_E2E_GITHUB_STATE, 'utf8'));\nconst args = process.argv.slice(2);\nif (args[0] === 'pr') console.log(JSON.stringify({headRefOid:pr.head.sha,baseRefOid:pr.base.sha}));\nelse if (args.includes('--paginate')) console.log(JSON.stringify([[{filename:'sample.ts'}]]));\nelse if (args[0] === 'api') console.log(JSON.stringify(pr));\nelse process.exit(2);\n`,
+        `#!${process.execPath}\nconst fs = require('node:fs');\nconst pr = JSON.parse(fs.readFileSync(${JSON.stringify(githubState)}, 'utf8'));\nconst args = process.argv.slice(2);\nif (args[0] === 'pr') console.log(JSON.stringify({headRefOid:pr.head.sha,baseRefOid:pr.base.sha}));\nelse if (args.includes('--paginate')) console.log(JSON.stringify([[{filename:'sample.ts'}]]));\nelse if (args[0] === 'api') console.log(JSON.stringify(pr));\nelse process.exit(2);\n`,
       );
       const daemon = join(bin, 'review-daemon');
       executable(
@@ -310,7 +310,7 @@ describe('standalone adaptive review (e2e)', () => {
         ADAPTIVE_DOCS_PROFILE: '',
         ADAPTIVE_COMPLEXITY_PROFILE: '',
         ADAPTIVE_SECURITY_PROFILE: '',
-        ADAPTIVE_DAEMON_BIN: daemon,
+        MOLTNET_DAEMON_BIN: daemon,
         ADAPTIVE_APP_LOGIN: 'reviewer[bot]',
         ADAPTIVE_E2E_GITHUB_STATE: githubState,
         ADAPTIVE_E2E_RUN_LANE: String(runLane),

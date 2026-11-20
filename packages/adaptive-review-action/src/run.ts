@@ -1,1 +1,1 @@
-import '@moltnet/adaptive-review/run';
+import '@moltnet/adaptive-review/run-main';
