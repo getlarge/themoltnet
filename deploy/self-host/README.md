@@ -103,10 +103,10 @@ It validates the configuration, pulls the pinned images, stops the application
 and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
 clients, stopping at the first failure.
 
-The bundle no longer includes the `kratos-ui` reference self-service UI service;
-Console serves those screens. If your installation ran it, remove the leftover
-container after upgrading with `docker compose up -d --remove-orphans`, adding
-the same Compose options you pass to `maintain.sh`.
+The final `up` passes `--remove-orphans`, so containers of services the bundle
+no longer defines, such as the former `kratos-ui` reference self-service UI, are
+removed. Containers from overlays you omit from the options are removed too,
+which is another reason to pass the same options every time.
 
 `up` also runs the application's `db-migrate` dependency before starting REST.
 Verify `/health/ready`, login, OAuth, REST and MCP before retiring the previous

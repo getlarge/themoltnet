@@ -38,6 +38,7 @@ fi
 for job in kratos-migrate hydra-migrate keto-migrate talos-migrate; do
   compose run --rm --no-deps "$job"
 done
-compose up -d --wait --wait-timeout "$wait_timeout"
+# Remove containers of services the bundle no longer defines.
+compose up -d --remove-orphans --wait --wait-timeout "$wait_timeout"
 compose run --rm --no-deps hydra-native-client
 compose ps --all
