@@ -20,8 +20,11 @@ afterEach(async () => {
   for (const app of apps.splice(0)) await app.close();
 });
 
-async function setup(subject = human.identityId) {
-  const app = await createTestApp(createMockServices(), null);
+async function setup(
+  subject = human.identityId,
+  bearer: HumanAuthContext | null = null,
+) {
+  const app = await createTestApp(createMockServices(), bearer);
   apps.push(app);
   app.sessionResolver = {
     evictIdentity: vi.fn(),
@@ -30,11 +33,9 @@ async function setup(subject = human.identityId) {
   app.oauth2Client.getOAuth2LogoutRequest = vi
     .fn()
     .mockResolvedValue({ subject });
-  app.oauth2Client.acceptOAuth2LogoutRequest = vi
-    .fn()
-    .mockResolvedValue({
-      redirect_to: 'https://oauth.example.test/logout-verifier',
-    });
+  app.oauth2Client.acceptOAuth2LogoutRequest = vi.fn().mockResolvedValue({
+    redirect_to: 'https://oauth.example.test/logout-verifier',
+  });
   return app;
 }
 
@@ -70,14 +71,16 @@ describe('browser OAuth logout confirmation', () => {
   });
 
   it('does not borrow bearer authority when the browser cookie is absent', async () => {
-    const app = await setup();
+    const app = await setup(human.identityId, human);
     const response = await app.inject({
       method: 'POST',
       url: '/oauth2/logout',
+      headers: { authorization: 'Bearer x' },
       payload: { logoutChallenge: 'challenge' },
     });
     expect(response.statusCode).toBe(401);
     expect(app.oauth2Client.getOAuth2LogoutRequest).not.toHaveBeenCalled();
+    expect(app.oauth2Client.acceptOAuth2LogoutRequest).not.toHaveBeenCalled();
   });
 
   it('rejects a safelisted form submission before approving logout', async () => {
