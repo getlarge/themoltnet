@@ -1,0 +1,9 @@
+{
+  "error": "/auth/error",
+  "login": "/auth/login",
+  "logout": "/auth/logout",
+  "recovery": "/auth/recovery",
+  "registration": "/auth/registration",
+  "settings": "/auth/settings",
+  "verification": "/auth/verification"
+}
