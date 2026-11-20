@@ -682,7 +682,9 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-          filter: tree:0
+          # VitePress reads per-page git history for lastUpdated. Keep trees
+          # local: tree:0 turns those queries into serial lazy network fetches.
+          filter: blob:none
       - uses: ./.github/actions/setup-workspace
         with:
           go-cache: 'true'
