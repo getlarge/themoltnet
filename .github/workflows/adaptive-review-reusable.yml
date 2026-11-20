@@ -72,6 +72,11 @@ on:
       protected-paths:
         type: string
         default: ''
+      runtime-repository:
+        description: Optional repository containing the pinned runtime (requires runtime-ref).
+        type: string
+        required: false
+        default: ''
       runtime-ref:
         type: string
         default: ''
@@ -141,8 +146,8 @@ jobs:
           --health-cmd "pg_isready -U issue_lifecycle -d issue_lifecycle"
           --health-interval 5s --health-timeout 3s --health-retries 10
     outputs:
-      skip: ${{ steps.run.outputs.skip }}
-      correlation: ${{ steps.intent.outputs.correlation }}
+      skip: ${{ fromJSON(steps.run.outputs.result || '{"skip":true}').skip != false }}
+      correlation: ${{ steps.host-intent.outputs.correlation }}
     env:
       ADAPTIVE_EXECUTION_MODE: ${{ inputs.execution-mode }}
       ADAPTIVE_DATABASE_URL: ${{ inputs.execution-mode == 'durable' && secrets.ADAPTIVE_DATABASE_URL || '' }}
@@ -179,11 +184,23 @@ jobs:
       - name: Resolve trusted runtime and review intent
         id: intent
         env:
-          WORKFLOW_REPOSITORY: ${{ job.workflow_repository || 'getlarge/themoltnet' }}
+          WORKFLOW_REPOSITORY: ${{ inputs.runtime-repository || job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          EXPLICIT_RUNTIME_REPOSITORY: ${{ inputs.runtime-repository }}
         run: |
           set -euo pipefail
+          if [ -n "$EXPLICIT_RUNTIME_REPOSITORY" ] && [ -z "$RUNTIME_REF" ]; then
+            echo '::error::runtime-repository requires runtime-ref' >&2
+            exit 1
+          fi
+          if [ -z "$WORKFLOW_REPOSITORY" ]; then
+            if [ -z "$RUNTIME_REF" ]; then
+              echo '::error::runtime-ref is required when workflow repository context is unavailable' >&2
+              exit 1
+            fi
+            WORKFLOW_REPOSITORY=getlarge/themoltnet
+          fi
           runtime_ref="${RUNTIME_REF:-$WORKFLOW_SHA}"
           if ! [[ "$runtime_ref" =~ ^[0-9a-f]{40}$ ]]; then
             echo '::error::set runtime-ref to the immutable review bundle SHA when workflow identity context is unavailable' >&2
@@ -191,27 +208,37 @@ jobs:
           fi
           echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "ref=$runtime_ref" >> "$GITHUB_OUTPUT"
+          node --input-type=module -e 'import { appendFileSync } from "node:fs"; appendFileSync(process.env.GITHUB_ENV, `ADAPTIVE_JOB_STARTED_MS=${Date.now()}\n`);'
+      - name: Check event eligibility before provisioning
+        id: eligibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_REPOSITORY: ${{ github.repository }}
+          REVIEW_PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          gh api "repos/$REVIEW_REPOSITORY/pulls/$REVIEW_PR" --jq '[.head.repo.full_name, .user.login]' > "$RUNNER_TEMP/adaptive-pr-admission.json"
           node --input-type=module <<'JS'
-          import { createHash } from 'node:crypto';
-          import { appendFileSync } from 'node:fs';
-          const attempt = process.env.ADAPTIVE_EXECUTION_MODE === 'ephemeral' ? `:${process.env.GITHUB_RUN_ATTEMPT}` : '';
-          const hex = createHash('sha256').update(`${process.env.ADAPTIVE_REPOSITORY}:${process.env.GITHUB_RUN_ID}${attempt}`).digest('hex');
-          const correlation = `${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`;
-          appendFileSync(process.env.GITHUB_OUTPUT, `correlation=${correlation}\n`);
-          appendFileSync(process.env.GITHUB_ENV, `ADAPTIVE_EXECUTION_ID=${correlation}\n`);
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const [headRepo, author] = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/adaptive-pr-admission.json`, 'utf8'));
+          const eligible = headRepo === process.env.REVIEW_REPOSITORY && author !== 'dependabot[bot]';
+          appendFileSync(process.env.GITHUB_OUTPUT, `eligible=${eligible}\n`);
           JS
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: steps.eligibility.outputs.eligible == 'true'
         with:
           ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: steps.eligibility.outputs.eligible == 'true'
         with:
           repository: ${{ steps.intent.outputs.repository }}
           ref: ${{ steps.intent.outputs.ref }}
           path: .adaptive-review-runtime
           persist-credentials: false
       - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+        if: steps.eligibility.outputs.eligible == 'true'
       - name: Resolve bundled worker version
+        if: steps.eligibility.outputs.eligible == 'true'
         id: worker
         env:
           DAEMON_OVERRIDE: ${{ inputs.daemon-version }}
@@ -224,18 +251,27 @@ jobs:
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           JS
       - name: Configure review database
+        if: steps.eligibility.outputs.eligible == 'true'
         env:
           ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
           ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
         run: bash .adaptive-review-runtime/tools/setup-adaptive-review-database.sh
-      - name: Restore bundled worker action
+      - name: Restore worker action and pin runtime revision
+        if: steps.eligibility.outputs.eligible == 'true'
         run: |
           mkdir -p .adaptive-review-runtime/packages/agent-daemon-action/dist
           cp -R .adaptive-review-runtime/packages/adaptive-review-action/dist/worker-action/. .adaptive-review-runtime/packages/agent-daemon-action/dist/
           echo "ADAPTIVE_RUNTIME_SHA=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Resolve host identity and remaining deadline
+        if: steps.eligibility.outputs.eligible == 'true'
+        id: host-intent
+        run: node .adaptive-review-runtime/packages/adaptive-review-action/dist/run.js --resolve-intent
       - name: Install optional focused runtime
+        if: steps.eligibility.outputs.eligible == 'true' && inputs.focused-diary-ids != '[]'
         id: diary-runtime
-        if: inputs.focused-diary-ids != '[]'
+        # Only prepare optional tools for admitted reviews.
+        # Admission is also enforced inside Absurd.
+
         env:
           RUNNER_TEMP: ${{ runner.temp }}
           DAEMON_VERSION: ${{ steps.worker.outputs.version }}
@@ -243,15 +279,17 @@ jobs:
         run: |
           bash .adaptive-review-runtime/tools/setup-adaptive-review-diary-runtime.sh .adaptive-review-runtime
       - name: Mint reviewer App token
+        if: steps.eligibility.outputs.eligible == 'true'
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
-          permission-pull-requests: write
+          permission-pull-requests: read
           permission-contents: read
       - name: Run the complete durable review
+        if: steps.eligibility.outputs.eligible == 'true'
         id: run
         uses: ./.adaptive-review-runtime/packages/agent-daemon-action
         env:
@@ -259,12 +297,11 @@ jobs:
           ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
           ADAPTIVE_GITHUB_APP_ID: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
           MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
           ADAPTIVE_FOCUSED_RUNTIME: ${{ steps.diary-runtime.outputs.module }}
         with:
-          mode: drain
           agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-          profile: ${{ inputs.classifier-profile }}
-          supervisor-entry: ${{ github.workspace }}/.adaptive-review-runtime/packages/adaptive-review-action/dist/run.js
+          command-entry: ${{ github.workspace }}/.adaptive-review-runtime/packages/adaptive-review-action/dist/run.js
           daemon-version: ${{ steps.worker.outputs.version }}
           providers: ${{ inputs.providers }}
       - name: Upload review report

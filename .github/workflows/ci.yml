@@ -1621,6 +1621,11 @@ jobs:
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--__tests__/host-capabilities/agent-signing.integration.spec.ts
+      - name: Verify concurrent Pi workers on a cold snapshot cache
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
+        env:
+          MOLTNET_PI_VM_INTEGRATION: '1'
+        run: pnpm exec nx run @themoltnet/agent-daemon:test -- __tests__/pi-cold-start.integration.spec.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}

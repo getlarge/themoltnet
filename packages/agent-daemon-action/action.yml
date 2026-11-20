@@ -77,11 +77,13 @@ inputs:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
     default: 'once'
-  supervisor-entry:
+  command-entry:
     description: >
-      Optional absolute path to a trusted Node supervisor entry point. After
-      daemon/provider setup, run this instead of a single daemon. The supervisor
-      receives ADAPTIVE_DAEMON_BIN and owns its child workers and lifetime.
+      Optional absolute path to a trusted Node command. After daemon/provider
+      setup, execute this command with MOLTNET_DAEMON_BIN. Task execution inputs
+      (including mode, profile, filters and runtime-module) cannot be combined
+      with this input. The command owns its work and can emit a JSON result
+      through GITHUB_OUTPUT. Provider and cache cleanup still run afterwards.
     required: false
     default: ''
   task-types:
@@ -199,9 +201,9 @@ inputs:
     required: false
     default: '24'
 outputs:
-  skip:
-    description: Whether the supervised review was ineligible.
-    value: ${{ steps.run.outputs.skip }}
+  result:
+    description: Optional JSON result emitted by command-entry.
+    value: ${{ steps.run.outputs.result }}
   spend-report:
     description: Sanitized JSON spend report, including failed attempts.
     value: ${{ steps.spend.outputs.report }}
@@ -226,6 +228,24 @@ runs:
   # action — every shell below sees them via process.env without having
   # to re-list each one in a child `env:` block.
   steps:
+    - name: Validate command entry contract
+      id: command-contract
+      if: inputs.command-entry != ''
+      shell: bash
+      env:
+        ACTION_INPUTS: ${{ toJSON(inputs) }}
+      run: |
+        node --input-type=module <<'JS'
+        import { existsSync } from 'node:fs';
+        import { isAbsolute } from 'node:path';
+        const inputs = JSON.parse(process.env.ACTION_INPUTS);
+        const defaults = {'mode':'once','profile':'','task-id':'','task-spec-path':'','tags':'','cancel-superseded':'false','supersession-tags':'','skip-validation':'false','project-id':'','task-types':'','correlation-id':'','wait-for-first-task-sec':'0','wait-after-task-sec':'0','max-poll-interval-ms':'','runtime-module':'','running-timeout-sec':'','max-attempts':''};
+        for (const [name, value] of Object.entries(defaults)) {
+          if (inputs[name] !== undefined && inputs[name] !== value) throw new Error(`command-entry cannot be combined with ${name}`);
+        }
+        if (!isAbsolute(inputs['command-entry']) || !existsSync(inputs['command-entry'])) throw new Error('command-entry must name an existing trusted absolute path');
+        JS
+
     - name: Allocate invocation directory
       id: invocation
       shell: bash
@@ -702,6 +722,7 @@ runs:
         key: ${{ steps.gondolin-cache-key.outputs.value }}
 
     - name: Resolve runtime profile
+      if: inputs.command-entry == ''
       id: profile
       shell: bash
       env:
@@ -903,7 +924,7 @@ runs:
     # example `/review`) claims tasks another job created,
     # and must not treat the comment as a new request.
     - id: dispatch
-      if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && inputs.mode != 'drain' && github.event_name == 'issue_comment' }}
+      if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && inputs.mode != 'drain' && inputs.command-entry == '' && github.event_name == 'issue_comment' }}
       shell: bash
       env:
         ACTION_TEMP: ${{ steps.invocation.outputs.path }}
@@ -1457,7 +1478,7 @@ runs:
         MAX_POLL_INTERVAL_MS: ${{ inputs.max-poll-interval-ms }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         DAEMON_MODE: ${{ inputs.mode }}
-        SUPERVISOR_ENTRY: ${{ inputs.supervisor-entry }}
+        COMMAND_ENTRY: ${{ inputs.command-entry }}
         RUNTIME_MODULE: ${{ inputs.runtime-module }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
         PROJECT_ID: ${{ inputs.project-id }}
@@ -1465,6 +1486,11 @@ runs:
         PI_CODING_AGENT_DIR: ${{ steps.pi-dir.outputs.path }}
       run: |
         set -euo pipefail
+        if [ -n "${COMMAND_ENTRY:-}" ]; then
+          export MOLTNET_DAEMON_BIN="$AGENT_BIN"
+          # Direct exec makes the runner's cancellation signal reach the command.
+          exec node "$COMMAND_ENTRY"
+        fi
         # Normalise project-id once, exactly like dispatch.ts: empty means
         # General work, surrounding whitespace (incl. newlines) is trimmed,
         # and a whitespace-only value is rejected rather than read as General.
@@ -1566,19 +1592,11 @@ runs:
           daemon_args+=(--team "$MOLTNET_TEAM_ID")
         fi
 
-        if [ -n "${SUPERVISOR_ENTRY:-}" ]; then
-          if [[ "$SUPERVISOR_ENTRY" != /* ]] || [ ! -f "$SUPERVISOR_ENTRY" ]; then
-            echo '::error::supervisor-entry must name an existing trusted absolute path' >&2
-            exit 1
-          fi
-          ADAPTIVE_DAEMON_BIN="$AGENT_BIN" node "$SUPERVISOR_ENTRY" 2>&1 | tee "$ACTION_TEMP/daemon.log"
-        else
-          "${daemon_cmd[@]}" "${daemon_args[@]}" 2>&1 | tee "$ACTION_TEMP/daemon.log"
-        fi
+        "${daemon_cmd[@]}" "${daemon_args[@]}" 2>&1 | tee "$ACTION_TEMP/daemon.log"
 
     - name: Report agent spend
       id: spend
-      if: always() && steps.invocation.outputs.path != '' && steps.run.outcome != 'skipped'
+      if: always() && inputs.command-entry == '' && steps.invocation.outputs.path != '' && steps.run.outcome != 'skipped'
       continue-on-error: true
       shell: bash
       env:

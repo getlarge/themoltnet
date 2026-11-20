@@ -3,7 +3,10 @@ description: Run or publish the classifier-first advisory PR review.
 author: getlarge
 inputs:
   step:
-    description: prepare, plan, route, review, publish, outcomes, or cleanup
+    description: >
+      Legacy prepare, plan, route, review and publish are deprecated; see
+      libs/adaptive-review/EXECUTION.md for migration and removal conditions.
+      Outcomes and cleanup remain supported.
     required: true
 outputs:
   skip:

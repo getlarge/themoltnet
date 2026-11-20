@@ -104,10 +104,10 @@ describe('adaptive review consumer', () => {
   it('delegates the entire review graph to one supervisor invocation', () => {
     expect(Object.keys(workflow.jobs)).toEqual(['review']);
     const run = job('review').steps.filter(
-      (step) => step.with?.['supervisor-entry'],
+      (step) => step.with?.['command-entry'],
     );
     expect(run).toHaveLength(1);
-    expect(run[0].with?.['supervisor-entry']).toMatch(/dist\/run\.js$/);
+    expect(run[0].with?.['command-entry']).toMatch(/dist\/run\.js$/);
     expect(
       job('review').steps.some((step) =>
         ['prepare', 'route', 'review', 'publish'].includes(
@@ -171,10 +171,13 @@ describe('adaptive review consumer', () => {
     ])
       expect(job('review').env?.[secret]).toContain(`secrets.${secret}`);
     const run = job('review').steps.find(
-      (step) => step.with?.['supervisor-entry'],
+      (step) => step.with?.['command-entry'],
     );
     expect(run?.with?.['daemon-version']).toContain(
       'steps.worker.outputs.version',
+    );
+    expect(run?.env?.ADAPTIVE_REVIEW_DIARY_IDS).toContain(
+      'inputs.focused-diary-ids',
     );
     expect(run?.env?.ADAPTIVE_FOCUSED_RUNTIME).toContain(
       'steps.diary-runtime.outputs.module',
@@ -187,9 +190,10 @@ describe('adaptive review consumer', () => {
       const envFile = join(dir, 'env');
       writeFileSync(envFile, '');
       const result = runStep(step.run, {
+        EXPLICIT_RUNTIME_REPOSITORY: '',
         RUNTIME_REF: 'a'.repeat(40),
         WORKFLOW_SHA: '',
-        WORKFLOW_REPOSITORY: 'getlarge/themoltnet',
+        WORKFLOW_REPOSITORY: '',
         ADAPTIVE_EXECUTION_MODE: 'durable',
         ADAPTIVE_REPOSITORY: 'another/repo',
         GITHUB_RUN_ID: '123',
@@ -198,11 +202,66 @@ describe('adaptive review consumer', () => {
       });
       expect(result.status, result.stderr).toBe(0);
       expect(result.outputs.ref).toBe('a'.repeat(40));
-      expect(result.outputs.correlation).toMatch(/^[a-f0-9-]{36}$/);
+      expect(result.outputs.repository).toBe('getlarge/themoltnet');
+      expect(readFileSync(envFile, 'utf8')).toContain(
+        'ADAPTIVE_JOB_STARTED_MS=',
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+  it('rejects missing repository context unless a runtime pin is explicit', () => {
+    const step = job('review').steps.find((step) => step.id === 'intent')!;
+    const result = runStep(step.run, {
+      WORKFLOW_REPOSITORY: '',
+      WORKFLOW_SHA: 'a'.repeat(40),
+      RUNTIME_REF: '',
+      EXPLICIT_RUNTIME_REPOSITORY: '',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('runtime-ref is required');
+  });
+  it.each([
+    ['another/repo', 'contributor', true],
+    ['fork/repo', 'contributor', false],
+    ['another/repo', 'dependabot[bot]', false],
+    [null, 'contributor', false],
+  ])(
+    'checks event eligibility before any App token or provider setup (%s %s)',
+    (head, author, admitted) => {
+      const dir = mkdtempSync(join(tmpdir(), 'review-admission-'));
+      try {
+        const bin = join(dir, 'gh');
+        writeFileSync(
+          bin,
+          `#!${process.execPath}\nconsole.log(${JSON.stringify(JSON.stringify([head, author]))});\n`,
+          { mode: 0o700 },
+        );
+        const step = job('review').steps.find(
+          (item) => item.id === 'eligibility',
+        )!;
+        const result = runStep(step.run, {
+          PATH: `${dir}:${process.env.PATH ?? ''}`,
+          RUNNER_TEMP: dir,
+          REVIEW_REPOSITORY: 'another/repo',
+          REVIEW_PR: '7',
+        });
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.outputs.eligible).toBe(String(admitted));
+        const order = job('review').steps;
+        expect(order.indexOf(step)).toBeLessThan(
+          order.findIndex((item) => item.id === 'app-token'),
+        );
+        expect(order.find((item) => item.id === 'run')?.if).toContain(
+          'steps.eligibility.outputs.eligible',
+        );
+        expect(job('review').outputs?.skip).toContain('{"skip":true}');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('finds a merge base and reads complete blobs for production three-dot diffs', () => {
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-shallow-'));
     const source = join(temp, 'source');
@@ -216,6 +275,7 @@ describe('adaptive review consumer', () => {
       git(source, 'init', '-b', 'main');
       git(source, 'config', 'user.name', 'Test');
       git(source, 'config', 'user.email', 'test@example.invalid');
+      git(source, 'config', 'commit.gpgsign', 'false');
       writeFileSync(join(source, 'review.txt'), 'common content\n');
       git(source, 'add', 'review.txt');
       git(source, 'commit', '-m', 'common');
@@ -281,6 +341,7 @@ describe('adaptive review consumer', () => {
       git('init', '-q');
       const files = [
         'run.js',
+        'review-worker.js',
         'review.js',
         'publish.js',
         'outcomes.js',
