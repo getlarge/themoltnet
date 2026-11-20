@@ -73,8 +73,10 @@ trap 'exit 143' TERM
 node "$repo_root/tools/release/self-host-smoke-prepare.mjs" "$bundle_root" "$temporary"
 
 cd "$bundle_root/deploy/self-host"
+export MOLTNET_SMOKE_ENV="$temporary/self-host-smoke.env"
 export MOLTNET_SMOKE_CADDYFILE="$temporary/Caddyfile.smoke"
-compose=(docker compose -p "$project_name" --env-file "$temporary/self-host-smoke.env" --env-file .env.release -f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
+compose_options=(-p "$project_name" --env-file "$temporary/self-host-smoke.env" --env-file .env.release -f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
+compose=(docker compose "${compose_options[@]}")
 
 if [ "$cleanup_only" = true ]; then
   echo "Removing self-host smoke Compose project: $project_name"
@@ -82,17 +84,21 @@ if [ "$cleanup_only" = true ]; then
   exit 0
 fi
 
-printf 'Interrupted-run recovery (Compose down -v): (cd %q && MOLTNET_SMOKE_CADDYFILE=%q ' \
-  "$PWD" "$MOLTNET_SMOKE_CADDYFILE"
+printf 'Interrupted-run recovery (Compose down -v): (cd %q && MOLTNET_SMOKE_CADDYFILE=%q MOLTNET_SMOKE_ENV=%q ' \
+  "$PWD" "$MOLTNET_SMOKE_CADDYFILE" "$MOLTNET_SMOKE_ENV"
 printf '%q ' "${compose[@]}" down -v
 printf ')\n'
 
 stack_started=true
-"${compose[@]}" up -d --wait --wait-timeout 300
+# The shipped operator script is the installation path under test.
+./maintain.sh init "${compose_options[@]}"
 "${compose[@]}" cp caddy:/data/caddy/pki/authorities/local/root.crt "$temporary/local-ca.crt"
 "${compose[@]}" exec -T postgres sh -ec '
-  PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d keto -Atqc "select 1" | grep -qx 1
-  if PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d kratos -Atqc "select 1" >/dev/null 2>&1; then
+  set -a
+  . /run/smoke.env
+  set +a
+  PGPASSWORD="${KETO_DB_PASSWORD:?}" psql -h localhost -U keto -d keto -Atqc "select 1" | grep -qx 1
+  if PGPASSWORD="${KETO_DB_PASSWORD:?}" psql -h localhost -U keto -d kratos -Atqc "select 1" >/dev/null 2>&1; then
     echo "A service role reached another service database" >&2
     exit 1
   fi

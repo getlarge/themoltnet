@@ -18,6 +18,18 @@
       ]
     },
     {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "description": "Digest-pinned container images written as string literals in test and smoke harnesses, which the docker-compose manager does not read",
+      "managerFilePatterns": [
+        "/(^|\\/)__tests__\\/.+\\.(ts|mjs)$/",
+        "/^tools\\/release\\/[^/]+\\.mjs$/"
+      ],
+      "matchStrings": [
+        "['\\s](?<depName>[a-z0-9][a-z0-9._/-]*):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ]
+    },
+    {
       "autoReplaceStringTemplate": "https://unofficial-builds.nodejs.org/download/release/v{{{newValue}}}/node-v{{{newValue}}}",
       "customType": "regex",
       "datasourceTemplate": "node-version",
@@ -181,6 +193,12 @@
         "@scalar/fastify-api-reference"
       ],
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "description": "Pi packages are released in lockstep and pin each other exactly; updating one alone installs a second copy of chord and pi-telemetry. Published peer pins use catalog:, so the catalog is the only version to move",
+      "groupName": "Pi",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@earendil-works/chord", "@earendil-works/pi-*"]
     },
     {
       "description": "Keep React runtime and type declarations aligned",

@@ -950,7 +950,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     releaseSignerPublicKey: config.release.RELEASE_SIGNER_PUBKEY,
     pool: dbConnection.pool,
     dbosReady: isDBOSReady,
-    oryProjectUrl: config.ory.ORY_PROJECT_URL,
+    oidcDiscoveryBaseUrl: oryUrls.hydraPublicUrl,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
     ...(tokenCacheRedis ? { tokenCacheRedis } : {}),
   });

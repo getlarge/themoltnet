@@ -13,7 +13,6 @@ import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import type { VM } from '@earendil-works/gondolin';
-import { Type } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type {
@@ -31,6 +30,7 @@ import type {
 } from '@themoltnet/agent-runtime';
 import { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
 import type { connect } from '@themoltnet/sdk';
+import { Type } from 'typebox';
 
 import { type GondolinToolLifecycle, toGuestPath } from '../tool-operations.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
@@ -102,8 +102,7 @@ interface HostExecAutoApproveRule {
 }
 
 export type HostExecAutoApproveConfig =
-  | boolean
-  | readonly HostExecAutoApproveRule[];
+  boolean | readonly HostExecAutoApproveRule[];
 
 export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;

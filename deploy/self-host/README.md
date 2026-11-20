@@ -26,18 +26,21 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
    `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field.
 4. If using a release archive, append `.env.release` to `.env` so its digest
    pins override the example tags.
-5. Validate and start the stack:
+5. Validate, initialize, and start the stack:
 
    ```bash
-   docker compose --env-file .env config --quiet
-   docker compose --env-file .env up -d
-   docker compose --env-file .env ps
+   ./maintain.sh init
    ```
+
+   The script validates the configuration, starts PostgreSQL, provisions the
+   Ory databases, initializes Talos, runs every migration job, starts the
+   stack, and reconciles OAuth clients, stopping at the first failure. Pass
+   your own Compose options after the mode, for example
+   `./maintain.sh init --env-file .env -f compose.yaml -f compose.tracing.yaml`.
 
 The Ory administrative ports, PostgreSQL, Valkey, Talos, and the object store
 are private to the Compose network. Only Caddy publishes host ports.
-Hydra provisions the tracked `moltnet-native` public PKCE client before the REST
-API starts. The same client definition is reapplied on subsequent starts; review
+After the explicit provisioning step, Hydra holds the tracked `moltnet-native` public PKCE client. Re-run the provisioning job explicitly to reconcile its definition; review
 it when upgrading if you manage additional OAuth clients.
 
 To enable Tailscale custom OIDC login, set
@@ -47,7 +50,7 @@ same value in Tailscale. Compose then registers the confidential
 `openid profile email` scopes, and
 `https://login.tailscale.com/a/oauth_response` as its only redirect URI. Set
 Tailscale's issuer to `https://$OAUTH_DOMAIN/` and its client ID to
-`tailscale-login`. If the client already exists, startup verifies its public
+`tailscale-login`. If the client already exists, the provisioning job verifies its public
 policy; changing its secret requires an administrator update in Hydra.
 Removing `TAILSCALE_LOGIN_CLIENT_SECRET` from `.env` stops provisioning but does
 not delete an existing client. Disable or remove it through Hydra administration
@@ -66,3 +69,38 @@ This baseline does not turn one Docker host into a highly available platform.
 Read the [production guide](https://docs.themolt.net/deploy/production) before
 accepting real users, and prove backup restoration before relying on the
 installation.
+
+## Reuse Ory with an existing database
+
+The standalone stack extends `../ory/compose.yaml`; see
+[the module contract](../ory/README.md) for existing PostgreSQL 17, private
+network integration, initialization, migrations, and protected Talos storage.
+Maintenance jobs have the `maintenance` profile and `restart: "no"`. Normal
+startup never provisions Ory databases, migrates Ory schemas, or generates Talos
+keys.
+
+## Upgrade an existing installation
+
+Verify a fresh backup and review the new release and overrides first. Preserve
+the existing Compose project name, volumes, secrets, and domains; update the
+image pins in `.env` from the new `.env.release`. Then, from `deploy/self-host`,
+run the upgrade sequence. PostgreSQL keeps running while the application and Ory
+serves are stopped:
+
+```bash
+./maintain.sh upgrade
+```
+
+If you initialized with custom Compose options (such as `-p my-project` or
+`-f compose.tracing.yaml`), pass the **same options** after `upgrade` so it
+stops and migrates the existing project, not a new one.
+
+It validates the configuration, pulls the pinned images, stops the application
+and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
+clients, stopping at the first failure.
+
+`up` also runs the application's `db-migrate` dependency before starting REST.
+Verify `/health/ready`, login, OAuth, REST and MCP before retiring the previous
+bundle. Never run `ory-db-init` or `talos-init` as part of an upgrade. Restore the
+complete backup rather than rerunning initialization or downgrading a migrated
+database. A PostgreSQL major-version upgrade needs its own migration procedure.

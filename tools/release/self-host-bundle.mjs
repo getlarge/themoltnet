@@ -20,6 +20,7 @@ const sourceDir = path.join(repoRoot, 'deploy/self-host');
 const imageProjects = {
   console: 'apps/console',
   'db-migrate': 'libs/database',
+  'ory-tools': 'libs/database',
   'mcp-server': 'apps/mcp-server',
   'rest-api': 'apps/rest-api',
 };
@@ -96,11 +97,15 @@ function assertRepositoryPath(source) {
   return relative;
 }
 
-function validationEnvironment() {
-  const compose = readFileSync(path.join(sourceDir, 'compose.yaml'), 'utf8');
+function validationEnvironment({ includeImages }) {
+  const compose = ['deploy/self-host/compose.yaml', 'deploy/ory/compose.yaml']
+    .map((file) => readFileSync(path.join(repoRoot, file), 'utf8'))
+    .join('\n');
   const required = [...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g)];
   return Object.fromEntries(
-    required.map(([, name]) => [name, 'bundle-validation-secret']),
+    required
+      .filter(([, name]) => includeImages || !name.endsWith('_IMAGE'))
+      .map(([, name]) => [name, 'bundle-validation-secret']),
   );
 }
 
@@ -111,13 +116,21 @@ function discoverBindSources() {
       'compose',
       '--env-file',
       '.env.example',
+      '--profile',
+      '*',
       '-f',
       'compose.yaml',
+      '-f',
+      'compose.tracing.yaml',
       'config',
       '--format',
       'json',
     ],
-    { capture: true, cwd: sourceDir, env: validationEnvironment() },
+    {
+      capture: true,
+      cwd: sourceDir,
+      env: validationEnvironment({ includeImages: true }),
+    },
   );
   const model = JSON.parse(rendered);
   const sources = new Set();
@@ -223,13 +236,15 @@ function validateBundle(bundleRoot) {
         '.env.example',
         '--env-file',
         '.env.release',
+        '--profile',
+        '*',
         ...files.flatMap((file) => ['-f', file]),
         'config',
         '--quiet',
       ],
       {
         cwd: path.join(bundleRoot, 'deploy/self-host'),
-        env: validationEnvironment(),
+        env: validationEnvironment({ includeImages: false }),
       },
     );
   }
@@ -252,9 +267,19 @@ function main() {
     'README.md',
     'compose.yaml',
     'compose.tracing.yaml',
+    'maintain.sh',
   ]) {
     cpSync(path.join(sourceDir, name), path.join(bundleSource, name));
   }
+  mkdirSync(path.join(bundleRoot, 'deploy/ory'), { recursive: true });
+  for (const name of ['compose.yaml', 'README.md']) {
+    cpSync(
+      path.join(repoRoot, 'deploy/ory', name),
+      path.join(bundleRoot, 'deploy/ory', name),
+    );
+  }
+  // All other module assets are copied from effective bind mounts below.
+  // Never recursively package an operator's local environment or state files.
   for (const source of discoverBindSources()) {
     const relative = assertRepositoryPath(source);
     const destination = path.join(bundleRoot, relative);

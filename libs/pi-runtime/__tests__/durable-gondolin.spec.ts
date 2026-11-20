@@ -14,7 +14,6 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
-  Type,
 } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { Harness } from '@earendil-works/pi-durable';
@@ -24,6 +23,7 @@ import {
   TaskExecutionInterrupted,
   type TaskReporter,
 } from '@themoltnet/agent-runtime';
+import { Type } from 'typebox';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createGondolinDurableTaskExecutor } from '../src/durable-gondolin.js';

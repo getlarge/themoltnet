@@ -239,7 +239,7 @@ export interface AppOptions {
   /** DBOS lifecycle readiness probe. */
   dbosReady?: HealthRouteOptions['dbosReady'];
   /** Ory project URL for readiness probe */
-  oryProjectUrl?: string;
+  oidcDiscoveryBaseUrl?: string;
   /** Application version exposed through OpenAPI metadata. */
   version?: string;
   /**
@@ -546,7 +546,7 @@ export async function registerApiRoutes(
   await app.register(healthRoutes, {
     pool: options.pool,
     dbosReady: options.dbosReady,
-    oryProjectUrl: options.oryProjectUrl,
+    oidcDiscoveryBaseUrl: options.oidcDiscoveryBaseUrl,
     talosApi: options.oryClients.apiKeys,
   });
   await app.register(diaryRoutes);

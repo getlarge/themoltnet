@@ -74,13 +74,13 @@ services:
       retries: 5
 
   kratos-migrate:
-    image: oryd/kratos:v25.4.0@sha256:e8014c6c58b68e9d8bea4160d3e271b0d05b3db221af379afb6798b603e88ee9
+    image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
     command: migrate sql -e --yes
     environment:
       DSN: postgres://kratos:kratos_secret@kratos-postgres:5432/kratosdb?sslmode=disable
 
   kratos:
-    image: oryd/kratos:v25.4.0@sha256:e8014c6c58b68e9d8bea4160d3e271b0d05b3db221af379afb6798b603e88ee9
+    image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
     command: serve --config /etc/config/kratos/kratos.yaml --dev --watch-courier
     ports:
       - '4433:4433'
@@ -105,7 +105,7 @@ services:
   # so browser-based cookie auth (issue #753) works out of the box. Served on
   # port 4455 — kratos.yaml points flow ui_url values here.
   kratos-selfservice-ui-node:
-    image: oryd/kratos-selfservice-ui-node:v25.4.0@sha256:a01f954408c44fabd1418b5fd79836ce0f733f4e5d93b5891fb9804b16918037
+    image: oryd/kratos-selfservice-ui-node:v26.2.0@sha256:46a7bac1ad0c67c692b37d0380613fd4618fd751afac2c5314aa8d3ae77ef1f0
     ports:
       - '4455:4455'
     environment:
@@ -142,13 +142,13 @@ services:
       retries: 5
 
   hydra-migrate:
-    image: oryd/hydra:v25.4.0@sha256:52611d37bd6b4ab3d94bc96901d963f3ed281b2d33965e8bff97c8d5bf95a91f
+    image: oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9
     command: migrate sql up -e --yes
     environment:
       DSN: postgres://hydra:hydra_secret@hydra-postgres:5432/hydradb?sslmode=disable
 
   hydra:
-    image: oryd/hydra:v25.4.0@sha256:52611d37bd6b4ab3d94bc96901d963f3ed281b2d33965e8bff97c8d5bf95a91f
+    image: oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9
     command: serve all --config /etc/config/hydra/hydra.yaml --dev
     ports:
       - '4444:4444'
@@ -180,7 +180,7 @@ services:
       retries: 5
 
   keto-migrate:
-    image: oryd/keto:v25.4.0@sha256:13a0659fc7aaa8239542409d0a7331a1ffd022b3480c42e38a65de8904f41f56
+    image: oryd/keto:v26.2.0@sha256:bfdb8b9e283aedbd9e1d005c44eb1bbefd2096b2cb5b5aa0b7360b6e39c178d2
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
       DSN: postgres://keto:keto_secret@keto-postgres:5432/ketodb?sslmode=disable
@@ -189,7 +189,7 @@ services:
       - ./infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
 
   keto:
-    image: oryd/keto:v25.4.0@sha256:13a0659fc7aaa8239542409d0a7331a1ffd022b3480c42e38a65de8904f41f56
+    image: oryd/keto:v26.2.0@sha256:bfdb8b9e283aedbd9e1d005c44eb1bbefd2096b2cb5b5aa0b7360b6e39c178d2
     command: serve --config /etc/config/keto/keto.yaml
     ports:
       - '4466:4466'

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.70.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.70.0...rest-api-v0.70.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **docker:** align node base images with the 24.22.3 toolchain ([0b21f08](https://github.com/getlarge/themoltnet/commit/0b21f08a4e967d66d857f3c1685aa7ad309fedf8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.19.1
+
 ## [0.70.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.69.1...rest-api-v0.70.0) (2026-11-16)
 
 

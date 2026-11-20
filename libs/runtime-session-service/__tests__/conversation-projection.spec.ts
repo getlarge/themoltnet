@@ -7,6 +7,7 @@ import {
   type EntryId,
   LiveDoc,
   MemoryStorage,
+  type Seq,
   type StorageWrite,
 } from '@earendil-works/pi-durable';
 import type { RuntimeStoreRepository } from '@moltnet/database';
@@ -95,10 +96,36 @@ const Attempt = defineDocFamily({
 async function fixture() {
   const db = repository();
   class Writer extends MemoryStorage {
-    override async commit(writes: readonly StorageWrite[]) {
-      const seq = await super.commit(writes, context);
-      await projectConversationCommit(db.repo, 'store', seq, [...writes]);
-      return seq;
+    override async commit(
+      batches: readonly (readonly StorageWrite[])[],
+      receive: (index: number, seq: Seq) => void,
+      ctx: typeof context,
+    ) {
+      const stored: [Seq, readonly StorageWrite[]][] = [];
+      const result = await super.commit(
+        batches,
+        (index, seq) => {
+          stored.push([seq, batches[index]]);
+          receive(index, seq);
+        },
+        ctx,
+      );
+      for (const [seq, writes] of stored)
+        await projectConversationCommit(db.repo, 'store', seq, [...writes]);
+      return result;
+    }
+    /** One batch, resolving with its seq; a refusal rejects. */
+    async commitOne(writes: readonly StorageWrite[]): Promise<Seq> {
+      let committed: Seq | undefined;
+      const { refused } = await this.commit(
+        [writes],
+        (_index, seq) => {
+          committed = seq;
+        },
+        context,
+      );
+      if (refused !== undefined) throw refused;
+      return committed!;
     }
   }
   const storage = new Writer();
@@ -358,7 +385,7 @@ describe('conversation projection conforms to Pi storage', () => {
     expect(
       JSON.stringify((await f.reader.document(record!.id))!.value),
     ).toContain('first');
-    await f.storage.commit([{ type: 'document.retire', id: record!.id }]);
+    await f.storage.commitOne([{ type: 'document.retire', id: record!.id }]);
     await f.reader.at('store', f.head());
     expect(await f.reader.findDocument(address)).toBeUndefined();
     await f.session.close(context);
@@ -382,14 +409,14 @@ describe('conversation projection conforms to Pi storage', () => {
       fork: 'asOf',
       key: 'source',
     };
-    const createdAt = await f.storage.commit([
+    const createdAt = await f.storage.commitOne([
       {
         type: 'document.create',
         record,
         content: { kind: 'base', version: 2, value: { count: 1 } },
       },
     ]);
-    await f.storage.commit([
+    await f.storage.commitOne([
       {
         type: 'document.change',
         id: sourceId,
@@ -398,7 +425,7 @@ describe('conversation projection conforms to Pi storage', () => {
     ]);
     const historicalId = await f.storage.mintId<DocumentId>();
     const currentId = await f.storage.mintId<DocumentId>();
-    await f.storage.commit([
+    await f.storage.commitOne([
       {
         type: 'document.copy',
         record: {
@@ -419,7 +446,7 @@ describe('conversation projection conforms to Pi storage', () => {
       },
     ]);
     const copyBoundary = f.head();
-    await f.storage.commit([
+    await f.storage.commitOne([
       {
         type: 'document.change',
         id: sourceId,
@@ -446,7 +473,7 @@ describe('conversation projection conforms to Pi storage', () => {
       Array.from({ length: 4 }, () => f.storage.mintId<EntryId>()),
     );
     const append = (id: EntryId) =>
-      f.storage.commit([
+      f.storage.commitOne([
         {
           type: 'entry',
           value: { id, conversationId: f.root, kind: 'pi.user', model: [] },

@@ -1,13 +1,18 @@
 name: Validate self-host bundle
 
 on:
+  # Draft PRs skip validation (see the job `if:`); `ready_for_review` starts it.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - '.github/workflows/release-self-host.yml'
       - '.github/workflows/self-host-validate.yml'
       - '.release-please-manifest.json'
       - 'nx.json'
       - 'deploy/self-host/**'
+      - 'deploy/ory/**'
+      - 'tools/__tests__/release/self-host-bundle.spec.mjs'
+      - 'tools/release/ory-module-smoke.mjs'
       - 'infra/ory/**'
       - 'tools/release/self-host-bundle*'
       - 'tools/release/self-host-smoke*'
@@ -17,6 +22,7 @@ on:
       - 'apps/rest-api/package.json'
       - 'apps/rest-api/src/**'
       - 'libs/database/package.json'
+      - 'libs/database/Dockerfile'
       - 'libs/bootstrap/src/**'
       - 'libs/blob-storage/src/**'
   push:
@@ -25,6 +31,9 @@ on:
       - '.release-please-manifest.json'
       - 'nx.json'
       - 'deploy/self-host/**'
+      - 'deploy/ory/**'
+      - 'tools/__tests__/release/self-host-bundle.spec.mjs'
+      - 'tools/release/ory-module-smoke.mjs'
       - 'infra/ory/**'
       - 'tools/release/self-host-bundle*'
       - 'tools/release/self-host-smoke*'
@@ -34,8 +43,13 @@ on:
       - 'apps/rest-api/package.json'
       - 'apps/rest-api/src/**'
       - 'libs/database/package.json'
+      - 'libs/database/Dockerfile'
       - 'libs/bootstrap/src/**'
       - 'libs/blob-storage/src/**'
+
+concurrency:
+  group: self-host-validate-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -43,6 +57,7 @@ permissions:
 
 jobs:
   validate:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -67,5 +82,13 @@ jobs:
           node tools/release/self-host-bundle.mjs --version ci-source --image-tag dev --skip-digests --output "$root"
           (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$root" && sha256sum -c SHA256SUMS)
+      - name: Validate extracted archive against populated PostgreSQL 17
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/self-host.tar.gz" -C "$RUNNER_TEMP/moltnet-self-host-ci-source" .
+          mkdir "$RUNNER_TEMP/self-host-extracted"
+          tar -xzf "$RUNNER_TEMP/self-host.tar.gz" -C "$RUNNER_TEMP/self-host-extracted"
+          (cd "$RUNNER_TEMP/self-host-extracted" && sha256sum -c SHA256SUMS)
+          node tools/release/ory-module-smoke.mjs "$RUNNER_TEMP/self-host-extracted"
       - name: Smoke-test archive images through Caddy
-        run: tools/release/self-host-smoke.sh "$RUNNER_TEMP/moltnet-self-host-ci-source"
+        run: tools/release/self-host-smoke.sh "$RUNNER_TEMP/self-host-extracted"

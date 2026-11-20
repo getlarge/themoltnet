@@ -139,7 +139,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
     });
 
     const response = await app.inject({
@@ -171,7 +171,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
     });
 
     const response = await app.inject({
@@ -198,7 +198,7 @@ describe('Health readiness probes', () => {
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
       dbosReady: () => false,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
     });
 
     const response = await app.inject({
@@ -227,7 +227,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
     });
 
     const response = await app.inject({
@@ -253,7 +253,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
     });
 
     const response = await app.inject({
@@ -280,7 +280,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
       talosApi,
     });
 
@@ -307,7 +307,7 @@ describe('Health readiness probes', () => {
 
     app = await createTestApp(mocks, null, undefined, {
       pool: mockPool,
-      oryProjectUrl: 'https://mock-ory.example.com',
+      oidcDiscoveryBaseUrl: 'https://mock-ory.example.com',
       talosApi,
     });
 

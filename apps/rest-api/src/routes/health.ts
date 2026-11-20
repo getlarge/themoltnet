@@ -19,7 +19,7 @@ interface HealthPool {
 export interface HealthRouteOptions {
   pool?: HealthPool;
   dbosReady?: () => boolean;
-  oryProjectUrl?: string;
+  oidcDiscoveryBaseUrl?: string;
   talosApi?: Pick<ApiKeysApi, 'getJwks'>;
 }
 
@@ -68,14 +68,14 @@ async function probeDatabase(
 }
 
 async function probeOry(
-  oryProjectUrl: string,
+  oidcDiscoveryBaseUrl: string,
   log: { warn: (obj: object, msg: string) => void },
 ): Promise<ComponentResult> {
   const start = performance.now();
   try {
     const url = new URL(
       '/.well-known/openid-configuration',
-      oryProjectUrl,
+      oidcDiscoveryBaseUrl,
     ).toString();
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) {
@@ -197,8 +197,8 @@ export async function healthRoutes(
                 error: 'not_configured',
               },
         ),
-        opts.oryProjectUrl
-          ? probeOry(opts.oryProjectUrl, request.log)
+        opts.oidcDiscoveryBaseUrl
+          ? probeOry(opts.oidcDiscoveryBaseUrl, request.log)
           : {
               status: 'error' as const,
               latencyMs: 0,
