@@ -1,0 +1,41 @@
+# Optional native Potato labeling-engine overlay. Keep the ordinary human queue:
+# do not set assignment_strategy: engine for this corpus-approval task.
+labeling_engine:
+  enabled: true
+  schemas: [corpus_decision]
+  sources:
+    - id: clef-cloud
+      kind: decision
+      endpoint_type: systemone
+      model: clef:27b
+      base_url: https://ollama.com
+      api_key: ${OLLAMA_API_KEY}
+      timeout: 120
+      confidence: { method: native }
+  cascade: [clef-cloud]
+  contracts:
+    - id: unvalidated-corpus-suggestions
+      kind: selective_risk
+      schema: corpus_decision
+      error: 0.05
+      confidence: 0.95
+  # No calibration/verification queue is opened by this exploratory configuration.
+  # Without certification, predictions cannot satisfy the acceptance contract.
+  budgets:
+    human_labels: 0
+  runtime:
+    concurrency: 1
+    batch_size: 1
+    retries: 0
+  features:
+    payload_capture: false
+
+# Native editable model choices, loaded from the engine projection at startup.
+# Keep/change the choice and press Next; viewing alone is not an approval.
+pre_annotation:
+  # Keep model advice separate: navigation autosaves selected controls.
+  enabled: false
+  field: corpus_model_predictions
+  predictions_file: corpus-suggestions.json
+  allow_modification: true
+  show_confidence: false

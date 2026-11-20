@@ -1,0 +1,216 @@
+diff --git a/potato/solo_mode/manager.py b/potato/solo_mode/manager.py
+index 60ebda2..2bd100f 100644
+--- a/potato/solo_mode/manager.py
++++ b/potato/solo_mode/manager.py
+@@ -3549,6 +3549,11 @@ class SoloModeManager:
+                     'icl_library': self._icl_library.to_dict() if self._icl_library else None,
+                 }
+ 
++                # Generated examples and their human labels are separate from
++                # the rule-discovery manager and corpus annotation bookkeeping.
++                if self._edge_case_synthesizer is not None:
++                    state['edge_case_synthesis'] = self._edge_case_synthesizer.to_dict()
++
+                 # Include edge case rule manager state inline
+                 if self._edge_case_rule_manager is not None:
+                     state['edge_case_rule_data'] = self._edge_case_rule_manager.to_dict()
+@@ -3616,6 +3621,8 @@ class SoloModeManager:
+                 self.validation_sample_ids = set(state.get('validation_sample_ids', []))
+                 self.edge_case_ids = set(state.get('edge_case_ids', []))
+                 self.edge_case_labels = state.get('edge_case_labels', {})
++                if 'edge_case_synthesis' in state:
++                    self.edge_case_synthesizer.from_dict(state['edge_case_synthesis'])
+ 
+                 # Restore cartography confidence history
+                 raw_history = state.get('confidence_history', {})
+diff --git a/potato/solo_mode/routes.py b/potato/solo_mode/routes.py
+index 858b104..4dbafd1 100644
+--- a/potato/solo_mode/routes.py
++++ b/potato/solo_mode/routes.py
+@@ -240,7 +240,12 @@ def edge_cases():
+         notes = request.form.get('notes', '')
+ 
+         if case_id and label:
+-            manager.edge_case_synthesizer.record_label(case_id, label, notes)
++            if label not in manager.get_available_labels():
++                return jsonify({'error': 'Unknown label'}), 400
++            if not manager.edge_case_synthesizer.record_label(case_id, label, notes):
++                return jsonify({'error': 'Unknown edge case'}), 404
++            # Save every judgment, not just the final phase transition.
++            manager._save_state()
+ 
+             # Check if all edge cases are labeled
+             unlabeled = manager.edge_case_synthesizer.get_unlabeled_edge_cases()
+@@ -270,7 +275,18 @@ def edge_cases():
+             )
+             unlabeled = manager.edge_case_synthesizer.get_unlabeled_edge_cases()
+ 
+-        # Advance to labeling phase
++        manager._save_state()
++        if not unlabeled:
++            # An empty/malformed model response is a generation failure, not
++            # evidence that the annotator finished reviewing examples.
++            return render_template(
++                'solo/edge_cases.html', current_case=None, remaining_count=0,
++                labels=manager.get_available_labels(),
++                phase=manager.get_current_phase().name.lower(),
++                synthesis_error='No usable edge cases were generated. Review the model configuration or prompt, then retry.',
++            ), 502
++
++        # Advance only after generated examples have been retained.
+         manager.advance_to_phase(SoloPhase.EDGE_CASE_LABELING)
+ 
+     # Get edge cases to display
+@@ -1623,6 +1639,7 @@ def api_export():
+             'pending': len(manager.get_pending_disagreements()),
+         },
+         'agreement_metrics': manager.get_agreement_metrics().to_dict(),
++        'edge_case_synthesis': manager.edge_case_synthesizer.to_dict(),
+         'prompt_history': [
+             {
+                 'version': pv.version,
+diff --git a/potato/templates/solo/edge_cases.html b/potato/templates/solo/edge_cases.html
+index b559258..abd40f5 100644
+--- a/potato/templates/solo/edge_cases.html
++++ b/potato/templates/solo/edge_cases.html
+@@ -8,7 +8,13 @@
+ <p>These are synthetically generated examples that test the boundaries of your annotation guidelines.
+    Labeling these will help refine the prompt before full annotation begins.</p>
+ 
+-{% if current_case %}
++{% if synthesis_error %}
++<div class="alert alert-danger" role="alert">{{ synthesis_error }}</div>
++<div class="solo-nav">
++    <a href="{{ url_for('solo_mode.prompt_editor') }}" class="btn btn-secondary">Review Prompt</a>
++    <a href="{{ url_for('solo_mode.edge_cases') }}" class="btn btn-primary">Retry Generation</a>
++</div>
++{% elif current_case %}
+ <form method="POST" action="{{ url_for('solo_mode.edge_cases') }}">
+     <input type="hidden" name="case_id" value="{{ current_case.id }}">
+     <input type="hidden" name="label" id="selected-label" value="">
+diff --git a/tests/unit/test_solo_mode/test_edge_case_persistence.py b/tests/unit/test_solo_mode/test_edge_case_persistence.py
+new file mode 100644
+index 0000000..343b969
+--- /dev/null
++++ b/tests/unit/test_solo_mode/test_edge_case_persistence.py
+@@ -0,0 +1,120 @@
++"""Generated edge cases are durable independently of corpus annotations."""
++import inspect
++import json
++import tempfile
++import unittest
++from pathlib import Path
++from unittest.mock import patch, Mock
++
++from flask import Flask
++from potato.solo_mode.config import parse_solo_mode_config
++from potato.solo_mode.manager import SoloModeManager
++from potato.solo_mode.phase_controller import SoloPhase
++from potato.solo_mode import routes
++
++
++class EdgeCasePersistenceTests(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.tmp.cleanup)
++        self.app_config = {
++            'solo_mode': {'enabled': True, 'labeling_models': [], 'state_dir': self.tmp.name},
++            'annotation_schemes': [{'name': 'relevance', 'annotation_type': 'radio',
++                                    'labels': ['Answers', 'Supports', 'Not relevant']}],
++        }
++        self.config = parse_solo_mode_config(self.app_config)
++        self.manager = SoloModeManager(self.config, self.app_config)
++        self.app = Flask(__name__)
++        self.app.secret_key = 'synthetic-test-only'
++        self.app.register_blueprint(routes.solo_mode_bp)
++        self.client = self.app.test_client()
++        with self.client.session_transaction() as session:
++            session['username'] = 'test-annotator'
++        self.get_manager = patch.object(routes, 'get_solo_mode_manager', return_value=self.manager)
++        self.get_manager.start()
++        self.addCleanup(lambda: self.get_manager.stop())
++
++    def generate(self):
++        endpoint = Mock()
++        endpoint.query.return_value = {'edge_cases': [
++            {'text': 'Query: owner? Content: migration service owns it.',
++             'boundary_labels': ['Answers', 'Supports'], 'difficulty_reason': 'scope',
++             'which_aspect': 'ownership'},
++            {'text': 'Query: owner? Content: only one process should migrate.',
++             'boundary_labels': ['Supports', 'Not relevant'], 'difficulty_reason': 'utility',
++             'which_aspect': 'support'},
++        ]}
++        self.manager.edge_case_synthesizer._synthesis_endpoint = endpoint
++        return self.manager.edge_case_synthesizer.synthesize_edge_cases('task', 'prompt', 2)
++
++    def reload(self):
++        restored = SoloModeManager(self.config, self.app_config)
++        self.assertTrue(restored.load_state())
++        return restored
++
++    def test_partial_label_is_saved_before_last_case(self):
++        cases = self.generate()
++        self.manager.phase_controller.transition_to(SoloPhase.EDGE_CASE_LABELING, force=True)
++        response = self.client.post('/solo/edge-cases', data={
++            'case_id': cases[0].id, 'label': 'Answers', 'notes': 'Names the owner.'})
++        self.assertEqual(response.status_code, 302)
++        restored = self.reload().edge_case_synthesizer
++        self.assertEqual(restored.to_dict(), self.manager.edge_case_synthesizer.to_dict())
++        self.assertEqual(len(restored.get_unlabeled_edge_cases()), 1)
++        self.assertEqual(restored.get_labeled_edge_cases()[0].labeler_notes, 'Names the owner.')
++        self.assertNotEqual(restored._generate_id(), cases[-1].id)
++
++    def test_generation_is_saved_before_labeling(self):
++        self.generate()
++        self.manager.phase_controller.transition_to(SoloPhase.EDGE_CASE_SYNTHESIS, force=True)
++        with patch.object(routes, 'render_template', return_value='form'):
++            response = self.client.get('/solo/edge-cases')
++        self.assertEqual(response.status_code, 200)
++        self.assertEqual(len(self.reload().edge_case_synthesizer.get_all_edge_cases()), 2)
++
++    def test_final_label_and_export_survive_reload(self):
++        cases = self.generate()
++        self.manager.phase_controller.transition_to(SoloPhase.EDGE_CASE_LABELING, force=True)
++        for case in cases:
++            response = self.client.post('/solo/edge-cases', data={'case_id': case.id, 'label': 'Supports'})
++            self.assertEqual(response.status_code, 302)
++        self.manager = self.reload()
++        self.get_manager.stop()
++        self.get_manager = patch.object(routes, 'get_solo_mode_manager', return_value=self.manager)
++        self.get_manager.start()
++        self.assertEqual(self.manager.get_current_phase(), SoloPhase.PROMPT_VALIDATION)
++        with self.app.test_request_context():
++            exported = inspect.unwrap(routes.api_export)().get_json()
++        self.assertEqual(exported['edge_case_synthesis'], self.manager.edge_case_synthesizer.to_dict())
++        self.assertEqual(len(self.manager.edge_case_synthesizer.get_labeled_edge_cases()), 2)
++
++    def test_legacy_state_without_cases_loads(self):
++        self.manager.create_prompt_version('legacy prompt', created_by='user_setup')
++        path = Path(self.tmp.name) / 'solo_mode_state.json'
++        state = json.loads(path.read_text())
++        state.pop('edge_case_synthesis', None)
++        path.write_text(json.dumps(state))
++        restored = self.reload()
++        self.assertEqual(restored.get_current_prompt_text(), 'legacy prompt')
++        self.assertEqual(restored.edge_case_synthesizer.get_all_edge_cases(), [])
++
++    def test_empty_generation_does_not_advance(self):
++        endpoint = Mock(); endpoint.query.return_value = {'edge_cases': [{'content': 'wrong field'}]}
++        self.manager.edge_case_synthesizer._synthesis_endpoint = endpoint
++        self.manager.phase_controller.transition_to(SoloPhase.EDGE_CASE_SYNTHESIS, force=True)
++        with patch.object(routes, 'render_template', return_value='retry') as render:
++            response = self.client.get('/solo/edge-cases')
++        self.assertEqual(response.status_code, 502)
++        self.assertIn('synthesis_error', render.call_args.kwargs)
++        self.assertEqual(self.manager.get_current_phase(), SoloPhase.EDGE_CASE_SYNTHESIS)
++
++    def test_unknown_case_or_label_is_rejected(self):
++        case = self.generate()[0]
++        for data,status in [({'case_id': 'missing', 'label': 'Answers'},404),
++                            ({'case_id': case.id, 'label': 'invented'},400)]:
++            self.assertEqual(self.client.post('/solo/edge-cases', data=data).status_code,status)
++        self.assertFalse(self.manager.edge_case_synthesizer.get_labeled_edge_cases())
++
++
++if __name__ == '__main__':
++    unittest.main()

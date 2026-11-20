@@ -1,0 +1,44 @@
+[
+  {
+    "id": "corpus-v1-q01",
+    "informationNeed": "Find the missing response-field mapping and the changes needed to restore consistent public results.",
+    "text": "Why did public diary results lose their entry type after the array-filter migration?",
+    "textHash": "7895033bb2de324cb45400ebc896d05df8001dc695974b5dd6e5f93ba17e9a66"
+  },
+  {
+    "id": "corpus-v1-q02",
+    "informationNeed": "Locate the forwarding gap between the MCP tool and the API.",
+    "text": "The MCP diary listing ignores my entry-type filter. Where should I look?",
+    "textHash": "be5f4a0730bd4a54d7c735958b456578dcc208792cd9dfd02bf0a8e370a95d73"
+  },
+  {
+    "id": "corpus-v1-q03",
+    "informationNeed": "Explain the nullable-union code-generation failure and where to fix it without editing generated files.",
+    "text": "Why does the Go client fail to decode a null task claim condition?",
+    "textHash": "e633b544e4b11e31973bb9e2089b1f1b873381591df2db453b17729ab848e557"
+  },
+  {
+    "id": "corpus-v1-q04",
+    "informationNeed": "Find the initialization assumption that direct app fixtures violate and its fallback behavior.",
+    "text": "Why does a REST signing-request test crash with paths is not iterable during startup?",
+    "textHash": "a1f7da4d482de51b0456a968356e32f2622a0756d6cbf35bdc4efb2ac276b13d"
+  },
+  {
+    "id": "corpus-v1-q06",
+    "informationNeed": "Find how to create an independent judge repository without copying the producer’s .git pointer.",
+    "text": "How should a judge workspace be isolated from a producer worktree’s Git metadata?",
+    "textHash": "a227242bc4439716a981cce105f7f2d83364758d1faa96c9f8ebab6ac0c74bd6"
+  },
+  {
+    "id": "corpus-v1-q07",
+    "informationNeed": "Find the bounded repair primitive and the distinction between transport success and domain validity.",
+    "text": "How can an orchestrator retry a completed task whose output is still invalid?",
+    "textHash": "d4750e5e2fc4c01cdc166c3efaf8ea4f323fe96e7cf8a829782c47b8427ffee7"
+  },
+  {
+    "id": "corpus-v1-q10",
+    "informationNeed": "Find bounds and algorithm changes for missing-comma repair, including scalar decoding behavior.",
+    "text": "How do we stop malformed model JSON from blocking the event loop during repair?",
+    "textHash": "17749d7fe03e3d3fdfba712d8373e012efd4088d3d482ab8fbb83ccd64338d99"
+  }
+]

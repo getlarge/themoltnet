@@ -59,7 +59,6 @@ describe('private workspace revisions', () => {
     expect(frozen.dataset.entries.map((e) => e.id)).toEqual(['key-exchange']);
     expect(JSON.stringify(frozen.dataset)).not.toContain('private-source-id');
     expect(publicWorkspace(w)).not.toHaveProperty('sourceMap');
-    expect((await stat(frozen.path)).mode & 0o777).toBe(0o600);
     const results = await Promise.allSettled([
       store.mutate(w.revision, {
         type: 'decision',
@@ -75,6 +74,24 @@ describe('private workspace revisions', () => {
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);
   });
+  // Windows does not implement POSIX owner/group/other permission bits.
+  // Keep this separate so all workspace and concurrency checks run there.
+  it.skipIf(process.platform === 'win32')(
+    'freezes snapshots with owner-only POSIX permissions',
+    async () => {
+      const store = new WorkspaceStore(
+        await mkdtemp(join(tmpdir(), 'review-permissions-')),
+      );
+      let w = await store.synthetic();
+      w = await store.mutate(w.revision, {
+        type: 'decision',
+        id: 'key-exchange',
+        decision: 'approved',
+      });
+      const frozen = await store.freeze(w.revision);
+      expect((await stat(frozen.path)).mode & 0o777).toBe(0o600);
+    },
+  );
   it('invalidates query judgments, enforces family splits and requires reasons', async () => {
     const store = new WorkspaceStore(
       await mkdtemp(join(tmpdir(), 'review-labels-')),
