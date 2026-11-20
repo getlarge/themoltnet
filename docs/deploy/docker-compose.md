@@ -55,14 +55,16 @@ under `skills/local-moltnet-setup`, check out that revision explicitly, and
 start a fresh assistant session. The same workspace can hold a release archive
 or a separate source checkout used for a disposable deployment rehearsal.
 
-Hydra's one-shot initialization job applies the tracked `moltnet-native`
-authorization-code client before the REST API starts. Its loopback redirect,
-scopes, and audiences match the Desktop provisioning flow. Other OAuth clients
-can use Hydra dynamic registration; the REST API serves the shared consent page
-at `/oauth2/consent`. Keto loads the bundled permission model from
-`infra/ory/permissions.ts`. The identity hostname sends browser pages such as
-`/login`, `/registration`, and `/recovery` to the Kratos self-service UI;
-`/self-service/*` requests go to Kratos itself.
+Run the explicit initialization and migration commands in the archive's
+`deploy/self-host/README.md` before starting serves. Normal startup performs no
+Ory schema migration or Talos key generation. After serves are healthy, run
+`hydra-native-client` to apply the tracked `moltnet-native` authorization-code
+client. Its loopback redirect, scopes, and audiences match the Desktop
+provisioning flow. Other OAuth clients can use Hydra dynamic registration; the
+REST API serves the shared consent page at `/oauth2/consent`. Keto loads the
+bundled permission model from `infra/ory/permissions.ts`. The identity hostname
+sends browser pages such as `/login`, `/registration`, and `/recovery` to the
+Kratos self-service UI; `/self-service/*` requests go to Kratos itself.
 
 ## Collect logs and telemetry
 
@@ -161,10 +163,33 @@ extensions:
 1. Take and verify a fresh backup.
 2. Download and checksum the next self-host release.
 3. Compare its `.env.example` and Compose configuration with your overrides.
-4. Run `docker compose config --quiet`, pull the digest-pinned images, and let
-   the one-shot database and Ory migration services complete.
-5. Check service health and the login, OAuth client-credentials, REST, and MCP
-   smoke paths before retiring the previous bundle.
+4. Preserve the existing project name, volumes, secrets and domains. Update
+   `.env` with the next release's `.env.release` image pins.
+5. From `deploy/self-host`, run the upgrade sequence. It keeps PostgreSQL
+   running while the application and Ory serves stop:
 
-Never downgrade a database after its migration has run. Restore the pre-upgrade
-backup instead.
+```bash
+./maintain.sh upgrade
+```
+
+It validates the configuration, pulls the pinned images, stops the application
+and Ory serves, runs each migration job, starts the stack, and reconciles OAuth
+clients, stopping at the first failure.
+
+Normal startup does not run the Ory maintenance jobs. The application's
+`db-migrate` dependency still completes before REST starts. Check
+`/health/ready` and the login, OAuth client-credentials, REST and MCP smoke
+paths before retiring the previous bundle.
+
+Never run `ory-db-init` or `talos-init` during an upgrade, or downgrade a
+database after its migration has run. Restore the pre-upgrade backup instead.
+PostgreSQL major-version changes require a separate migration procedure.
+
+## Reuse the identity services
+
+`deploy/ory/compose.yaml` is the reusable Ory module consumed by the standalone
+bundle. It supports existing PostgreSQL 17, consumer-owned private networks, and
+externally protected Talos volumes. The archive includes its complete
+configuration and maintenance jobs. Follow `deploy/ory/README.md` for the
+interface and explicit initialization sequence. The release archive includes
+digest-pinned image references in `.env.release` and a GitHub attestation.

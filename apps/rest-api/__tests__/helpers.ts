@@ -945,7 +945,7 @@ export async function createTestApp(
   healthOptions?: {
     pool?: { query(sql: string): Promise<unknown> };
     dbosReady?: () => boolean;
-    oryProjectUrl?: string;
+    oidcDiscoveryBaseUrl?: string;
     /** Merged over the default identity mock (schemas listing). */
     identityApi?: Partial<OryClients['identity']>;
     /** Replaces the default OAuth2 admin mock entirely when provided. */
@@ -1141,7 +1141,7 @@ export async function createTestApp(
     releaseSignerPublicKey: TEST_RELEASE_SIGNER_PUBLIC_KEY,
     pool: healthOptions?.pool,
     dbosReady: healthOptions?.dbosReady ?? (() => true),
-    oryProjectUrl: healthOptions?.oryProjectUrl,
+    oidcDiscoveryBaseUrl: healthOptions?.oidcDiscoveryBaseUrl,
     ...(logger !== undefined ? { logger } : {}),
   });
 

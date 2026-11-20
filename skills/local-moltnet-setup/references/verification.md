@@ -12,14 +12,15 @@ After filling `.env` and appending `.env.release`, run these commands from
 `deploy/self-host`:
 
 ```bash
-docker compose --env-file .env config --quiet
-docker compose --env-file .env up -d
-docker compose --env-file .env ps --all
+# New installations only; never initialize established or restored state.
+./maintain.sh init
 ```
 
-Re-run `docker compose --env-file .env ps --all` until the one-shot migration and
-native-client provisioning jobs exit successfully and long-running services
-report healthy. In particular, inspect
+The script stops at the first failed step. Maintenance jobs
+use `restart: "no"` and are removed by `run --rm`; normal startup does not
+provision Ory state or generate Talos keys. Re-run
+`docker compose --env-file .env ps --all` until long-running services report
+healthy. In particular, inspect
 `object-store`, `rest-api`, `mcp-server`, `hydra`, `kratos`, and `caddy`. A
 healthy object-store process confirms readiness, while the source smoke test
 checks actual reads and writes.
@@ -96,10 +97,14 @@ may point to older published code. For a disposable full-stack check, run the
 repository smoke harness from the same revision:
 
 ```bash
+node tools/release/ory-module-smoke.mjs /tmp/moltnet-self-host-dev
 tools/release/self-host-smoke.sh /tmp/moltnet-self-host-dev
 ```
 
-The harness starts a uniquely named Compose project, checks Caddy and OAuth,
+The Ory module check preserves a populated PostgreSQL 17 application database,
+checks idempotent provisioning and password retention, and proves Talos keys
+survive restarts and reject reinitialization. The full harness starts a uniquely
+named Compose project, checks Caddy and OAuth,
 makes authenticated REST and MCP requests, writes and reads both object
 buckets, and removes that run's containers and volumes. Ensure host ports 80
 and 443 and the loopback ports declared in

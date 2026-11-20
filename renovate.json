@@ -18,6 +18,18 @@
       ]
     },
     {
+      "customType": "regex",
+      "datasourceTemplate": "docker",
+      "description": "Digest-pinned container images written as string literals in test and smoke harnesses, which the docker-compose manager does not read",
+      "managerFilePatterns": [
+        "/(^|\\/)__tests__\\/.+\\.(ts|mjs)$/",
+        "/^tools\\/release\\/[^/]+\\.mjs$/"
+      ],
+      "matchStrings": [
+        "['\\s](?<depName>[a-z0-9][a-z0-9._/-]*):(?<currentValue>[A-Za-z0-9._-]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ]
+    },
+    {
       "autoReplaceStringTemplate": "https://unofficial-builds.nodejs.org/download/release/v{{{newValue}}}/node-v{{{newValue}}}",
       "customType": "regex",
       "datasourceTemplate": "node-version",

@@ -1,0 +1,251 @@
+# Reusable Ory services. Consumers declare the named networks and talos-data
+# volume; no service publishes host ports. Maintenance jobs run explicitly.
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    options:
+      max-size: 10m
+      max-file: '3'
+
+# Each database has one DSN, shared by its migration job and serve.
+x-dsn:
+  kratos: &kratos-dsn postgres://kratos:${KRATOS_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/kratos?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+  hydra: &hydra-dsn postgres://hydra:${HYDRA_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/hydra?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+  keto: &keto-dsn postgres://keto:${KETO_DB_PASSWORD}@${ORY_DB_HOST:-postgres}:${ORY_DB_PORT:-5432}/keto?sslmode=${ORY_DB_SSLMODE:-disable}&max_conns=${ORY_DB_MAX_CONNECTIONS:-10}&max_idle_conns=${ORY_DB_MAX_IDLE_CONNECTIONS:-5}
+
+# Serve, init, and migrate must see the same Talos state and configuration.
+x-talos: &talos
+  networks: [credentials]
+  entrypoint: [/bin/sh, /etc/config/talos/talos.sh]
+  environment:
+    DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
+    CREDENTIALS_ISSUER: ${TALOS_PUBLIC_ISSUER:-https://${API_DOMAIN}}
+  volumes:
+    - ./talos.yaml:/etc/config/talos/talos.yaml:ro
+    - ./talos.sh:/etc/config/talos/talos.sh:ro
+    - talos-data:/var/lib/talos
+
+services:
+  kratos-migrate:
+    image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
+    networks: [database]
+    command: migrate sql -e --yes
+    environment:
+      DSN: *kratos-dsn
+    restart: 'no'
+    profiles: [maintenance]
+
+  kratos:
+    <<: *restart
+    image: oryd/kratos:v26.2.0@sha256:2a13bb8d362c7a7ae33bd7c0f5168aee46921f15c916a06346db91c06dc76643
+    networks: [ingress, database, services, identity]
+    command: serve --config /etc/config/kratos/kratos.yaml --watch-courier
+    environment:
+      # Native recovery must return continue_with session-token transitions.
+      FEATURE_FLAGS_USE_CONTINUE_WITH_TRANSITIONS: 'true'
+      DSN: *kratos-dsn
+      SECRETS_COOKIE: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
+      SECRETS_CIPHER: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
+      SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${IDENTITY_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_2: https://${API_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_3: https://${MCP_DOMAIN}
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_0: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_1: https://${IDENTITY_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_2: https://${API_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_3: https://${MCP_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_4: https://${OAUTH_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: https://${IDENTITY_DOMAIN}/registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: https://${IDENTITY_DOMAIN}/login
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: https://${IDENTITY_DOMAIN}/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: https://${IDENTITY_DOMAIN}/verification
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: https://${IDENTITY_DOMAIN}/settings
+      SELFSERVICE_FLOWS_ERROR_UI_URL: https://${IDENTITY_DOMAIN}/error
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_URL: ${ORY_HOOK_BASE_URL:-http://rest-api:8080}/hooks/kratos/after-settings
+      SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED: 'true'
+      SELFSERVICE_FLOWS_VERIFICATION_ENABLED: 'true'
+      SELFSERVICE_FLOWS_VERIFICATION_USE: code
+      COURIER_SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI:?set SMTP_CONNECTION_URI}
+      COURIER_SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+      CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
+      IDENTITY_DOMAIN: ${IDENTITY_DOMAIN}
+      ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY}
+      SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI:?set SMTP_CONNECTION_URI}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+    volumes:
+      - ../../infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ../../infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
+      - ../../infra/ory/human-identity-schema.json:/etc/config/kratos/human-identity-schema.json:ro
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4433/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kratos-ui:
+    <<: *restart
+    image: oryd/kratos-selfservice-ui-node:v26.2.0@sha256:46a7bac1ad0c67c692b37d0380613fd4618fd751afac2c5314aa8d3ae77ef1f0
+    networks: [ingress, identity]
+    environment:
+      PORT: '4455'
+      SECURITY_MODE: standalone
+      KRATOS_PUBLIC_URL: http://kratos:4433/
+      KRATOS_ADMIN_URL: http://kratos:4434/
+      HYDRA_ADMIN_URL: http://hydra:4445/
+      KRATOS_BROWSER_URL: https://${IDENTITY_DOMAIN}/
+      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:?set KRATOS_UI_COOKIE_SECRET}
+      CSRF_COOKIE_NAME: ory_csrf_ui
+      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_SECRET:?set KRATOS_UI_CSRF_SECRET}
+    depends_on:
+      kratos:
+        condition: service_healthy
+
+  hydra-migrate:
+    image: oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9
+    networks: [database]
+    command: migrate sql up -e --yes
+    environment:
+      DSN: *hydra-dsn
+    restart: 'no'
+    profiles: [maintenance]
+
+  hydra:
+    <<: *restart
+    image: oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9
+    networks: [ingress, database, services, identity]
+    command: serve all --config /etc/config/hydra/hydra.yaml
+    environment:
+      DSN: *hydra-dsn
+      SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
+      OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:?set OIDC_PAIRWISE_SALT}
+      CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      IDENTITY_DOMAIN: ${IDENTITY_DOMAIN}
+      OAUTH_DOMAIN: ${OAUTH_DOMAIN}
+      ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${API_DOMAIN}
+      URLS_SELF_ISSUER: https://${OAUTH_DOMAIN}/
+      URLS_SELF_PUBLIC: https://${OAUTH_DOMAIN}/
+      URLS_CONSENT: https://${API_DOMAIN}/oauth2/consent
+      URLS_LOGIN: https://${IDENTITY_DOMAIN}/login
+      URLS_LOGOUT: https://${IDENTITY_DOMAIN}/logout
+      URLS_ERROR: https://${CONSOLE_DOMAIN}/auth/error
+      URLS_POST_LOGOUT_REDIRECT: https://${CONSOLE_DOMAIN}/
+      OAUTH2_TOKEN_HOOK_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      OAUTH2_EXPOSE_INTERNAL_ERRORS: 'false'
+      WEBFINGER_OIDC_DISCOVERY_TOKEN_URL: https://${API_DOMAIN}/oauth2/token
+      WEBFINGER_OIDC_DISCOVERY_CLIENT_REGISTRATION_URL: https://${OAUTH_DOMAIN}/oauth2/register
+    volumes:
+      - ../../infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4444/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  hydra-native-client:
+    image: ${ORY_TOOLS_IMAGE:?set ORY_TOOLS_IMAGE}
+    networks: [services]
+    command: [node, /etc/config/hydra/provision-oauth-clients.mjs]
+    environment:
+      TAILSCALE_LOGIN_CLIENT_SECRET: ${TAILSCALE_LOGIN_CLIENT_SECRET:-}
+    volumes:
+      - ./provision-oauth-clients.mjs:/etc/config/hydra/provision-oauth-clients.mjs:ro
+      - ../../infra/ory/oauth2-clients/moltnet-native.json:/etc/config/hydra/moltnet-native.json:ro
+      - ../../infra/ory/oauth2-clients/tailscale-login.json:/etc/config/hydra/tailscale-login.json:ro
+    depends_on:
+      hydra:
+        condition: service_healthy
+    restart: 'no'
+    profiles: [maintenance]
+
+  keto-migrate:
+    image: oryd/keto:v26.2.0@sha256:bfdb8b9e283aedbd9e1d005c44eb1bbefd2096b2cb5b5aa0b7360b6e39c178d2
+    networks: [database]
+    command: migrate up --yes --config /etc/config/keto/keto.yaml
+    environment:
+      DSN: *keto-dsn
+    volumes:
+      - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    restart: 'no'
+    profiles: [maintenance]
+
+  keto:
+    <<: *restart
+    image: oryd/keto:v26.2.0@sha256:bfdb8b9e283aedbd9e1d005c44eb1bbefd2096b2cb5b5aa0b7360b6e39c178d2
+    networks: [database, services]
+    command: serve --config /etc/config/keto/keto.yaml
+    environment:
+      DSN: *keto-dsn
+    volumes:
+      - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4466/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  talos:
+    <<: [*restart, *talos]
+    image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
+    command: [serve]
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4422/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  talos-init:
+    <<: *talos
+    image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
+    command: [init]
+    restart: 'no'
+    profiles: [maintenance]
+
+  talos-migrate:
+    <<: *talos
+    image: oryd/talos:v26.2.0@sha256:6d475ee745395846c8c89b50987e76bce76a902d786967bedf6af6fbf88535d1
+    command: [migrate]
+    restart: 'no'
+    profiles: [maintenance]
+
+  ory-db-init:
+    image: ${ORY_TOOLS_IMAGE:?set ORY_TOOLS_IMAGE}
+    networks: [database]
+    command: [node, /etc/config/ory/provision-databases.mjs]
+    environment:
+      ORY_DB_HOST: ${ORY_DB_HOST:-postgres}
+      ORY_DB_PORT: ${ORY_DB_PORT:-5432}
+      ORY_DB_SSLMODE: ${ORY_DB_SSLMODE:-disable}
+      ORY_DB_ADMIN_USER: ${ORY_DB_ADMIN_USER:-postgres}
+      ORY_DB_ADMIN_PASSWORD: ${ORY_DB_ADMIN_PASSWORD:-${POSTGRES_PASSWORD:-}}
+      KRATOS_DB_PASSWORD: ${KRATOS_DB_PASSWORD:?set KRATOS_DB_PASSWORD}
+      HYDRA_DB_PASSWORD: ${HYDRA_DB_PASSWORD:?set HYDRA_DB_PASSWORD}
+      KETO_DB_PASSWORD: ${KETO_DB_PASSWORD:?set KETO_DB_PASSWORD}
+    volumes:
+      - ./provision-databases.mjs:/etc/config/ory/provision-databases.mjs:ro
+    restart: 'no'
+    profiles: [maintenance]
