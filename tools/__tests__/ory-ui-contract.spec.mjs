@@ -61,6 +61,61 @@ test('OAuth starts at the Console and consent stays with the REST API', () => {
   );
 });
 
+test('Network allows the Hydra continuation used after Kratos logout', () => {
+  assert.ok(
+    network.allowed_return_urls.includes(
+      '${ORY_PROJECT_URL}/oauth2/sessions/logout',
+    ),
+  );
+});
+
+test('self-hosted browser approval shares a secure session across identity and API hosts', () => {
+  assert.equal(
+    selfhost.SESSION_COOKIE_DOMAIN,
+    '${KRATOS_COOKIE_DOMAIN:?set KRATOS_COOKIE_DOMAIN to a trusted parent domain}',
+  );
+  assert.equal(selfhost.SESSION_COOKIE_SECURE, 'true');
+  assert.equal(
+    parse(read('deploy/self-host/compose.yaml')).services.kratos.extends.file,
+    '../ory/compose.yaml',
+  );
+  const example = Object.fromEntries(
+    read('deploy/self-host/.env.example')
+      .split('\n')
+      .filter((line) => /^[A-Z_]+=/.test(line))
+      .map((line) => line.split('=')),
+  );
+  for (const host of [example.IDENTITY_DOMAIN, example.API_DOMAIN]) {
+    assert.ok(host.endsWith(`.${example.KRATOS_COOKIE_DOMAIN}`));
+  }
+  // The public deployment setting must not broaden localhost cookie scope.
+  assert.equal(
+    parse(read('infra/ory/kratos/kratos.yaml')).session.cookie.domain,
+    undefined,
+  );
+});
+
+test('Console E2E default inputs hash every authentication scenario flag', () => {
+  const inputs = JSON.parse(read('apps/console-e2e/package.json')).nx
+    .namedInputs.default;
+  assert.ok(inputs.includes('{projectRoot}/**/*'));
+  assert.ok(inputs.includes('sharedGlobals'));
+  const flags = new Set(
+    [
+      ...read('apps/console-e2e/src/auth-self-service.e2e.spec.ts').matchAll(
+        /process\.env\['(AUTH_UI_[A-Z_]+)'\]/g,
+      ),
+    ].map(([, flag]) => flag),
+  );
+  assert.ok(flags.size >= 5);
+  for (const flag of flags) {
+    assert.ok(
+      inputs.some((input) => input.env === flag),
+      `${flag} is hashed`,
+    );
+  }
+});
+
 test('registration still requires explicit login for human onboarding', () => {
   for (const method of ['password', 'oidc']) {
     for (const config of [network, local]) {

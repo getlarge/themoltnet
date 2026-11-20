@@ -24,6 +24,27 @@
     "implicitDependencies": [
       "@moltnet/console"
     ],
+    "namedInputs": {
+      "default": [
+        "{projectRoot}/**/*",
+        "sharedGlobals",
+        {
+          "env": "AUTH_UI_TESTS"
+        },
+        {
+          "env": "AUTH_UI_MAIL_TESTS"
+        },
+        {
+          "env": "AUTH_UI_OAUTH_TESTS"
+        },
+        {
+          "env": "AUTH_UI_EXPIRY_TESTS"
+        },
+        {
+          "env": "AUTH_UI_VISUAL_TESTS"
+        }
+      ]
+    },
     "targets": {
       "e2e-auth": {
         "executor": "nx:run-commands",

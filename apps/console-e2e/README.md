@@ -147,7 +147,17 @@ RP-initiated logout. It requires `HYDRA_ADMIN_URL` (default
 `http://localhost:4445`) and `HYDRA_PUBLIC_URL` (default
 `http://localhost:4444`) for the same disposable stack. CI enables this case
 and the core/mail cases; local `e2e-auth` enables core/mail cases by default.
-Expiry and screenshots are separate opt-ins. Failures retain Playwright traces according to `playwright.config.ts`.
+Expiry and screenshots are separate opt-ins. All five `AUTH_UI_*` scenario
+flags participate in the project's default Nx cache inputs, including the
+aggregate `e2e` target used by CI. Failures retain Playwright traces according to
+`playwright.config.ts`.
+
+Localhost ports share cookie scope, unlike separate identity and API hostnames.
+The default stack therefore does not validate the self-hosted shared-cookie
+boundary. Before accepting a multi-host deployment, check login, consent and
+RP-initiated logout with its distinct HTTPS hosts and `KRATOS_COOKIE_DOMAIN`
+using the same full stack, not an auth-only replacement fixture. See the
+[shared-cookie requirements](../../deploy/ory/README.md).
 
 A passing run demonstrates the asserted paths for the selected Console artifact,
 backend version and configuration. It does not establish compatibility with

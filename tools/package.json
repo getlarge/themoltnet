@@ -163,7 +163,10 @@
           "{workspaceRoot}/infra/ory/**",
           "{workspaceRoot}/deploy/ory/**",
           "{workspaceRoot}/docker-compose*.yaml",
-          "{workspaceRoot}/deploy/self-host/compose.yaml"
+          "{workspaceRoot}/deploy/self-host/compose.yaml",
+          "{workspaceRoot}/deploy/self-host/.env.example",
+          "{workspaceRoot}/apps/console-e2e/package.json",
+          "{workspaceRoot}/apps/console-e2e/src/auth-self-service.e2e.spec.ts"
         ]
       }
     }

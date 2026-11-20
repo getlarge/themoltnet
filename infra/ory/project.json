@@ -116,6 +116,7 @@
             "${DOCS_BASE_URL}/",
             "${ORY_PROJECT_URL}/error",
             "${ORY_PROJECT_URL}/login",
+            "${ORY_PROJECT_URL}/oauth2/sessions/logout",
             "${ORY_PROJECT_URL}/recovery",
             "${ORY_PROJECT_URL}/registration",
             "${ORY_PROJECT_URL}/settings",

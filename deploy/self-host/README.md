@@ -23,7 +23,10 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
    80/443 plus UDP 443 through its firewall.
 3. Copy `.env.example` to `.env`. Generate independent secrets with
    `openssl rand -hex 32`; use exactly 32 characters for
-   `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field.
+   `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field. Set
+   `KRATOS_COOKIE_DOMAIN` to the trusted parent of the identity and API hosts
+   (for example, `example.com`). All subdomains under that parent must be under
+   your control; see the [shared-cookie requirements](../ory/README.md).
 4. If using a release archive, append `.env.release` to `.env` so its digest
    pins override the example tags.
 5. Validate, initialize, and start the stack:

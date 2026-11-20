@@ -56,7 +56,23 @@ hook completes human onboarding. OAuth consent remains on REST API at
 Hydra logout challenges also use Console at `/auth/logout`. After explicit
 confirmation, REST API validates that the challenge belongs to the current
 human session, accepts it through Hydra's admin API, and Console ends the
-Kratos session before following Hydra's continuation. The browser test procedure and
+Kratos session before following Hydra's continuation.
+
+Set `KRATOS_COOKIE_DOMAIN` to an explicit parent of the identity and API hosts
+(for example, `example.com` for `identity.example.com` and `api.example.com`).
+Use a domain only, without a scheme, port or leading dot, and never a public
+suffix such as `com` or `co.uk`. The module requires this value rather than
+inferring it from a hostname. The HTTPS-only, HttpOnly Kratos session cookie
+then accompanies browser requests to both services. Every subdomain beneath
+this parent is part of the session-cookie trust boundary: control all of them
+and do not host untrusted tenant applications there. Keep this domain as narrow
+as the host layout permits. Cookies remain `SameSite=Lax`; CORS and the REST
+API's session/subject checks still apply. After changing an existing cookie
+domain, clear the old identity-host cookie and sign in again to avoid sending
+both old and new cookies with the same name. Localhost development/E2E uses its
+own configuration and keeps host-only cookies.
+
+The browser test procedure and
 its validation limits are documented in `apps/console-e2e/README.md` in the
 source checkout. Do not change live project settings as part of packaging.
 

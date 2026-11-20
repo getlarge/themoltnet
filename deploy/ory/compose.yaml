@@ -46,6 +46,9 @@ services:
       DSN: *kratos-dsn
       SECRETS_COOKIE: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
       SECRETS_CIPHER: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
+      # Identity and API hosts share the HttpOnly session for browser approval.
+      SESSION_COOKIE_DOMAIN: ${KRATOS_COOKIE_DOMAIN:?set KRATOS_COOKIE_DOMAIN to a trusted parent domain}
+      SESSION_COOKIE_SECURE: 'true'
       SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${IDENTITY_DOMAIN}
