@@ -1205,7 +1205,7 @@ it('installs native extension tools and checks their calls against the current p
   const allowed = vi.fn(async () => ({
     output: [{ type: 'text' as const, text: 'native result' }],
   }));
-  const blocked = vi.fn(allowed);
+  const blocked = vi.fn(() => allowed());
   const authorizeTool = vi.fn(async (name: string) =>
     name === 'blocked_native' ? 'policy denied' : undefined,
   );

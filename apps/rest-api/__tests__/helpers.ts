@@ -20,7 +20,7 @@ import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { FastifyInstance } from 'fastify';
-import { vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { type AppOptions, buildApp, type SecurityOptions } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
@@ -210,11 +210,11 @@ export interface MockServices {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
   relationshipWriter: {
-    [K in keyof RelationshipWriter]: ReturnType<typeof vi.fn>;
+    [K in keyof RelationshipWriter]: Mock;
   };
   dataSource: {
     client: object;
-    runTransaction: ReturnType<typeof vi.fn>;
+    runTransaction: Mock;
   };
   transactionRunner: {
     [K in keyof TransactionRunner]: ReturnType<typeof vi.fn>;
@@ -223,7 +223,7 @@ export interface MockServices {
     create: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
     findByIds: ReturnType<typeof vi.fn>;
-    list: ReturnType<typeof vi.fn>;
+    list: Mock;
     search: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
@@ -246,7 +246,7 @@ export interface MockServices {
     pin: ReturnType<typeof vi.fn>;
     unpin: ReturnType<typeof vi.fn>;
     updateExpiry: ReturnType<typeof vi.fn>;
-    deleteMany: ReturnType<typeof vi.fn>;
+    deleteMany: Mock;
     listByDiary: ReturnType<typeof vi.fn>;
   };
   renderedPackRepository: {
@@ -303,9 +303,7 @@ export interface MockServices {
     >;
   } & {
     durable: {
-      [K in keyof RuntimeSessionRepository['durable']]: ReturnType<
-        typeof vi.fn
-      >;
+      [K in keyof RuntimeSessionRepository['durable']]: Mock;
     };
   };
   runtimeSessionStorage: {

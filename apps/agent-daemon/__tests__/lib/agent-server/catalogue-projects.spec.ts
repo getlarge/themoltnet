@@ -1,5 +1,5 @@
 import { MoltNetError } from '@themoltnet/sdk';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import {
   buildCatalogue,
@@ -50,7 +50,7 @@ const machine = {
 };
 const catalogue = (
   port: CatalogueAgentPort,
-  logger?: { warn: ReturnType<typeof vi.fn> },
+  logger?: { warn: Mock },
 ) => buildCatalogue({ agent: port, machine, identityDefault: {}, logger });
 
 describe('project catalogue', () => {

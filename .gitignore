@@ -253,3 +253,4 @@ vite.config.*.timestamp*
 .claude/settings.local.json
 
 .nx/migrate-runs
+.vitest

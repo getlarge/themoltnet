@@ -53,7 +53,7 @@ describe('Card', () => {
   it('leaves static cards free of a touch-target floor', () => {
     renderWithTheme(<Card padding="none">Static</Card>);
 
-    expect(getComputedStyle(screen.getByText('Static')).minHeight).toBe('');
+    expect(getComputedStyle(screen.getByText('Static')).minHeight).toBe('auto');
   });
 
   it('renders linked cards as anchors', () => {

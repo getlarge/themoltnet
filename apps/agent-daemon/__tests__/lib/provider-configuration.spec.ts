@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { SecretProviderRegistry } from '@themoltnet/sdk';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { AgentServerStore } from '../../src/lib/agent-server/store.js';
 import { ProviderConfigurationService } from '../../src/lib/provider-configuration.js';
@@ -18,8 +18,8 @@ function fixture(
   options: {
     fetchImpl?: typeof fetch;
     logger?: {
-      info: ReturnType<typeof vi.fn>;
-      warn: ReturnType<typeof vi.fn>;
+      info: Mock;
+      warn: Mock;
     };
     requestTimeoutMs?: number;
     discoveryRetryDelayMs?: number;

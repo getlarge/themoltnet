@@ -6,12 +6,14 @@ import { TokenManager } from '../src/token.js';
 const mockFetch = vi.fn<typeof globalThis.fetch>();
 
 beforeEach(() => {
+  mockFetch.mockReset();
   vi.stubGlobal('fetch', mockFetch);
   vi.useFakeTimers();
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 

@@ -21,7 +21,14 @@ const TEAM_ID = '770e8400-e29b-41d4-a716-446655440000';
 const AGENT_ID = '660e8400-e29b-41d4-a716-446655440000';
 
 describe('team founding workflow', () => {
-  beforeAll(() => initTeamFoundingWorkflow());
+  let grantStep: Registered | undefined;
+  beforeAll(() => {
+    initTeamFoundingWorkflow();
+    // Registration output outlives the mock call history cleared per test.
+    grantStep = registerStep.mock.calls.find(
+      ([, options]) => options.name === 'team.founding.step.grantMember',
+    )?.[0];
+  });
 
   it('grants an executor projection to an agent founding member', async () => {
     const relationshipWriter = {
@@ -32,10 +39,6 @@ describe('team founding workflow', () => {
       removeTeamMemberRelation: vi.fn(),
     };
     setTeamFoundingDeps({ relationshipWriter } as never);
-    const grantStep = registerStep.mock.calls.find(
-      ([, options]) => options.name === 'team.founding.step.grantMember',
-    )?.[0];
-
     if (!grantStep) throw new Error('Founding member step was not registered');
     await grantStep(TEAM_ID, {
       subjectId: AGENT_ID,

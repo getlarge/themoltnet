@@ -53,16 +53,19 @@ function createMockDeps() {
 
 // ── Tests ─────────────────────────────────────────────────────
 
-describe('initLegreffierOnboardingWorkflow', () => {
-  beforeAll(() => {
-    initLegreffierOnboardingWorkflow();
-  });
+let workflowRegistrations: unknown[][];
+beforeAll(() => {
+  initLegreffierOnboardingWorkflow();
+  // Preserve registration evidence while allowing per-test mock clearing.
+  workflowRegistrations = [...mockRegisterWorkflow.mock.calls];
+});
 
+describe('initLegreffierOnboardingWorkflow', () => {
   it('registers the workflow with DBOS', () => {
-    expect(mockRegisterWorkflow).toHaveBeenCalledWith(
+    expect(workflowRegistrations).toContainEqual([
       expect.any(Function),
       expect.objectContaining({ name: 'legreffier.startOnboarding' }),
-    );
+    ]);
   });
 
   it('is idempotent — calling twice does not re-register', () => {

@@ -72,6 +72,7 @@ const mockCreateAgent = vi.mocked(createAgent);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockReadConfig.mockReset();
   // Reset env mock to return nothing by default
   mockReadEnvCredentials.mockReturnValue({
     clientId: undefined,
