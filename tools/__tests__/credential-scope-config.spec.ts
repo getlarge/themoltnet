@@ -154,12 +154,13 @@ describe('Ory environment parity', () => {
       ),
     ).toBe(true);
   });
+  // Console auth UI routes are checked by ory-ui-contract.spec.mjs.
   it('routes operator OAuth through the Console approval UI', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {
         oauth2: {
           config: {
-            urls: Record<string, unknown>;
+            urls: { consent: string; post_logout_redirect: string };
           };
         };
       };
@@ -167,11 +168,7 @@ describe('Ory environment parity', () => {
 
     expect(project.services.oauth2.config.urls).toMatchObject({
       consent: '${API_BASE_URL}/oauth2/consent',
-      error: '${CONSOLE_BASE_URL}/auth/error',
-      login: '${CONSOLE_BASE_URL}/auth/login',
-      logout: '${CONSOLE_BASE_URL}/auth/logout',
       post_logout_redirect: '${CONSOLE_BASE_URL}/',
-      registration: '${CONSOLE_BASE_URL}/auth/registration',
     });
   });
 

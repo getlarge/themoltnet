@@ -14,42 +14,31 @@ production or a database snapshot reserved for migration testing.
 ## Run against the E2E stack
 
 Run these commands from the repository root. Install workspace dependencies with
-`pnpm install` if needed, then install the browser and build the application
-images from your current checkout:
+`pnpm install` if needed, then install the browser and start the standard E2E
+stack from your current checkout:
 
 ```bash
 pnpm --dir apps/console-e2e exec playwright install chromium
-pnpm run e2e:build
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml up -d console
-```
-
-Starting `console` also starts its backend dependencies. The Console image
-serves the current built UI at `http://localhost:5174`, with runtime configuration
-pointing to Kratos at `http://localhost:4433` and the API at
-`http://localhost:8080`. Mailpit is available at `http://localhost:8025`.
-Rebuild images after changing application source, then rerun the Compose command
-to replace affected containers.
-
-The explicit Compose project name isolates containers and cleanup. Published
-host ports remain fixed by the Compose files, so another development/E2E stack
-cannot use those ports simultaneously. Use `localhost` consistently; changing
-only some URLs to `127.0.0.1` changes origins and cookie behavior.
-
-```bash
+pnpm run e2e:up
 NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @moltnet/console-e2e:e2e-auth
 ```
 
-The target enables `AUTH_UI_TESTS=1` and `AUTH_UI_MAIL_TESTS=1`. Global setup
-waits for Kratos, the REST API, the Console and Mailpit; it starts none of them.
-Keep the suite serial: later cases depend on the identity registered earlier.
-The environment flag prevents Nx from loading the encrypted root `.env` into
-test processes.
+The Console image serves the current built UI at `http://localhost:5174`, with
+runtime configuration pointing to Kratos at `http://localhost:4433` and the API
+at `http://localhost:8080`. Mailpit is available at `http://localhost:8025`.
+Use `localhost` consistently; changing only some URLs to `127.0.0.1` changes
+origins and cookie behavior. See [E2E Tests](../../AGENTS.md#e2e-tests) for
+`NX_LOAD_DOT_ENV_FILES` and rebuilding images after source changes.
 
-To work on the same UI with Vite instead of the built container, stop only this
-project's Console and start the development server in a separate terminal:
+The target enables `AUTH_UI_TESTS=1`. Global setup waits for Kratos, the REST
+API, the Console and Mailpit; it starts none of them. Keep the suite serial:
+later cases depend on the identity registered earlier.
+
+To work on the same UI with Vite instead of the built container, stop the
+stack's Console and start the development server in a separate terminal:
 
 ```bash
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml stop console
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml stop console
 NX_LOAD_DOT_ENV_FILES=false \
 VITE_KRATOS_URL=http://localhost:4433 \
 VITE_API_BASE_URL=http://localhost:8080 \
@@ -58,11 +47,7 @@ pnpm exec nx run @moltnet/console:dev --port=5174 --strictPort
 ```
 
 Run the same `e2e-auth` command while that server is running. Stop Vite with
-Ctrl-C when finished. Remove only this project's containers and volumes:
-
-```bash
-COMPOSE_DISABLE_ENV_FILE=true docker compose -p console-auth-ui -f docker-compose.e2e.yaml down -v
-```
+Ctrl-C when finished, then tear the stack down with `pnpm run e2e:down`.
 
 ## Optional checks
 
@@ -136,21 +121,13 @@ of the environment after testing.
 
 ## Interpret the result
 
-The target exercises registration without auto-login, invalid credentials,
-session persistence, logout, missing-flow recovery, unsafe return URL rejection,
-CSRF recovery while preserving the return destination, reauthentication,
-verification, account recovery, password reset, settings, TOTP enrollment,
-second-factor login and TOTP removal. `AUTH_UI_OAUTH_TESTS=1` additionally
-creates and deletes a synthetic Hydra client and checks challenge
-reauthentication, REST API consent, the authorization-code callback and
-RP-initiated logout. It requires `HYDRA_ADMIN_URL` (default
-`http://localhost:4445`) and `HYDRA_PUBLIC_URL` (default
-`http://localhost:4444`) for the same disposable stack. CI enables this case
-and the core/mail cases; local `e2e-auth` enables core/mail cases by default.
-Expiry and screenshots are separate opt-ins. All five `AUTH_UI_*` scenario
-flags participate in the project's default Nx cache inputs, including the
-aggregate `e2e` target used by CI. Failures retain Playwright traces according to
-`playwright.config.ts`.
+`AUTH_UI_OAUTH_TESTS=1` additionally creates and deletes a synthetic Hydra
+client and checks challenge reauthentication, REST API consent, the
+authorization-code callback and RP-initiated logout. It requires
+`HYDRA_ADMIN_URL` (default `http://localhost:4445`) and `HYDRA_PUBLIC_URL`
+(default `http://localhost:4444`) for the same disposable stack. CI enables
+this case and the core cases; expiry and screenshots are separate opt-ins.
+Failures retain Playwright traces according to `playwright.config.ts`.
 
 Localhost ports share cookie scope, unlike separate identity and API hostnames.
 The default stack therefore does not validate the self-hosted shared-cookie
@@ -159,14 +136,7 @@ RP-initiated logout with its distinct HTTPS hosts and `KRATOS_COOKIE_DOMAIN`
 using the same full stack, not an auth-only replacement fixture. See the
 [shared-cookie requirements](../../deploy/ory/README.md).
 
-A passing run demonstrates the asserted paths for the selected Console artifact,
-backend version and configuration. It does not establish compatibility with
-every Ory configuration, another deployment's proxy/TLS/cookie/CORS setup, or
-Ory Network acceptance. Validate the intended non-production deployment
-separately. Social providers, passkeys, other MFA methods, application API
-access and the full Console suite are outside this target's assertions.
-
-See [deployment guidance](../../docs/deploy/index.md),
-[the shared self-hosted Kratos configuration](../../infra/ory/kratos/kratos.yaml)
-and [the Console runtime loader](../console/src/config.ts). This README describes
-the procedure, not a record of test success or deployment status.
+A passing run covers only the asserted paths for the selected Console artifact,
+backend version and configuration; validate any other deployment separately.
+Social providers, passkeys, other MFA methods, application API access and the
+full Console suite are outside this target's assertions.

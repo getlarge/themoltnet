@@ -121,22 +121,18 @@ function findNodeValue(flow: KratosFlow, name: string): string | undefined {
 }
 
 /**
- * Enrols an authenticator app for the currently signed-in identity.
- *
- * Driven through the Kratos JSON API rather than the reference self-service UI:
- * the secret only exists inside the flow payload, and scraping it out of the
- * rendered QR code would couple this to that UI's markup.
+ * Reads a settings flow and its TOTP secret through the Kratos JSON API rather
+ * than the Console UI: the secret only exists inside the flow payload, and
+ * scraping it out of the rendered QR code would couple this to that UI's
+ * markup.
  *
  * `page.request` shares the browser context's cookie jar, so the session and
  * CSRF cookies established by the login flow apply here.
  */
-export async function enrollTotp(page: Page): Promise<string> {
-  await page.goto(`${KRATOS_PUBLIC_URL}/self-service/settings/browser`);
-  const flowId = new URL(page.url()).searchParams.get('flow');
-  if (!flowId) {
-    throw new Error(`Settings flow did not start; landed on ${page.url()}`);
-  }
-
+async function readSettingsFlow(
+  page: Page,
+  flowId: string,
+): Promise<{ flow: KratosFlow; secret: string }> {
   const flowResponse = await page.request.get(
     `${KRATOS_PUBLIC_URL}/self-service/settings/flows?id=${flowId}`,
     { headers: { accept: 'application/json' } },
@@ -157,7 +153,24 @@ export async function enrollTotp(page: Page): Promise<string> {
       'Settings flow exposed no TOTP secret — is the totp method enabled in kratos.yaml?',
     );
   }
+  return { flow, secret };
+}
 
+export async function readTotpSecret(
+  page: Page,
+  flowId: string,
+): Promise<string> {
+  return (await readSettingsFlow(page, flowId)).secret;
+}
+
+/** Enrols an authenticator app for the currently signed-in identity. */
+export async function enrollTotp(page: Page): Promise<string> {
+  await page.goto(`${KRATOS_PUBLIC_URL}/self-service/settings/browser`);
+  const flowId = new URL(page.url()).searchParams.get('flow');
+  if (!flowId) {
+    throw new Error(`Settings flow did not start; landed on ${page.url()}`);
+  }
+  const { flow, secret } = await readSettingsFlow(page, flowId);
   const csrfToken = findNodeValue(flow, 'csrf_token');
   await waitForFreshTotpWindow();
 

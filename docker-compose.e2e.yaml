@@ -105,7 +105,6 @@ services:
       file: docker-compose.base.yaml
       service: hydra
     environment:
-      URLS_LOGIN: http://localhost:5174/auth/login
       URLS_CONSENT: http://localhost:8080/oauth2/consent
       URLS_SELF_ISSUER: http://hydra:4444
       URLS_SELF_PUBLIC: http://localhost:4444

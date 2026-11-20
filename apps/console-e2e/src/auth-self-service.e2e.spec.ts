@@ -1,15 +1,13 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import {
-  Configuration,
-  FrontendApi,
-  OAuth2Api,
-  type SettingsFlow,
-} from '@ory/client-fetch';
+import { Configuration, OAuth2Api } from '@ory/client-fetch';
 import { expect, type Page, test } from '@playwright/test';
 
 import { CONSOLE_URL, KRATOS_PUBLIC_URL } from './helpers/env.js';
-import { submitKratosForm as submitMethod } from './helpers/kratos.js';
+import {
+  readTotpSecret,
+  submitKratosForm as submitMethod,
+} from './helpers/kratos.js';
 import { waitForVerificationCode } from './helpers/mailpit.js';
 import { createTestUser } from './helpers/test-user.js';
 import { generateTotpCode, waitForFreshTotpWindow } from './helpers/totp.js';
@@ -194,10 +192,6 @@ test.describe.serial('Console self-service authentication', () => {
   test('verifies email and recovers the account through backend codes', async ({
     page,
   }) => {
-    test.skip(
-      process.env['AUTH_UI_MAIL_TESTS'] !== '1',
-      'Requires a synthetic mailbox fixture',
-    );
     let sinceIso = new Date().toISOString();
     await page.goto(`${CONSOLE_URL}/auth/verification`);
     await page.locator('input[name="email"]').fill(user.email);
@@ -274,35 +268,7 @@ test.describe.serial('Console self-service authentication', () => {
     await expect(page.locator('input[name="password"]')).toBeVisible();
     const flowId = new URL(page.url()).searchParams.get('flow');
     if (!flowId) throw new Error('Settings did not initialize a flow');
-    // Share the browser cookie jar with the official SDK, without printing
-    // session cookies or enrolment secrets in test diagnostics.
-    const sdk = new FrontendApi(
-      new Configuration({
-        basePath: KRATOS_PUBLIC_URL,
-        fetchApi: async (input, init) => {
-          const response = await page.request.fetch(String(input), {
-            method: init?.method,
-            headers: init?.headers as Record<string, string>,
-          });
-          return new Response(new Uint8Array(await response.body()), {
-            status: response.status(),
-            headers: response.headers(),
-          });
-        },
-      }),
-    );
-    const flow: SettingsFlow = await sdk.getSettingsFlow({ id: flowId });
-    const node = flow.ui.nodes.find(
-      (item) =>
-        item.attributes.node_type === 'text' &&
-        item.attributes.id === 'totp_secret_key',
-    );
-    if (node?.attributes.node_type !== 'text')
-      throw new Error('Synthetic fixture must enable TOTP');
-    totpSecret = String(
-      (node.attributes.text.context as { secret?: string } | undefined)
-        ?.secret ?? node.attributes.text.text,
-    );
+    totpSecret = await readTotpSecret(page, flowId);
     await waitForFreshTotpWindow();
     await page
       .locator('input[name="totp_code"]')

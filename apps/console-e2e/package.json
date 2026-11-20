@@ -32,9 +32,6 @@
           "env": "AUTH_UI_TESTS"
         },
         {
-          "env": "AUTH_UI_MAIL_TESTS"
-        },
-        {
           "env": "AUTH_UI_OAUTH_TESTS"
         },
         {
@@ -53,8 +50,7 @@
           "cwd": "apps/console-e2e",
           "command": "playwright test src/auth-self-service.e2e.spec.ts",
           "env": {
-            "AUTH_UI_TESTS": "1",
-            "AUTH_UI_MAIL_TESTS": "1"
+            "AUTH_UI_TESTS": "1"
           }
         }
       }
