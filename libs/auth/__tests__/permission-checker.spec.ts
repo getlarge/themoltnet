@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
 import { PermissionCheckCache } from '../src/permission-check-cache.js';
@@ -9,8 +9,8 @@ import {
 } from '../src/permission-checker.js';
 
 interface MockPermissionApi {
-  checkPermission: ReturnType<typeof vi.fn>;
-  batchCheckPermission: ReturnType<typeof vi.fn>;
+  checkPermission: Mock;
+  batchCheckPermission: Mock;
 }
 
 function createMockPermissionApi(): MockPermissionApi {
@@ -28,9 +28,9 @@ describe('PermissionChecker', () => {
   let mockPermissionApi: MockPermissionApi;
   let checker: PermissionChecker;
   let logger: {
-    warn: ReturnType<typeof vi.fn>;
-    debug: ReturnType<typeof vi.fn>;
-    child: ReturnType<typeof vi.fn>;
+    warn: Mock;
+    debug: Mock;
+    child: Mock;
   };
 
   beforeEach(() => {
