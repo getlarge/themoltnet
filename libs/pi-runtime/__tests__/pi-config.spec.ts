@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 describe('writePiConfig', () => {
-  it('preserves the existing single-provider eval output', () => {
+  it('uses the supported Ollama cap field in single-provider eval configuration', () => {
     const dir = piDir();
 
     writePiConfig({
@@ -37,7 +37,13 @@ describe('writePiConfig', () => {
           api: 'openai-completions',
           apiKey: '$OLLAMA_API_KEY',
           baseUrl: 'https://ollama.com/v1',
-          models: [{ id: 'qwen3-coder:480b-cloud', type: 'chat' }],
+          models: [
+            {
+              id: 'qwen3-coder:480b-cloud',
+              type: 'chat',
+              compat: { maxTokensField: 'max_tokens' },
+            },
+          ],
         },
       },
     });
@@ -75,9 +81,22 @@ describe('writePiConfig', () => {
 
     const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
     expect(models.providers['ollama-cloud'].models).toEqual([
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'], type: 'chat' },
-      { id: 'glm-5.2:cloud', type: 'chat' },
-      { id: 'gpt-oss:120b-cloud', type: 'chat' },
+      {
+        id: 'qwen3.5:397b-cloud',
+        input: ['text', 'image'],
+        type: 'chat',
+        compat: { maxTokensField: 'max_tokens' },
+      },
+      {
+        id: 'glm-5.2:cloud',
+        type: 'chat',
+        compat: { maxTokensField: 'max_tokens' },
+      },
+      {
+        id: 'gpt-oss:120b-cloud',
+        type: 'chat',
+        compat: { maxTokensField: 'max_tokens' },
+      },
     ]);
   });
 
@@ -93,7 +112,12 @@ describe('writePiConfig', () => {
 
     const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
     expect(models.providers['ollama-cloud'].models).toEqual([
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'], type: 'chat' },
+      {
+        id: 'qwen3.5:397b-cloud',
+        input: ['text', 'image'],
+        type: 'chat',
+        compat: { maxTokensField: 'max_tokens' },
+      },
     ]);
   });
 
@@ -138,8 +162,11 @@ type PiConfig = {
   providers: Record<
     string,
     {
-      compat?: Record<string, boolean>;
-      models: { cost?: PiModelCost; compat?: Record<string, boolean> }[];
+      compat?: Record<string, boolean | string>;
+      models: {
+        cost?: PiModelCost;
+        compat?: Record<string, boolean | string>;
+      }[];
     }
   >;
 };
@@ -260,10 +287,48 @@ it('declares strict tool support for an opted-in single-provider model', () => {
     });
     expect(config.providers['ollama-cloud'].models[0].compat).toEqual({
       supportsStrictMode: true,
+      maxTokensField: 'max_tokens',
     });
   } finally {
     rmSync(piDir, { recursive: true, force: true });
   }
+});
+
+it('limits the Ollama token-field override to chat completions', () => {
+  const dir = piDir();
+  writePiConfig({
+    piDir: dir,
+    providers: {
+      chat: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        models: [{ id: 'mimo-v2.6-flash' }],
+      },
+      responses: {
+        api: 'openai-responses',
+        baseUrl: 'https://ollama.com/v1',
+        models: [{ id: 'mimo-v2.6-flash' }],
+      },
+      classifier: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        models: [{ id: 'clef:27b', type: 'classifier' }],
+      },
+      other: {
+        api: 'openai-completions',
+        baseUrl: 'https://provider.example/v1',
+        models: [{ id: 'mimo-v2.6-flash' }],
+      },
+    },
+  });
+  const { providers } = JSON.parse(
+    readFileSync(join(dir, 'models.json'), 'utf8'),
+  ) as PiConfig;
+  expect(providers.chat.models[0].compat).toEqual({
+    maxTokensField: 'max_tokens',
+  });
+  for (const name of ['responses', 'classifier', 'other'])
+    expect(providers[name].models[0]).not.toHaveProperty('compat');
 });
 
 it('uses explicit provider message-role compatibility', () => {

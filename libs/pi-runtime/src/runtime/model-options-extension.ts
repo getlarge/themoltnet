@@ -24,8 +24,9 @@ export function configureDurableModelOptions(
   provider: string,
   model: string,
   warn: (details: Record<string, unknown>, message: string) => void,
+  observe?: (options: Record<string, unknown>) => void | Promise<void>,
 ): void {
-  if (!hasPiModelOptions(options)) return;
+  if (!hasPiModelOptions(options) && !observe) return;
   const filtered = { ...options };
   for (const option of getUnsupportedRequestOptions(provider, model, options)) {
     delete filtered[option];
@@ -35,15 +36,69 @@ export function configureDurableModelOptions(
     );
   }
   const stream = models.streamSimple.bind(models);
+  const observed = new Set<string>();
   models.streamSimple = (selected, context, request) =>
     stream(selected, context, {
       ...request,
       onPayload: async (payload, selectedModel) => {
         const previous = await request?.onPayload?.(payload, selectedModel);
         const effective = previous ?? payload;
-        return applyPiModelOptions(effective, filtered) ?? effective;
+        let result = applyPiModelOptions(effective, filtered) ?? effective;
+        // Also cover caller-supplied/legacy models.json that bypasses our writer.
+        if (
+          isRecord(result) &&
+          typeof filtered.maxOutputTokens === 'number' &&
+          selectedModel.api === 'openai-completions' &&
+          isOllamaChatEndpoint(selectedModel.baseUrl)
+        ) {
+          result = { ...result, max_tokens: filtered.maxOutputTokens };
+          delete (result as Record<string, unknown>).max_completion_tokens;
+        }
+        if (observe && isRecord(result)) {
+          // Only scalar inference controls: never prompts, headers or credentials.
+          const controls: Record<string, unknown> = {
+            provider: selectedModel.provider,
+            model: selectedModel.id,
+          };
+          for (const key of [
+            'reasoning_effort',
+            'temperature',
+            'top_p',
+            'max_tokens',
+            'max_completion_tokens',
+          ]) {
+            const value = result[key];
+            if (typeof value === 'string' || typeof value === 'number')
+              controls[key] = value;
+          }
+          const digest = JSON.stringify(controls);
+          if (!observed.has(digest)) {
+            observed.add(digest);
+            try {
+              await observe(controls);
+            } catch {
+              warn(
+                { provider: selectedModel.provider, model: selectedModel.id },
+                'Unable to record provider request controls',
+              );
+            }
+          }
+        }
+        return result;
       },
     });
+}
+
+function isOllamaChatEndpoint(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    return (
+      url.origin === 'https://ollama.com' &&
+      url.pathname.replace(/\/$/, '') === '/v1'
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function applyPiModelOptions(

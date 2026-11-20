@@ -7,6 +7,40 @@ import {
 } from '../../src/runtime/model-options-extension.js';
 
 describe('applyPiModelOptions', () => {
+  it.each([
+    ['https://ollama.com/v1', 'openai-completions', 'max_tokens'],
+    ['https://ollama.com/v1/', 'openai-completions', 'max_tokens'],
+    ['https://other.example/v1', 'openai-completions', 'max_completion_tokens'],
+    ['https://ollama.com/v1', 'openai-responses', 'max_completion_tokens'],
+  ])(
+    'honors output caps for legacy model declarations at %s using %s',
+    async (baseUrl, api, field) => {
+      const stream = vi.fn();
+      const models = { streamSimple: stream } as unknown as ModelRuntime;
+      configureDurableModelOptions(
+        models,
+        { maxOutputTokens: 2000 },
+        'custom-provider',
+        'custom-model',
+        vi.fn(),
+      );
+      const selected = {
+        provider: 'custom-provider',
+        id: 'custom-model',
+        baseUrl,
+        api,
+      };
+      models.streamSimple(selected as never, {} as never);
+      const payload = await stream.mock.calls[0][2].onPayload(
+        { messages: [], max_completion_tokens: 99 },
+        selected,
+      );
+      expect(payload[field]).toBe(2000);
+      expect(
+        Object.keys(payload).filter((key) => key.startsWith('max_')),
+      ).toEqual([field]);
+    },
+  );
   it('applies OpenAI-compatible sampling and output caps without top-k', () => {
     const payload = {
       model: 'gpt-5.2',
@@ -148,6 +182,46 @@ it('applies profile sampling to Durable provider payloads while preserving an ex
   });
   expect(warn).toHaveBeenCalledWith(
     expect.objectContaining({ option: 'topK' }),
+    expect.any(String),
+  );
+});
+
+it('records only distinct scalar request controls and keeps observation failures nonfatal', async () => {
+  const stream = vi.fn();
+  const models = { streamSimple: stream } as unknown as ModelRuntime;
+  const observe = vi.fn().mockRejectedValue(new Error('observer unavailable'));
+  const warn = vi.fn();
+  configureDurableModelOptions(
+    models,
+    {},
+    'ollama-cloud',
+    'mimo-v2.6-flash',
+    warn,
+    observe,
+  );
+  const model = { provider: 'ollama-cloud', id: 'mimo-v2.6-flash' };
+  models.streamSimple(model as never, {} as never);
+  const request = stream.mock.calls[0][2] as {
+    onPayload: (p: unknown, m: unknown) => Promise<unknown>;
+  };
+  const payload = {
+    model: model.id,
+    messages: [{ content: 'private prompt' }],
+    reasoning_effort: 'none',
+    headers: { authorization: 'fixture' },
+    max_tokens: 4096,
+  };
+  await expect(request.onPayload(payload, model)).resolves.toEqual(payload);
+  await request.onPayload(payload, model);
+  expect(observe).toHaveBeenCalledOnce();
+  expect(observe).toHaveBeenCalledWith({
+    provider: model.provider,
+    model: model.id,
+    reasoning_effort: 'none',
+    max_tokens: 4096,
+  });
+  expect(warn).toHaveBeenCalledWith(
+    { provider: model.provider, model: model.id },
     expect.any(String),
   );
 });
