@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 
 /**
  * Bundle the composite action's dispatch entrypoint into a single
@@ -22,11 +23,12 @@ import { defineConfig } from 'vite';
  *   moltnet entry get f4ee2a8a-ed9a-4020-b06a-2412e6428955
  */
 export default defineConfig({
+  plugins: [nxReadySignal()],
   build: {
     ssr: 'src/main.ts',
     outDir: 'dist',
     target: 'node22',
-    rollupOptions: {
+    rolldownOptions: {
       // Node built-ins resolve at runtime; keep them external.
       output: { format: 'esm' },
     },

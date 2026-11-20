@@ -1,13 +1,16 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/credentials',
   plugins: [
-    nxCopyAssetsPlugin(['*.md']),
+    viteStaticCopy({
+      environment: 'ssr',
+      targets: [{ src: '*.md', dest: '.' }],
+    }),
     dts({
       rollupTypes: true,
       tsconfigPath: './tsconfig.lib.json',

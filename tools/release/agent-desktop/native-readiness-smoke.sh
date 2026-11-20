@@ -6,7 +6,9 @@ set -euo pipefail
 label=$1
 shift
 home=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-desktop-native-smoke.XXXXXX")
-output="${TMPDIR:-/tmp}/moltnet-desktop-smoke-$label.log"
+log_directory="${MOLTNET_DESKTOP_SMOKE_LOG_DIR:-${TMPDIR:-/tmp}}"
+mkdir -p "$log_directory"
+output="$log_directory/moltnet-desktop-smoke-$label.log"
 supervisor="$home/.config/moltnet/agent-server/logs/desktop-supervisor.log"
 payload=$(find dist/agent-bundle -mindepth 1 -maxdepth 1 \
   -type d -name 'moltnet-agent-*' -print -quit)
@@ -26,6 +28,10 @@ cleanup() {
     if [ "$process_group" = true ]; then
       kill -KILL -- "-$pid" 2>/dev/null || true
     fi
+  fi
+  # Preserve child startup diagnostics before deleting the isolated HOME.
+  if [ "$status" -ne 0 ] && [ -f "$supervisor" ]; then
+    cp "$supervisor" "${output%.log}-supervisor.log" || true
   fi
   # WebKit can briefly recreate its shader cache while descendants exit.
   for _ in 1 2 3 4 5; do

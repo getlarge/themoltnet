@@ -1,3 +1,4 @@
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { defineConfig } from 'vite';
 
 import { externalizeInstallableDependencies } from '../../vite.shared';
@@ -7,6 +8,7 @@ const external = externalizeInstallableDependencies(
 );
 
 export default defineConfig({
+  plugins: [nxReadySignal()],
   build: {
     emptyOutDir: true,
     outDir: 'dist',

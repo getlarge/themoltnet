@@ -76,6 +76,7 @@
     "node": ">=24"
   },
   "nx": {
+    "projectType": "library",
     "tags": [
       "type:runtime",
       "scope:agent",

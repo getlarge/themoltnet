@@ -50,14 +50,6 @@ export default defineConfig({
     ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: {
-      external,
-      input: {
-        index: 'src/index.ts',
-        'pi-config': 'src/pi-config.ts',
-        testing: 'src/tool-policy/escape-corpus.ts',
-      },
-    },
     rolldownOptions: {
       // Published workspace dependencies are installed by package consumers.
       // In particular, the analyzer owns runtime WASM assets whose

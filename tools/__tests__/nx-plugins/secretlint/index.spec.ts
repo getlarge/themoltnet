@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import type { CreateNodesContextV2, ProjectConfiguration } from '@nx/devkit';
+import type { CreateNodesContext, ProjectConfiguration } from '@nx/devkit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -27,7 +27,7 @@ const IGNORE_FILES = '{workspaceRoot}/**/.secretlintignore';
 
 describe('secretlint plugin', () => {
   let workspaceRoot: string;
-  let context: CreateNodesContextV2;
+  let context: CreateNodesContext;
 
   const touch = (path: string, content = '') => {
     mkdirSync(dirname(join(workspaceRoot, path)), { recursive: true });

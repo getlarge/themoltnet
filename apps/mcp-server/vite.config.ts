@@ -1,9 +1,11 @@
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { defineConfig } from 'vite';
 
 import { otelObservabilityExternals } from '../../vite.shared';
 
 export default defineConfig(() => {
   return {
+    plugins: [nxReadySignal()],
     build: {
       ssr: 'src/main.ts',
       outDir: 'dist',

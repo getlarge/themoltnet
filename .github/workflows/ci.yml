@@ -833,7 +833,7 @@ jobs:
       # without a config) declare test-ci as a noop depending on test, so a
       # single -t test-ci covers them. test-desktop-native keeps the Tauri
       # suite in the same affected graph without disabling atomization.
-      - name: Run affected lint, secretlint, typecheck, test-ci, test-desktop-native, build, check:pack, check:externals, docker:build
+      - name: Run affected lint, secretlint, typecheck, test-ci, test-desktop-native, build, check:pack, check:externals, check:build-assets, docker:build
         if: needs.affected.outputs.has-agents == 'true'
         env:
           # start-nx-agents ran in `affected`, so this runner has no local DTE
@@ -844,7 +844,7 @@ jobs:
           # to have published first. Release jobs run those smokes in order;
           # pre-merge CI still runs every package's tarball checks.
           MOLTNET_SKIP_REGISTRY_SMOKE: '1'
-        run: pnpm exec nx affected -t lint secretlint typecheck test-ci test-desktop-native test-release-scripts verify-release build check:pack check:externals docker:build --configuration=ci
+        run: pnpm exec nx affected -t lint secretlint typecheck test-ci test-desktop-native test-release-scripts verify-release build check:pack check:externals check:build-assets docker:build --configuration=ci
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'

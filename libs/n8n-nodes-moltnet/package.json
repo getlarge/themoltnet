@@ -65,6 +65,7 @@
     "node": ">=22.22"
   },
   "nx": {
+    "projectType": "library",
     "namedInputs": {
       "default": [
         "{projectRoot}/**/*",

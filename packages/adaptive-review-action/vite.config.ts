@@ -47,7 +47,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'node22',
     minify: 'esbuild',
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         review: 'src/review.ts',
         publish: 'src/publish.ts',

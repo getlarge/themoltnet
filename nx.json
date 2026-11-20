@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "legacy": true
+  },
   "analytics": false,
   "generators": {
     "@nx/web:application": {
@@ -43,6 +46,7 @@
     ],
     "sharedGlobals": [
       "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/tsconfig.base.json",
       "{workspaceRoot}/pnpm-workspace.yaml",
       "{workspaceRoot}/pnpm-lock.yaml",
       "{workspaceRoot}/.npmrc",
@@ -69,7 +73,6 @@
         "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
         "serveTargetName": "serve",
-        "testTargetName": "vite-test-disabled",
         "typecheckTargetName": "vite-typecheck-disabled",
         "watchDepsTargetName": "watch-deps"
       },
@@ -291,6 +294,19 @@
       "dependsOn": ["^build", "^typecheck"],
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
+    },
+    "check:build-assets": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tools/check-build-assets.mjs"
+      ],
+      "options": {
+        "command": "node tools/check-build-assets.mjs {projectRoot}"
+      }
     },
     "check:externals": {
       "cache": true,

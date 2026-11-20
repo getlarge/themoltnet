@@ -41,6 +41,8 @@ jobs:
       - name: Build unsigned CI packages
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch
+        env:
+          MOLTNET_DESKTOP_SMOKE_LOG_DIR: ${{ runner.temp }}/desktop-smoke
         run: bash tools/release/agent-desktop/${{ matrix.platform }}-smoke.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
@@ -50,5 +52,5 @@ jobs:
             apps/agent-desktop/out-rust/bundle/*/release/bundle/deb/*.deb
             apps/agent-desktop/out-rust/bundle/*/release/bundle/appimage/*.AppImage
             apps/agent-desktop/out-rust/bundle/*/release/bundle/dmg/*.dmg
-            /tmp/moltnet-desktop-smoke-*.log
+            ${{ runner.temp }}/desktop-smoke/*.log
           retention-days: 1

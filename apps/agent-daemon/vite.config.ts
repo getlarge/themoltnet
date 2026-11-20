@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 
+import { nxReadySignal } from '@nx/vite/plugins/nx-ready-signal.plugin';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
@@ -20,6 +21,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['__tests__/**/*.spec.ts'],
     }),
+    nxReadySignal(),
   ],
   build: {
     ssr: true,

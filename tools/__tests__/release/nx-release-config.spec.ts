@@ -95,6 +95,7 @@ function runNode(script: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   return spawnSync(process.execPath, [script, ...args], {
     cwd: workspaceRoot,
     encoding: 'utf8',
+    timeout: 25_000,
     env: childEnv,
   });
 }
@@ -452,7 +453,7 @@ describe('Nx release configuration', () => {
       'main tag   : ghcr.io/getlarge/themoltnet/rest-api:ci-main',
     );
     expect(ciWorkflow).not.toContain('Refresh :ci-main for all e2e images');
-  });
+  }, 30_000);
 
   it('refreshes only the heavy Node image caches outside gated CI', () => {
     const cacheProjects = dockerProjects.filter(({ root }) => {
@@ -509,7 +510,7 @@ describe('Nx release configuration', () => {
     expect(result.stdout).toContain('--output type=cacheonly');
     expect(result.stdout).not.toContain('--push');
     expect(result.stdout).not.toContain('--load');
-  });
+  }, 30_000);
 
   it('maps shared Docker inputs to every image they can change', () => {
     const sharedBuilderProjects = dockerProjects.map(({ name }) => name).sort();

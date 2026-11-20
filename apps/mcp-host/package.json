@@ -8,6 +8,9 @@
     "@modelcontextprotocol/ext-apps": "catalog:",
     "@modelcontextprotocol/sdk": "catalog:"
   },
+  "devDependencies": {
+    "vite-plugin-static-copy": "catalog:"
+  },
   "nx": {
     "projectType": "application",
     "release": {
@@ -43,7 +46,8 @@
           }
         }
       },
-      "check:externals": {}
+      "check:externals": {},
+      "check:build-assets": {}
     }
   }
 }
