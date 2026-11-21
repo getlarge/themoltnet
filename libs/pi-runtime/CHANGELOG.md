@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.4](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.3...pi-runtime-v0.29.4) (2026-11-21)
+
+
+### Bug Fixes
+
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.22.0
+    * @themoltnet/sandbox-gondolin bumped to 0.9.0
+    * @themoltnet/sdk bumped to 0.154.4
+
 ## [0.29.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.2...pi-runtime-v0.29.3) (2026-11-10)
 
 

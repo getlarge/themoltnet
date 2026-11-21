@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.154.4](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.3...sdk-v0.154.4) (2026-11-21)
+
+
+### Bug Fixes
+
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+
 ## [0.154.3](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.2...sdk-v0.154.3) (2026-11-05)
 
 

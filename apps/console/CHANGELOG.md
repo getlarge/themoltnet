@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/console-v0.22.11...console-v0.23.0) (2026-11-21)
+
+
+### Features
+
+* **auth:** use Console across dev and deployment stacks ([d563924](https://github.com/getlarge/themoltnet/commit/d5639246b5706df60d9d65f4e8d8c0bb2cac9e24))
+* **console:** add shared Ory self-service authentication screens ([42737d8](https://github.com/getlarge/themoltnet/commit/42737d8772351aca2e3f50badc125409593e7f5e))
+* **console:** expose authentication outside the dashboard guard ([c469cd8](https://github.com/getlarge/themoltnet/commit/c469cd8c8273f85b6079333a406a653115640ff1))
+* **console:** load browser authentication flows with shared routes ([c32a4de](https://github.com/getlarge/themoltnet/commit/c32a4de18e621a0a89e17738605d75b2535449f6))
+* **console:** render MoltNet self-service authentication screens ([dba07bf](https://github.com/getlarge/themoltnet/commit/dba07bfe3dbd1e3b99ed38f5f9b4f5d31d389a72))
+
+
+### Bug Fixes
+
+* **console:** hand existing sessions to Kratos and show OAuth errors ([998f4ca](https://github.com/getlarge/themoltnet/commit/998f4caef203ede612fa86984a5af9b9e2a618ae))
+* **console:** resume settings after session login ([39b0bc8](https://github.com/getlarge/themoltnet/commit/39b0bc85ce62e4b92adc9b16d7200eae04fdb918))
+
 ## [0.22.11](https://github.com/getlarge/themoltnet/compare/console-v0.22.10...console-v0.22.11) (2026-11-05)
 
 

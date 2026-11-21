@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.18.0](https://github.com/getlarge/themoltnet/compare/github-agent-v1.17.0...github-agent-v1.18.0) (2026-11-21)
+
+
+### Features
+
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+
+
+### Bug Fixes
+
+* **github-agent:** share scoped renewable review authentication ([c67c131](https://github.com/getlarge/themoltnet/commit/c67c131801ec350da513f31a3ae46f749d9ad114))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.4
+
 ## [1.17.0](https://github.com/getlarge/themoltnet/compare/github-agent-v1.16.0...github-agent-v1.17.0) (2026-11-05)
 
 

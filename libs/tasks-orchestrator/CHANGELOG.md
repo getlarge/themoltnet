@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.1](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.7.0...tasks-orchestrator-v0.7.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.4
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.4...tasks-orchestrator-v0.7.0) (2026-11-10)
 
 
