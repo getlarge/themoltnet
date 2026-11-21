@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/signer-v0.3.1...signer-v0.3.2) (2026-11-21)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/yubikey-preview-sign bumped to 0.4.3
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/signer-v0.3.0...signer-v0.3.1) (2026-11-05)
 
 
