@@ -169,7 +169,7 @@ catalogs:
       version: 1.2.1
     '@aws-sdk/client-s3':
       specifier: ^3.1150.0
-      version: 3.1169.0
+      version: 3.1171.0
     '@axe-core/webdriverio':
       specifier: ^4.13.0
       version: 4.14.0
@@ -2247,7 +2247,7 @@ importers:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
-        version: 3.1169.0
+        version: 3.1171.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -2878,7 +2878,7 @@ importers:
         version: link:../api-client
       '@n8n/node-cli':
         specifier: 'catalog:'
-        version: 0.45.5(11ee20a18b676e7a3b639d015630eb97)
+        version: 0.45.5(47bd58d748f7f11990fa2437a8a1d103)
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.5
@@ -4289,8 +4289,8 @@ packages:
     resolution: {integrity: sha512-IDl/lrPb90aH+pZFHGNDmgH9nAUQj5PlZH1sJ3w7RikctyjHSnY3oNjZhrLoaBoQn/rNK0zsP6OHEqEhj2tdLA==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-s3@3.1169.0':
-    resolution: {integrity: sha512-5IjQ2R1TM5lMuUvCvCfGNG9q6g3nxdputC9FY7YQJf1ygVUwsOruEYxQqpjik1nZdl8mNvV57Mhivtp2JbgBtg==}
+  '@aws-sdk/client-s3@3.1171.0':
+    resolution: {integrity: sha512-EIWM2ZuLBYqwM1W1PkNIWrQzFy6Y7WBwVpEDpnCrMtcQyIN3VOXbf0uy+0xG2dbv+PcvxIlEK8A1ohdbyMV72w==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.981.0':
@@ -15891,7 +15891,7 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.9.1
 
-  '@aws-sdk/client-s3@3.1169.0':
+  '@aws-sdk/client-s3@3.1171.0':
     dependencies:
       '@aws-sdk/checksums': 3.1002.5
       '@aws-sdk/core': 3.981.0
@@ -18354,7 +18354,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/community@1.1.27(ba8d7685202f4331ba017154223bc032)':
+  '@langchain/community@1.1.27(89349712ff0f3d901200532f47f0e632)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.65.1)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(zod@3.25.76)
       '@ibm-cloud/watsonx-ai': 1.7.17(supports-color@8.1.1)
@@ -18371,7 +18371,7 @@ snapshots:
       uuid: 11.1.1
       zod: 3.25.76
     optionalDependencies:
-      '@aws-sdk/client-s3': 3.1169.0
+      '@aws-sdk/client-s3': 3.1171.0
       '@aws-sdk/credential-provider-node': 3.972.97
       '@browserbasehq/sdk': 2.27.0
       '@huggingface/transformers': 3.8.1(@types/node@22.20.5)
@@ -18560,9 +18560,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@n8n/ai-node-sdk@0.26.5(a087820136efe13487fd2d1fc3e25fa9)':
+  '@n8n/ai-node-sdk@0.26.5(63341d4cd86e86582a1eb50f908911b8)':
     dependencies:
-      '@n8n/ai-utilities': 0.29.5(a087820136efe13487fd2d1fc3e25fa9)
+      '@n8n/ai-utilities': 0.29.5(63341d4cd86e86582a1eb50f908911b8)
     transitivePeerDependencies:
       - '@arcjet/redact'
       - '@aws-crypto/sha256-js'
@@ -18696,10 +18696,10 @@ snapshots:
       - ws
       - youtubei.js
 
-  '@n8n/ai-utilities@0.29.5(a087820136efe13487fd2d1fc3e25fa9)':
+  '@n8n/ai-utilities@0.29.5(63341d4cd86e86582a1eb50f908911b8)':
     dependencies:
       '@langchain/classic': 1.0.27(@aws-sdk/credential-provider-node@3.972.97)(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.2(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(ws@8.23.0))(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.2(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.9.1))(@smithy/signature-v4@5.7.5)(cheerio@1.2.0)(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(ws@8.23.0)
-      '@langchain/community': 1.1.27(ba8d7685202f4331ba017154223bc032)
+      '@langchain/community': 1.1.27(89349712ff0f3d901200532f47f0e632)
       '@langchain/core': 1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.2(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(ws@8.23.0)
       '@langchain/openai': 1.4.4(@aws-sdk/credential-provider-node@3.972.97)(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.2(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(ws@8.23.0))(@smithy/signature-v4@5.7.5)(ws@8.23.0)
       '@langchain/textsplitters': 1.0.1(@langchain/core@1.2.0(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.223.2(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.12.1(@opentelemetry/api@1.9.1))(openai@7.19.0(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(undici@7.30.2)(ws@8.23.0)(zod@3.25.76))(ws@8.23.0))
@@ -18987,11 +18987,11 @@ snapshots:
       title-case: 3.0.3
       transliteration: 2.3.5
 
-  '@n8n/node-cli@0.45.5(11ee20a18b676e7a3b639d015630eb97)':
+  '@n8n/node-cli@0.45.5(47bd58d748f7f11990fa2437a8a1d103)':
     dependencies:
       '@clack/prompts': 0.11.0
       '@eslint/js': 9.39.5
-      '@n8n/ai-node-sdk': 0.26.5(a087820136efe13487fd2d1fc3e25fa9)
+      '@n8n/ai-node-sdk': 0.26.5(63341d4cd86e86582a1eb50f908911b8)
       '@n8n/eslint-plugin-community-nodes': 0.29.0(eslint@9.39.5(jiti@2.7.0)(supports-color@8.1.1))(n8n-workflow@2.16.0)(supports-color@8.1.1)(typescript@6.0.3)
       '@oclif/core': 4.14.0
       change-case: 5.4.4
