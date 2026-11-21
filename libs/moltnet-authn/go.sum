@@ -1,4 +1,4 @@
-github.com/ory/client-go v1.22.94 h1:llCGySlgOnAdWcDs5/h6w/Kw1q6TCF/EoR06uZhMOlA=
-github.com/ory/client-go v1.22.94/go.mod h1:zfQgPWatQ7EvCzrfswAVajDlGM/b5GblgDaDHfn0jGM=
+github.com/ory/client-go v1.22.95 h1:LtmChxLIVodMjUUiSbW9kui3HI67Fbzi5QHSA0Q9gC8=
+github.com/ory/client-go v1.22.95/go.mod h1:zfQgPWatQ7EvCzrfswAVajDlGM/b5GblgDaDHfn0jGM=
 golang.org/x/oauth2 v0.38.0 h1:uW7XQbcu1eoiQS7uMJvLOjPMl04bTbmY1VeRPxvbspI=
 golang.org/x/oauth2 v0.38.0/go.mod h1:IxwZNxUULJmpBFf9K/9NTMSIfZZuvuTy1gGxhigP/58=
