@@ -361,7 +361,7 @@ catalogs:
       version: 1.65.1
     '@scalar/fastify-api-reference':
       specifier: ^1.73.1
-      version: 1.80.0
+      version: 1.81.0
     '@secretlint/core':
       specifier: ^13.0.7
       version: 13.1.0
@@ -1806,7 +1806,7 @@ importers:
         version: 1.22.66
       '@scalar/fastify-api-reference':
         specifier: 'catalog:'
-        version: 1.80.0
+        version: 1.81.0
       '@secretlint/core':
         specifier: 'catalog:'
         version: 13.1.0(supports-color@10.2.2)
@@ -8527,16 +8527,16 @@ packages:
     resolution: {integrity: sha512-zjRtLjOysw6C8tFOxvwR5d5tnjJh8Ga46SAf3fhioHicDUB3c9dx6YbxKWE03b3VvDdhDFfkryHbXUfrMGeCQg==}
     engines: {node: '>=22'}
 
-  '@scalar/fastify-api-reference@1.80.0':
-    resolution: {integrity: sha512-o8EKtQngBpiIW54WYgU4aIwuaUuVC082uarrMOVv+i5kIiA3TCR2MblLCKquN5RPq7MrpNJ/37eyO/vG82Yqfg==}
+  '@scalar/fastify-api-reference@1.81.0':
+    resolution: {integrity: sha512-bKuwEO1Q2DutfyzL9IkMC3bhtXFOMyVDP+z/Ie5AXtODwzTVTG6dt0ntWzyZVBKehM+vGJHa1Duq88QHYlyDVQ==}
     engines: {node: '>=22'}
 
   '@scalar/helpers@0.18.1':
     resolution: {integrity: sha512-5/FsnE/4bCbr+h0OOgT1Zlnl4G7MKgPsZlzDN4KiBjpVCCZNHn7Px9gLOqtQSfsSqM/JFwUW+voZNVTODiL2BA==}
     engines: {node: '>=22'}
 
-  '@scalar/json-magic@0.20.1':
-    resolution: {integrity: sha512-yF9eqxwa+A0ZMw8Pr8dgcHPs4gI0+OCknhxXbtC+5eCb5FS25kbLASl9TfbBS27LrbcXwg0fIsEpVZtliWhexQ==}
+  '@scalar/json-magic@0.21.0':
+    resolution: {integrity: sha512-4jsUQIRuQ7xczWvbsqkFcn5CEi3vESzPXri5CcCRg2uLTpgefVoS515nJMw1YTH7MqHhOHedPXks6xTd6Pkm3g==}
     engines: {node: '>=22.19.0'}
 
   '@scalar/schemas@0.18.1':
@@ -20639,17 +20639,17 @@ snapshots:
       '@scalar/types': 0.30.0
       '@scalar/validation': 0.6.9
 
-  '@scalar/fastify-api-reference@1.80.0':
+  '@scalar/fastify-api-reference@1.81.0':
     dependencies:
       '@scalar/client-side-rendering': 0.4.21
-      '@scalar/json-magic': 0.20.1
+      '@scalar/json-magic': 0.21.0
       fastify-plugin: 6.0.1
       github-slugger: 2.0.0
       yaml: 2.9.1
 
   '@scalar/helpers@0.18.1': {}
 
-  '@scalar/json-magic@0.20.1':
+  '@scalar/json-magic@0.21.0':
     dependencies:
       '@scalar/helpers': 0.18.1
       pathe: 2.0.3
