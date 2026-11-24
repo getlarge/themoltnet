@@ -29,6 +29,7 @@ import {
   TaskAppOpenOutputSchema,
   TaskAppOpenSchema,
 } from './schemas/task-schemas.js';
+import { oauthScopes } from './tool-security.js';
 import type { CallToolResult, McpDeps, ReadResourceResult } from './types.js';
 import { structuredResult } from './utils.js';
 
@@ -136,7 +137,10 @@ export function registerTaskApp(
         'Open the interactive MoltNet task management app. Use it when a user wants to inspect task queues, task details, attempts, or messages.',
       inputSchema: TaskAppOpenSchema,
       outputSchema: TaskAppOpenOutputSchema,
-      _meta: createMcpAppToolMeta(TASK_APP_RESOURCE_URI),
+      _meta: {
+        ...createMcpAppToolMeta(TASK_APP_RESOURCE_URI),
+        securitySchemes: oauthScopes(),
+      },
     },
     (args: TaskAppOpenInput) => handleTasksAppOpen(args, deps),
   );
