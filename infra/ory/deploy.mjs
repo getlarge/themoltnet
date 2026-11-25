@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 /**
- * Deploy Ory project configuration, branding, and permissions.
+ * Deploy Ory project configuration and permissions.
  *
  * 1. Computes identity schema base64 from JSON files
  * 2. Substitutes env vars into project.json → project.resolved.json
  * 3. (--apply) Pushes project config via `ory update project`
  * 4. (--apply) Pushes OPL permissions via `ory update opl`
  * 5. (--apply) Reconciles administratively registered OAuth clients
- * 6. (--apply) Syncs Account Experience branding via console normalized API
  *
  * Usage:
  *   npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- node infra/ory/deploy.mjs
@@ -23,6 +22,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { checkBrowserCors, checkDomainCors } from './browser-cors.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const apply = process.argv.includes('--apply');
 const oplOnly = process.argv.includes('--opl-only');
@@ -33,7 +34,6 @@ function argumentValue(name) {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
-const CONSOLE_API = 'https://api.console.ory.sh';
 const ORY_COMMAND_TIMEOUT_MS = 60_000;
 
 // ---------------------------------------------------------------------------
@@ -271,13 +271,27 @@ if (!projectApiKey) fatal('ORY_PROJECT_API_KEY must be set for --apply');
 // ---------------------------------------------------------------------------
 // 4. Validate the resolved config BEFORE mutating anything in Ory.
 //
-//    These guards only read project.resolved.json, so they belong ahead of
+//    These guards read the resolved config and existing domain settings before
 //    the first write. Running them afterwards means a malformed local config
 //    aborts the deploy midway through, which is how a config assertion took
 //    down authorization on 2026-08-11 (see step 5).
 // ---------------------------------------------------------------------------
 
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
+if (projectForPatch.cors_public?.enabled !== false)
+  fatal(
+    'Project-level CORS must be disabled; the custom-domain edge owns CORS.',
+  );
+try {
+  await checkDomainCors({
+    projectId,
+    apiKey,
+    baseUrl: process.env.ORY_PROJECT_URL,
+    origins: projectForPatch.cors_public.origins,
+  });
+} catch (error) {
+  fatal(error.message);
+}
 const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
 const accessTokenTtl = oauth2Config?.ttl?.access_token;
@@ -642,88 +656,22 @@ if (verificationFailures.length === 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 8. Sync Account Experience branding
-//    The ory CLI ignores theme_variables_dark/light, so we sync them via
-//    the console normalized API (JSON Patch + base64-encoded theme JSON).
-// ---------------------------------------------------------------------------
-
-const project = JSON.parse(readFileSync(templateFile, 'utf8'));
-const axConfig = project.services?.account_experience?.config ?? {};
-const darkTheme = axConfig.theme_variables_dark ?? {};
-const lightTheme = axConfig.theme_variables_light ?? {};
-const darkKeys = Object.keys(darkTheme).length;
-const lightKeys = Object.keys(lightTheme).length;
-
-if (darkKeys > 0 || lightKeys > 0) {
-  log(
-    `Applying Account Experience branding (dark: ${darkKeys} keys, light: ${lightKeys} keys) ...`,
-  );
-
-  const projectRes = await fetch(
-    `${CONSOLE_API}/normalized/projects/${projectId}`,
-    { headers: { Authorization: `Bearer ${apiKey}` } },
-  );
-  if (!projectRes.ok) {
-    recordFailure(
-      `Failed to fetch project revision (HTTP ${projectRes.status}) — ` +
-        'branding not applied.',
-    );
-  }
-  const revisionId = projectRes.ok
-    ? (await projectRes.json()).current_revision.id
-    : null;
-
-  const ops = [];
-  if (darkKeys > 0) {
-    ops.push({
-      op: 'replace',
-      path: '/account_experience_theme_variables_dark',
-      value:
-        'base64://' + Buffer.from(JSON.stringify(darkTheme)).toString('base64'),
-    });
-  }
-  if (lightKeys > 0) {
-    ops.push({
-      op: 'replace',
-      path: '/account_experience_theme_variables_light',
-      value:
-        'base64://' +
-        Buffer.from(JSON.stringify(lightTheme)).toString('base64'),
-    });
-  }
-
-  if (revisionId) {
-    const patchRes = await fetch(
-      `${CONSOLE_API}/normalized/projects/${projectId}/revision/${revisionId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(ops),
-      },
-    );
-
-    if (patchRes.ok) {
-      log('Branding applied.\n');
-    } else {
-      console.error(
-        `WARNING: Branding PATCH returned HTTP ${patchRes.status} — theme may not be updated.`,
-      );
-    }
-  }
-} else {
-  log('No theme variables to deploy — skipping branding.\n');
-}
-
-// ---------------------------------------------------------------------------
-// 9. Report collected verification failures.
+// 8. Report collected verification failures.
 //
 //    Deliberately last: every write has completed by now, so failing here
 //    cannot leave Ory half-configured. See step 5 for why no check between
 //    the project update and the OPL restore may exit early.
 // ---------------------------------------------------------------------------
+
+try {
+  await checkBrowserCors({
+    baseUrl: process.env.ORY_PROJECT_URL,
+    origin: process.env.CONSOLE_BASE_URL,
+  });
+  log('Browser login preflight and session CORS verified.');
+} catch (error) {
+  recordFailure(error.message);
+}
 
 if (verificationFailures.length > 0) {
   fatal(

@@ -1266,7 +1266,7 @@ jobs:
           echo "tree=${TREE}" >> "$GITHUB_OUTPUT"
 
       - name: Generate GitHub App token for standalone repository
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
         id: standalone-token
         with:
           client-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
@@ -1593,7 +1593,7 @@ jobs:
           git tag -l --format='%(refname:short) -> %(objectname:short)' "$SEMVER"
 
       - name: Generate GitHub App token for Homebrew tap, Scoop bucket and APT repo
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
         id: app-token
         with:
           client-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
@@ -2146,7 +2146,7 @@ jobs:
       # flaky push never holds the release hostage.
       - name: Generate GitHub App token for the plugin marketplace repository
         if: ${{ !inputs.dry-run }}
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3
         id: marketplace-token
         with:
           client-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
