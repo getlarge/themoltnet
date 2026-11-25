@@ -158,7 +158,7 @@ catalog:
   '@tanstack/react-query': '^5.90.3'
   # Exact pins: the JS API must match the tauri crate in agent-desktop/src-tauri.
   '@tauri-apps/api': '2.12.5'
-  '@tauri-apps/cli': '2.12.5'
+  '@tauri-apps/cli': '2.12.6'
   '@testcontainers/postgresql': '^11.0.0'
   '@testing-library/jest-dom': '^6.0.0'
   '@testing-library/react': '^16.3.3'
