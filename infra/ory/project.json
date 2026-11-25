@@ -7,7 +7,7 @@
       "X-CSRF-Token",
       "Cookie"
     ],
-    "enabled": true,
+    "enabled": false,
     "exposed_headers": ["Content-Type"],
     "origins": [
       "${LANDING_BASE_URL}",
