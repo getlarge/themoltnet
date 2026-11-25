@@ -207,6 +207,15 @@ export function dependencyImpact(
   return `${lines.join('\n')}\n`;
 }
 
+/** Keep whole lines and close only a details block that survives the cutoff. */
+export function truncateComment(report) {
+  if (report.length <= 50_000) return report;
+  const prefix = report.slice(0, Math.max(0, report.lastIndexOf('\n', 49_000)));
+  const lines = prefix.split('\n');
+  const open = lines.lastIndexOf('<details>') > lines.lastIndexOf('</details>');
+  return `${prefix}\n${open ? '</details>\n' : ''}\nReport truncated; see the full report artifact.\n`;
+}
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
@@ -220,10 +229,5 @@ if (
   const args = [readFileSync(base, 'utf8'), readFileSync(head, 'utf8')];
   writeFileSync(fullOutput, dependencyImpact(...args));
   const compact = dependencyImpact(...args, { limit: 12 });
-  writeFileSync(
-    commentOutput,
-    compact.length > 50_000
-      ? `${compact.slice(0, compact.lastIndexOf('\n', 49_000))}\n</details>\n\nReport truncated; see the full report artifact.\n`
-      : compact,
-  );
+  writeFileSync(commentOutput, truncateComment(compact));
 }
