@@ -23,6 +23,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { checkBrowserCors, checkDomainCors } from './browser-cors.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const apply = process.argv.includes('--apply');
 const oplOnly = process.argv.includes('--opl-only');
@@ -271,13 +273,27 @@ if (!projectApiKey) fatal('ORY_PROJECT_API_KEY must be set for --apply');
 // ---------------------------------------------------------------------------
 // 4. Validate the resolved config BEFORE mutating anything in Ory.
 //
-//    These guards only read project.resolved.json, so they belong ahead of
+//    These guards read the resolved config and existing domain settings before
 //    the first write. Running them afterwards means a malformed local config
 //    aborts the deploy midway through, which is how a config assertion took
 //    down authorization on 2026-08-11 (see step 5).
 // ---------------------------------------------------------------------------
 
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
+if (projectForPatch.cors_public?.enabled !== false)
+  fatal(
+    'Project-level CORS must be disabled; the custom-domain edge owns CORS.',
+  );
+try {
+  await checkDomainCors({
+    projectId,
+    apiKey,
+    baseUrl: process.env.ORY_PROJECT_URL,
+    origins: projectForPatch.cors_public.origins,
+  });
+} catch (error) {
+  fatal(error.message);
+}
 const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
 const accessTokenTtl = oauth2Config?.ttl?.access_token;
@@ -724,6 +740,16 @@ if (darkKeys > 0 || lightKeys > 0) {
 //    cannot leave Ory half-configured. See step 5 for why no check between
 //    the project update and the OPL restore may exit early.
 // ---------------------------------------------------------------------------
+
+try {
+  await checkBrowserCors({
+    baseUrl: process.env.ORY_PROJECT_URL,
+    origin: process.env.CONSOLE_BASE_URL,
+  });
+  log('Browser login preflight and session CORS verified.');
+} catch (error) {
+  recordFailure(error.message);
+}
 
 if (verificationFailures.length > 0) {
   fatal(
