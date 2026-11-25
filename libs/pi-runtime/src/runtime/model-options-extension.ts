@@ -177,7 +177,7 @@ function applyTopLevelOptions(
   const reasoningEnabled =
     hasActiveThinking(payload.thinking) ||
     'reasoning' in payload ||
-    'reasoning_effort' in payload;
+    ('reasoning_effort' in payload && payload.reasoning_effort !== 'none');
   const next: Record<string, unknown> = { ...payload };
 
   if (

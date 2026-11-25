@@ -117,7 +117,7 @@ describe('resolveRuntimeProfileModel', () => {
       const observations: Record<string, unknown>[] = [];
       configureDurableModelOptions(
         modelRuntime,
-        { maxOutputTokens: 16384, temperature: 0.1 },
+        { maxOutputTokens: 16384, temperature: 0.1, topP: 0.9 },
         'ollama-cloud',
         'mimo-v2.6-flash',
         () => undefined,
@@ -154,6 +154,12 @@ describe('resolveRuntimeProfileModel', () => {
       expect(captured?.reasoning_effort).toBe(effort);
       expect(captured?.max_tokens).toBe(16384);
       expect(captured).not.toHaveProperty('max_completion_tokens');
+      if (_level === 'off') {
+        expect(captured).toMatchObject({ temperature: 0.1, top_p: 0.9 });
+      } else {
+        expect(captured).not.toHaveProperty('temperature');
+        expect(captured).not.toHaveProperty('top_p');
+      }
       expect(observations).toHaveLength(1);
       expect(observations[0]).toMatchObject({
         model: 'mimo-v2.6-flash',
