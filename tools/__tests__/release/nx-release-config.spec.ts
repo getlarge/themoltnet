@@ -88,7 +88,13 @@ const dockerProjects = [
 ] as const;
 
 function runNode(script: string, args: string[], env: NodeJS.ProcessEnv = {}) {
-  const childEnv: NodeJS.ProcessEnv = { ...process.env, ...env };
+  const childEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    // Graph discovery loads Vite configs. Its future-loader advisory is not a
+    // Docker release diagnostic; keep stderr assertions for other messages.
+    VITE_CONFIG_NATIVE_IGNORE_WARNING: 'true',
+    ...env,
+  };
   delete childEnv.FORCE_COLOR;
   delete childEnv.NO_COLOR;
 

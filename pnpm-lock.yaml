@@ -677,7 +677,6 @@ overrides:
   sharp: '>=0.35.4 <0.36'
   '@opentelemetry/core': '>=2.8.0 <3'
   uuid: '>=11.1.1 <12'
-  axios: '>=1.20.0 <2'
   form-data@4: '>=4.0.6 <5'
 
 importers:
@@ -1974,7 +1973,7 @@ importers:
         version: 6.0.3
       vitepress:
         specifier: 'catalog:'
-        version: 1.6.4(@algolia/client-search@5.65.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3)
+        version: 1.6.4(@algolia/client-search@5.65.0)(@types/node@22.20.5)(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3)
       vitepress-mermaid-renderer:
         specifier: 'catalog:'
         version: 1.2.3(mermaid@11.17.2)(vue@3.5.46(typescript@6.0.3))
@@ -9680,7 +9679,7 @@ packages:
     resolution: {integrity: sha512-fbGYivgK5uBTRt7p5F3zy6VrETlV9RtZjBqd1/HxGdjdckBgBM4ugP8LHpjolqTj14TXTxSK1ZfgPbHYyGuH7g==}
     peerDependencies:
       async-validator: ^4
-      axios: '>=1.20.0 <2'
+      axios: ^1
       change-case: ^5
       drauu: ^0.4
       focus-trap: ^7
@@ -10067,8 +10066,8 @@ packages:
     resolution: {integrity: sha512-FHfa+lmNjQZfJz1q8wKqIDwC6DExcHt/pkjNQb09a3NPjCKg2rhu5qb2S4r76ASyFNNtuFooJpZe37OgudVGtQ==}
     engines: {node: '>=4'}
 
-  axios@1.21.1:
-    resolution: {integrity: sha512-6eI5Q/Y4u/Um9dDlsRoq5pY2rxnUTv+L4PpLitnbk/i4jb3MxLZ5CsN5Ih3IysbeRYK4pR+P7qfMsOQl9fwwFQ==}
+  axios@1.20.0:
+    resolution: {integrity: sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -14295,7 +14294,7 @@ packages:
     resolution: {integrity: sha512-pOLi+Gdll3JekwuFjXO3fTq+L9lzMQGcSq7M5gIjExcl3Gu1hd4XXuf5o3+LuSBsaULQH7DiNbsqPd1chVpQGQ==}
     engines: {node: '>=10.7.0'}
     peerDependencies:
-      axios: '>=1.20.0 <2'
+      axios: '*'
 
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
@@ -18984,7 +18983,7 @@ snapshots:
       '@n8n/di': 0.17.0
       '@n8n/errors': 0.17.0
       '@n8n/utils': 1.56.0
-      axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       cache-manager: 5.2.3
       form-data: 4.0.6
       http-proxy-agent: 7.0.2(supports-color@10.2.2)
@@ -21995,13 +21994,13 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@vueuse/integrations@12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)':
+  '@vueuse/integrations@12.8.2(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)':
     dependencies:
       '@vueuse/core': 12.8.2(typescript@6.0.3)
       '@vueuse/shared': 12.8.2(typescript@6.0.3)
       vue: 3.5.46(typescript@6.0.3)
     optionalDependencies:
-      axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       change-case: 5.4.4
       focus-trap: 7.8.0
     transitivePeerDependencies:
@@ -22526,7 +22525,7 @@ snapshots:
 
   axe-core@4.14.1: {}
 
-  axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2):
+  axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:
       follow-redirects: 1.16.3(debug@4.4.3(supports-color@10.2.2))
       form-data: 4.0.6
@@ -24905,7 +24904,7 @@ snapshots:
     dependencies:
       '@types/debug': 4.1.13
       '@types/node': 18.19.130
-      axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       camelcase: 6.3.0
       debug: 4.4.3(supports-color@10.2.2)
       dotenv: 16.6.1
@@ -24916,7 +24915,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       load-esm: 1.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
+      retry-axios: 2.6.0(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))
       tough-cookie: 6.0.2
     transitivePeerDependencies:
       - supports-color
@@ -26150,7 +26149,7 @@ snapshots:
       '@n8n/tournament': 1.16.0
       '@n8n/utils': 1.56.0
       ast-types: 0.16.1
-      axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
       esprima-next: 5.8.4
       form-data: 4.0.6
       generate-schema: 2.6.0
@@ -27329,9 +27328,9 @@ snapshots:
 
   ret@0.5.1: {}
 
-  retry-axios@2.6.0(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)):
+  retry-axios@2.6.0(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)):
     dependencies:
-      axios: 1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
+      axios: 1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
 
   retry@0.12.0: {}
 
@@ -28461,7 +28460,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vitepress@1.6.4(@algolia/client-search@5.65.0)(@types/node@22.20.5)(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3):
+  vitepress@1.6.4(@algolia/client-search@5.65.0)(@types/node@22.20.5)(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(lightningcss@1.33.0)(postcss@8.5.33)(search-insights@2.17.3)(typescript@6.0.3):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.65.0)(search-insights@2.17.3)
@@ -28474,7 +28473,7 @@ snapshots:
       '@vue/devtools-api': 7.7.10
       '@vue/shared': 3.5.46
       '@vueuse/core': 12.8.2(typescript@6.0.3)
-      '@vueuse/integrations': 12.8.2(axios@1.21.1(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)
+      '@vueuse/integrations': 12.8.2(axios@1.20.0(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2))(change-case@5.4.4)(focus-trap@7.8.0)(typescript@6.0.3)
       focus-trap: 7.8.0
       mark.js: 8.11.1
       minisearch: 7.2.0
