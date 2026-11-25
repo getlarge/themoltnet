@@ -64,6 +64,27 @@ describe('applyPiModelOptions', () => {
     });
   });
 
+  it('applies sampling controls when reasoning effort is explicitly disabled', () => {
+    expect(
+      applyPiModelOptions(
+        {
+          model: 'mimo-v2.6-flash',
+          messages: [],
+          reasoning_effort: 'none',
+          max_tokens: 4096,
+        },
+        { temperature: 0.2, topP: 0.9, maxOutputTokens: 12_000 },
+      ),
+    ).toEqual({
+      model: 'mimo-v2.6-flash',
+      messages: [],
+      reasoning_effort: 'none',
+      temperature: 0.2,
+      top_p: 0.9,
+      max_tokens: 12_000,
+    });
+  });
+
   it('does not add sampling controls to explicit reasoning payloads', () => {
     expect(
       applyPiModelOptions(
