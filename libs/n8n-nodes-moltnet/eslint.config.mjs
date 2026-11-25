@@ -4,18 +4,20 @@ import baseConfig, {
   createNxDependencyChecksConfig,
 } from '../../eslint.config.mjs';
 
-const composableN8nConfig = n8nConfig.filter(
-  (entry) => !entry.name?.startsWith('typescript-eslint/'),
-);
+const composableN8nConfig = n8nConfig.map((entry) => {
+  if (!entry.plugins?.['@typescript-eslint']) return entry;
+  const plugins = { ...entry.plugins };
+  delete plugins['@typescript-eslint'];
+  return { ...entry, plugins };
+});
 
 export default [
   {
     // These files are linted after projection, when vendored imports exist.
     ignores: ['standalone/overlay/**'],
   },
-  // Both configs include typescript-eslint's recommended preset. Keep the
-  // repository instance so ESLint sees one plugin object, while retaining all
-  // n8n community, cloud-support, import, credential, node, and package rules.
+  // Use the repository's TypeScript plugin instance without depending on n8n's
+  // generated preset names. Keep every upstream parser setting and rule.
   ...composableN8nConfig,
   ...baseConfig,
   createNxDependencyChecksConfig({
