@@ -36,7 +36,11 @@ function Invoke-Wsl {
   $null = $process.Handle
   if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
     Write-Warning "wsl.exe $($Arguments[0]) did not finish within $TimeoutSeconds s; killing it."
-    $process.Kill($true)
+    try {
+      $process.Kill($true)
+    } catch [System.InvalidOperationException] {
+      # The process exited between the timeout and the kill; nothing to stop.
+    }
     $process.WaitForExit()
     return $null
   }
