@@ -49,9 +49,10 @@ allowBuilds:
 overrides:
   '@fastify/otel>minimatch': '>=11.0.1 <12'
   '@earendil-works/pi-coding-agent>minimatch': '>=11.0.1 <12'
-  'brace-expansion@1': '>=1.1.13'
-  'brace-expansion@2': '>=2.0.3'
-  'brace-expansion': '>=5.0.12 <6'
+  'brace-expansion@1': '>=1.1.13 <2'
+  'brace-expansion@2': '>=2.0.3 <3'
+  # Preserve the existing v5 resolution; only legacy consumers need to move.
+  'brace-expansion@5': '5.0.13'
   'picomatch': '>=4.0.4'
   'lodash': '>=4.18.1'
   'path-to-regexp': '>=8.4.2'
