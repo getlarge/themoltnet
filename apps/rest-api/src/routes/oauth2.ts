@@ -136,8 +136,11 @@ function resolveClientId(
         authorization.slice('Basic '.length),
         'base64',
       ).toString('utf8');
+      // `id:secret` is the only valid form. Without a separator the value is
+      // not a client id and may be a credential, so it must never become a
+      // cache-key prefix or a logged identifier.
       const separator = decoded.indexOf(':');
-      return separator === -1 ? decoded : decoded.slice(0, separator);
+      return separator === -1 ? '' : decoded.slice(0, separator);
     } catch {
       return '';
     }
@@ -159,7 +162,8 @@ function clientAuthMethod(
   return 'none';
 }
 
-const USER_AGENT_LOG_MAX = 200;
+/** Upper bound for caller-supplied strings in a log line. */
+const LOGGED_IDENTIFIER_MAX = 200;
 
 /** Key prefix owning every cached grant for a client. */
 function clientCacheKeyPrefix(clientId: string): string {
@@ -606,14 +610,18 @@ export async function oauth2Routes(
         request.log.info(
           {
             grantType: grantType || null,
-            clientId: resolveClientId(body, authorization) || null,
+            clientId:
+              resolveClientId(body, authorization).slice(
+                0,
+                LOGGED_IDENTIFIER_MAX,
+              ) || null,
             clientAuth: clientAuthMethod(body, authorization),
             status: resolved.value.status,
             error: (resolved.value.body as Partial<HydraError>).error ?? null,
             ip: request.ip,
             userAgent:
               typeof userAgent === 'string'
-                ? userAgent.slice(0, USER_AGENT_LOG_MAX)
+                ? userAgent.slice(0, LOGGED_IDENTIFIER_MAX)
                 : null,
           },
           'OAuth2 token request rejected',

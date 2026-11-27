@@ -153,6 +153,68 @@ describe('POST /oauth2/token rejection logging', () => {
     expect(JSON.stringify(sink.lines)).not.toContain('RT-SECRET');
   });
 
+  it('never logs a Basic credential that has no client separator', async () => {
+    // Arrange — a colon-less Basic value is not a client id and may be a secret
+    fetchMock.mockResolvedValueOnce(upstream({ error: 'invalid_client' }, 401));
+    const opaque = Buffer.from('opaque-credential-blob').toString('base64');
+
+    // Act
+    await post(
+      { grant_type: 'client_credentials' },
+      { authorization: `Basic ${opaque}` },
+    );
+
+    // Assert
+    expect(rejections()).toEqual([
+      expect.objectContaining({ clientId: null, clientAuth: 'basic' }),
+    ]);
+    const logged = JSON.stringify(sink.lines);
+    expect(logged).not.toContain('opaque-credential-blob');
+    expect(logged).not.toContain(opaque);
+  });
+
+  it('records a client assertion without logging it', async () => {
+    // Arrange
+    fetchMock.mockResolvedValueOnce(upstream({ error: 'invalid_client' }, 401));
+
+    // Act
+    await post({
+      grant_type: 'client_credentials',
+      client_id: 'jwt-client',
+      client_assertion_type:
+        'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: 'header.payload.signature-secret',
+    });
+
+    // Assert
+    expect(rejections()).toEqual([
+      expect.objectContaining({
+        clientId: 'jwt-client',
+        clientAuth: 'assertion',
+      }),
+    ]);
+    expect(JSON.stringify(sink.lines)).not.toContain('signature-secret');
+  });
+
+  it('bounds caller-supplied identifiers and tolerates a missing error code', async () => {
+    // Arrange — upstream body without an `error` field
+    fetchMock.mockResolvedValueOnce(upstream({}, 500));
+    const longAgent = 'a'.repeat(500);
+    const longClient = 'c'.repeat(500);
+
+    // Act
+    await post(
+      { grant_type: 'client_credentials', client_id: longClient },
+      { 'user-agent': longAgent },
+    );
+
+    // Assert
+    const [line] = rejections();
+    expect(line).toMatchObject({ status: 500, error: null });
+    expect(line?.userAgent).toBe('a'.repeat(200));
+    expect(line?.clientId).toBe('c'.repeat(200));
+  });
+
   it('logs nothing extra for a successful grant', async () => {
     // Arrange
     fetchMock.mockResolvedValueOnce(
