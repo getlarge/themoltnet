@@ -125,6 +125,8 @@ export function classifyRisk(name: string): RiskTier {
  * - `positionalSkip`: number of leading *positional* (non-flag, non-assignment)
  *   arguments the wrapper takes before the command itself (e.g. `timeout`'s
  *   DURATION, `chroot`'s NEWROOT).
+ * - `assignmentOperands`: whether NAME=value operands precede the target.
+ *   `sudo` stops recognizing them at `--`; `env` continues until the command.
  *
  * Any flag not listed in either set makes the command boundary unprovable, so
  * resolution **fails closed** rather than guessing (an unknown value-taking
@@ -134,14 +136,18 @@ export interface WrapperSpec {
   valueFlags: ReadonlySet<string>;
   booleanFlags: ReadonlySet<string>;
   positionalSkip: number;
+  /** Only assignment-aware wrappers may consume NAME=value before the target. */
+  assignmentOperands: 'none' | 'before-double-dash' | 'before-command';
 }
 
 const spec = (
   positionalSkip: number,
   valueFlags: readonly string[] = [],
   booleanFlags: readonly string[] = [],
+  assignmentOperands: WrapperSpec['assignmentOperands'] = 'none',
 ): WrapperSpec => ({
   positionalSkip,
+  assignmentOperands,
   valueFlags: new Set(valueFlags),
   booleanFlags: new Set(booleanFlags),
 });
@@ -208,6 +214,7 @@ export const WRAPPERS: ReadonlyMap<string, WrapperSpec> = new Map([
         '-v',
         '--validate',
       ],
+      'before-double-dash',
     ),
   ],
   ['doas', spec(0, ['-u', '-C'], ['-n', '-s'])],
@@ -217,6 +224,7 @@ export const WRAPPERS: ReadonlyMap<string, WrapperSpec> = new Map([
       0,
       ['-u', '--unset', '-C', '--chdir', '-S', '--split-string'],
       ['-i', '--ignore-environment', '-0', '--null', '-v', '--debug'],
+      'before-command',
     ),
   ],
   ['nice', spec(0, ['-n', '--adjustment'])],

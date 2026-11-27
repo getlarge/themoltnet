@@ -38,6 +38,8 @@ export interface ToolInvocation {
    * dynamic tokens are `null`. Use `name` for basename-based classification.
    */
   argv: readonly (string | null)[];
+  /** Names of inline assignments inherited by this invocation, including wrappers. */
+  envAssignments?: readonly string[];
   /** Coarse risk tier for this executable. */
   risk: RiskTier;
   /**
@@ -77,6 +79,10 @@ export type CommandAnalysis =
        * caller's policy.
        */
       envAssignments?: readonly string[];
+      /** Assignments whose effect cannot be attributed to one invocation. */
+      unscopedEnvAssignments?: readonly string[];
+      /** Declaration operands whose assignment names depend on expansion. */
+      hasUnknownEnvAssignments?: boolean;
     }
   | { ok: false; command: string; reason: string; ast: string | null };
 
@@ -106,7 +112,40 @@ export interface InitOptions {
 /** Default cap for {@link InitOptions.maxCommandLength} (~100 KB). */
 export const DEFAULT_MAX_COMMAND_LENGTH = 100_000;
 
-const ASSIGNMENT_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+const DECLARATION_COMMANDS = new Set([
+  'export',
+  'readonly',
+  'declare',
+  'typeset',
+  'local',
+]);
+
+/** Read a static assignment name without requiring a static value or argv token. */
+function assignmentName(word: Word, append = false): string | undefined {
+  const prefix = word.name ?? word.raw.replace(/^"/, '');
+  return prefix.match(
+    append ? /^([A-Za-z_][A-Za-z0-9_]*)\+?=/ : /^([A-Za-z_][A-Za-z0-9_]*)=/,
+  )?.[1];
+}
+
+interface DeclarationAssignments {
+  names: string[];
+  unknown: boolean;
+}
+
+/** Declaration operands can be quoted, interpolated, or assignment AST nodes. */
+function declarationAssignments(
+  operands: readonly Word[],
+): DeclarationAssignments {
+  const names: string[] = [];
+  let unknown = false;
+  for (const operand of operands) {
+    const name = assignmentName(operand, true);
+    if (name !== undefined) names.push(name);
+    else if (operand.name === null) unknown = true;
+  }
+  return { names, unknown };
+}
 const GLOB_RE = /[*?[\]]/;
 const WHITESPACE_RE = /\s/u;
 const SUBSTITUTION_TYPES = [
@@ -126,10 +165,17 @@ const MAX_ESCAPE_DEPTH = 3;
 interface ResolvedInvocation {
   name: string;
   argv: readonly (string | null)[];
+  envAssignments: readonly string[];
+  declarationAssignments?: DeclarationAssignments;
+}
+
+interface ResolvedEscape {
+  command: string;
+  envAssignments: readonly string[];
 }
 
 type Resolution =
-  | { ok: true; invocations: ResolvedInvocation[]; escapes: string[] }
+  | { ok: true; invocations: ResolvedInvocation[]; escapes: ResolvedEscape[] }
   | { ok: false; reason: string };
 
 /** Bounds recursive wrapper unwrapping (e.g. `sudo sudo … git`). */
@@ -153,13 +199,20 @@ function baseName(raw: string): string {
 }
 
 /** Build the public argv vector for one resolved invocation. */
-function invocationFor(words: Word[]): ResolvedInvocation | null {
+function invocationFor(
+  words: Word[],
+  envAssignments: readonly string[],
+): ResolvedInvocation | null {
   const head = words[0]?.name;
   if (head === null || head === undefined) return null;
   const name = baseName(head);
   return {
     name,
     argv: [head, ...words.slice(1).map((word) => word.name)],
+    envAssignments,
+    ...(DECLARATION_COMMANDS.has(name)
+      ? { declarationAssignments: declarationAssignments(words.slice(1)) }
+      : {}),
   };
 }
 
@@ -220,8 +273,8 @@ function commandWords(node: Node): Word[] | null {
 }
 
 type Advance =
-  | { kind: 'target'; index: number }
-  | { kind: 'none' }
+  | { kind: 'target'; index: number; envAssignments: string[] }
+  | { kind: 'none'; envAssignments: string[] }
   | { kind: 'deny'; reason: string };
 
 /**
@@ -240,15 +293,22 @@ function advancePastWrapper(
   let j = start;
   let positionals = 0;
   let afterDoubleDash = false;
+  const envAssignments: string[] = [];
   while (j < words.length) {
     const raw = words[j].raw;
+    const assignment = assignmentName(words[j]);
+    if (
+      assignment !== undefined &&
+      (spec.assignmentOperands === 'before-command' ||
+        (spec.assignmentOperands === 'before-double-dash' && !afterDoubleDash))
+    ) {
+      envAssignments.push(assignment);
+      j += 1;
+      continue;
+    }
     if (!afterDoubleDash && raw.length > 0) {
       if (raw === '--') {
         afterDoubleDash = true;
-        j += 1;
-        continue;
-      }
-      if (ASSIGNMENT_RE.test(raw)) {
         j += 1;
         continue;
       }
@@ -296,9 +356,9 @@ function advancePastWrapper(
       j += 1;
       continue;
     }
-    return { kind: 'target', index: j };
+    return { kind: 'target', index: j, envAssignments };
   }
-  return { kind: 'none' };
+  return { kind: 'none', envAssignments };
 }
 
 /**
@@ -306,13 +366,17 @@ function advancePastWrapper(
  * `-exec`/`-execdir`/`-ok`/`-okdir` primary, each scoped to its own argument
  * span (up to the `;`/`+` terminator).
  */
-function resolveFind(words: Word[], wrapperDepth: number): Resolution {
-  const find = invocationFor(words);
+function resolveFind(
+  words: Word[],
+  wrapperDepth: number,
+  envAssignments: readonly string[],
+): Resolution {
+  const find = invocationFor(words, envAssignments);
   if (!find) {
     return { ok: false, reason: 'non-literal find invocation' };
   }
   const invocations = [find];
-  const escapes: string[] = [];
+  const escapes: ResolvedEscape[] = [];
   for (let i = 1; i < words.length; i++) {
     if (!FIND_EXEC_FLAGS.has(words[i].raw)) {
       continue;
@@ -339,7 +403,7 @@ function resolveFind(words: Word[], wrapperDepth: number): Resolution {
         reason: `find ${words[i].raw} has no command to execute`,
       };
     }
-    const inner = resolveWords(cmd, wrapperDepth);
+    const inner = resolveWords(cmd, wrapperDepth, envAssignments);
     if (!inner.ok) {
       return inner;
     }
@@ -355,7 +419,11 @@ function resolveFind(words: Word[], wrapperDepth: number): Resolution {
  * wrappers, exec-builtins, and `find -exec`. Fails closed on non-literal
  * command names.
  */
-function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
+function resolveWords(
+  words: Word[],
+  wrapperDepth = 0,
+  envAssignments: readonly string[] = [],
+): Resolution {
   const head = words[0];
   if (!head) {
     return { ok: true, invocations: [], escapes: [] };
@@ -374,7 +442,7 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     return { ok: false, reason: 'command name contains a glob' };
   }
   const exe = baseName(name);
-  const invocation = invocationFor(words);
+  const invocation = invocationFor(words, envAssignments);
   if (!invocation) {
     return { ok: false, reason: `non-literal command name: ${head.raw}` };
   }
@@ -382,7 +450,7 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     return { ok: false, reason: 'eval executes a dynamically built command' };
   }
   if (exe === 'find') {
-    return resolveFind(words, wrapperDepth);
+    return resolveFind(words, wrapperDepth, envAssignments);
   }
   const spec = WRAPPERS.get(exe);
   if (spec) {
@@ -390,10 +458,16 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
       return { ok: false, reason: 'wrapper nesting too deep' };
     }
     const advance = advancePastWrapper(words, 1, spec);
-    const wrapperEscapes = escapeFlagCommands(exe, words);
     if (advance.kind === 'deny') {
       return { ok: false, reason: advance.reason };
     }
+    // Assignment operands belong to the wrapper call even without a target;
+    // they are also inherited by any target resolved below.
+    invocation.envAssignments = [...envAssignments, ...advance.envAssignments];
+    const wrapperEscapes = escapeFlagCommands(exe, words).map((command) => ({
+      command,
+      envAssignments: [...envAssignments, ...advance.envAssignments],
+    }));
     if (advance.kind === 'none') {
       return {
         ok: true,
@@ -401,7 +475,10 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
         escapes: wrapperEscapes,
       };
     }
-    const inner = resolveWords(words.slice(advance.index), wrapperDepth + 1);
+    const inner = resolveWords(words.slice(advance.index), wrapperDepth + 1, [
+      ...envAssignments,
+      ...advance.envAssignments,
+    ]);
     if (!inner.ok) {
       return inner;
     }
@@ -414,7 +491,10 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
   return {
     ok: true,
     invocations: [invocation],
-    escapes: escapeFlagCommands(exe, words),
+    escapes: escapeFlagCommands(exe, words).map((command) => ({
+      command,
+      envAssignments,
+    })),
   };
 }
 
@@ -669,7 +749,11 @@ export class ShellCommandAnalyzer {
    * Parse and extract executables from a command. `depth` bounds re-analysis of
    * escape-flag values (see {@link escapeFlagCommands}).
    */
-  #extract(command: string, depth: number): CommandAnalysis {
+  #extract(
+    command: string,
+    depth: number,
+    inheritedEnvAssignments: readonly string[] = [],
+  ): CommandAnalysis {
     const parser = this.#parser;
     if (!parser) {
       return {
@@ -744,6 +828,9 @@ export class ShellCommandAnalyzer {
       }
 
       const tools: ToolInvocation[] = [];
+      const scopedAssignments = new Set<number>();
+      const unscopedEnvAssignments: string[] = [];
+      let hasUnknownEnvAssignments = false;
       for (const node of root.descendantsOfType('command')) {
         if (!node) {
           continue;
@@ -757,16 +844,35 @@ export class ShellCommandAnalyzer {
             ast,
           };
         }
-        const resolution = resolveWords(words);
+        const inlineAssignments = node.namedChildren.filter(
+          (child) => child?.type === 'variable_assignment',
+        );
+        const commandEnvAssignments = [...inheritedEnvAssignments];
+        for (const assignment of inlineAssignments) {
+          if (!assignment) continue;
+          scopedAssignments.add(assignment.startIndex);
+          commandEnvAssignments.push(
+            assignment.text.slice(0, assignment.text.indexOf('=')),
+          );
+        }
+        const resolution = resolveWords(words, 0, commandEnvAssignments);
         if (!resolution.ok) {
           return { ok: false, command, reason: resolution.reason, ast };
         }
         const raw = node.text;
         for (const invocation of resolution.invocations) {
           const { name } = invocation;
+          if (invocation.declarationAssignments) {
+            unscopedEnvAssignments.push(
+              ...invocation.declarationAssignments.names,
+            );
+            hasUnknownEnvAssignments ||=
+              invocation.declarationAssignments.unknown;
+          }
           tools.push({
             name,
             argv: invocation.argv,
+            envAssignments: [...new Set(invocation.envAssignments)],
             risk: classifyRisk(name),
             capabilities: gtfobinsFunctions(name),
             raw,
@@ -785,7 +891,11 @@ export class ShellCommandAnalyzer {
               ast,
             };
           }
-          const nested = this.#extract(sub, depth + 1);
+          const nested = this.#extract(
+            sub.command,
+            depth + 1,
+            sub.envAssignments,
+          );
           if (!nested.ok) {
             return {
               ok: false,
@@ -795,6 +905,28 @@ export class ShellCommandAnalyzer {
             };
           }
           tools.push(...nested.tools);
+          envAssignments.push(...(nested.envAssignments ?? []));
+          unscopedEnvAssignments.push(...(nested.unscopedEnvAssignments ?? []));
+          hasUnknownEnvAssignments ||= nested.hasUnknownEnvAssignments === true;
+        }
+      }
+      // A declaration mutates shell state rather than a single child process.
+      // Keep literal operands unscoped without attempting shell dataflow.
+      for (const declaration of root.descendantsOfType('declaration_command')) {
+        if (!declaration) continue;
+        const assignments = declarationAssignments(
+          declaration.namedChildren
+            .filter((child): child is Node => child !== null)
+            .map(classifyToken),
+        );
+        unscopedEnvAssignments.push(...assignments.names);
+        hasUnknownEnvAssignments ||= assignments.unknown;
+      }
+      for (const assignment of root.descendantsOfType('variable_assignment')) {
+        if (assignment && !scopedAssignments.has(assignment.startIndex)) {
+          unscopedEnvAssignments.push(
+            assignment.text.slice(0, assignment.text.indexOf('=')),
+          );
         }
       }
 
@@ -813,7 +945,15 @@ export class ShellCommandAnalyzer {
         tools,
         ast,
         hasOutputRedirection,
-        envAssignments,
+        envAssignments: [
+          ...new Set([
+            ...envAssignments,
+            ...unscopedEnvAssignments,
+            ...tools.flatMap((tool) => tool.envAssignments ?? []),
+          ]),
+        ],
+        unscopedEnvAssignments: [...new Set(unscopedEnvAssignments)],
+        hasUnknownEnvAssignments,
       };
     } finally {
       tree.delete();
