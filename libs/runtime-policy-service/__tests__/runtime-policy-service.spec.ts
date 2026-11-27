@@ -152,6 +152,31 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
     });
 
+    it('retains restricted shell rules from Keto in pinned snapshots', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue([]);
+      ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
+        'v2/no-env/git/diff',
+      ]);
+      const result = await ctx.service.resolvePinnedAllowedTools({
+        profileId: 'R',
+        teamId: TEAM_ID,
+      });
+      expect(result.allowedShellCommands).toEqual([
+        { argvPrefix: ['git', 'diff'], allowEnvironmentAssignments: false },
+      ]);
+      expect(ctx.snapshotRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowedShellCommands: result.allowedShellCommands,
+        }),
+      );
+    });
+
     it('rejects a claim-time snapshot when shell command scopes change between reads', async () => {
       ctx.repo.getProfilePolicyContext.mockResolvedValue({
         runtimeKind: 'gondolin_pi',
@@ -368,6 +393,28 @@ describe('createRuntimePolicyService', () => {
       expect(result.shellCommands).toEqual([
         { argvPrefix: ['git', 'diff'] },
         { argvPrefix: ['npm', 'run', 'test:unit'] },
+      ]);
+    });
+
+    it('persists assignment-restricted grants with additive identifiers', async () => {
+      ctx.repo.create.mockResolvedValue(policyRow());
+      const result = await ctx.service.create({
+        teamId: TEAM_ID,
+        name: 'ci',
+        tools: [],
+        subject: AGENT_SUBJECT,
+        shellCommands: [
+          { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+        ],
+      });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith(
+        'pol-1',
+        expect.objectContaining({
+          addShellCommands: ['v2/no-env/git'],
+        }),
+      );
+      expect(result.shellCommands).toEqual([
+        { argvPrefix: ['git'], allowEnvironmentAssignments: false },
       ]);
     });
 
@@ -789,6 +836,29 @@ describe('effective policy snapshot hashing', () => {
     expect(first.allowedShellCommands).toEqual(second.allowedShellCommands);
     expect(hashEffectivePolicySnapshot(first)).toBe(
       hashEffectivePolicySnapshot(second),
+    );
+  });
+
+  it('hashes assignment restrictions while preserving legacy permissive hashes', () => {
+    const snapshot = (allowEnvironmentAssignments?: boolean) =>
+      canonicalEffectivePolicySnapshot({
+        runtimeKind: 'gondolin_pi',
+        enforcement: 'enforce',
+        allowedTools: [],
+        allowedShellCommands: [
+          {
+            argvPrefix: ['git'],
+            ...(allowEnvironmentAssignments !== undefined
+              ? { allowEnvironmentAssignments }
+              : {}),
+          },
+        ],
+      });
+    expect(hashEffectivePolicySnapshot(snapshot())).toBe(
+      hashEffectivePolicySnapshot(snapshot(true)),
+    );
+    expect(hashEffectivePolicySnapshot(snapshot())).not.toBe(
+      hashEffectivePolicySnapshot(snapshot(false)),
     );
   });
 

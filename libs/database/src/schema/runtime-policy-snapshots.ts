@@ -32,7 +32,12 @@ export const runtimePolicySnapshots = pgTable(
     enforcement: varchar('enforcement', { length: 16 }).notNull(),
     allowedTools: text('allowed_tools').array().notNull(),
     allowedShellCommands: jsonb('allowed_shell_commands')
-      .$type<Array<{ argvPrefix: readonly [string, ...string[]] }>>()
+      .$type<
+        Array<{
+          argvPrefix: readonly [string, ...string[]];
+          allowEnvironmentAssignments?: boolean;
+        }>
+      >()
       .notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

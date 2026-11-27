@@ -84,6 +84,12 @@ const SHELL_COMMAND_RULE_ID = 'ShellCommandRule';
 
 export const ShellCommandRuleSchema = Type.Object(
   {
+    allowEnvironmentAssignments: Type.Optional(
+      Type.Boolean({
+        description:
+          'When false, reject inline environment assignments for matching invocations. Omitted or true preserves existing assignment handling; inherited process environment is unchanged.',
+      }),
+    ),
     argvPrefix: Type.Array(ShellCommandTokenSchema, {
       minItems: 1,
       maxItems: 8,

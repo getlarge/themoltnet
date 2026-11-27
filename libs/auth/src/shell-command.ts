@@ -2,6 +2,7 @@ type ArgvPrefix = readonly [executable: string, ...arguments: string[]];
 
 export interface ShellCommandRule {
   argvPrefix: ArgvPrefix;
+  allowEnvironmentAssignments?: boolean;
 }
 
 export const SHELL_COMMAND_ENCODING_VERSION = 'v1';
@@ -133,8 +134,18 @@ function assertTokenCount(
 
 export function encodeShellCommandRule(rule: ShellCommandRule): string {
   assertTokenCount(rule.argvPrefix);
+  if (
+    rule.allowEnvironmentAssignments !== undefined &&
+    typeof rule.allowEnvironmentAssignments !== 'boolean'
+  ) {
+    throw new ShellCommandIdentifierError(
+      'allowEnvironmentAssignments must be a boolean',
+    );
+  }
   const identifier = [
-    SHELL_COMMAND_ENCODING_VERSION,
+    ...(rule.allowEnvironmentAssignments === false
+      ? ['v2', 'no-env']
+      : [SHELL_COMMAND_ENCODING_VERSION]),
     ...rule.argvPrefix.map(encodeToken),
   ].join('/');
   if (
@@ -157,16 +168,21 @@ export function decodeShellCommandIdentifier(
       `Shell command identifiers must be at most ${MAX_SHELL_COMMAND_IDENTIFIER_BYTES} encoded bytes`,
     );
   }
-  const [version, ...segments] = identifier.split('/');
-  if (version !== SHELL_COMMAND_ENCODING_VERSION) {
+  const [version, ...encodedSegments] = identifier.split('/');
+  const restricted = version === 'v2' && encodedSegments[0] === 'no-env';
+  if (version !== SHELL_COMMAND_ENCODING_VERSION && !restricted) {
     throw new ShellCommandIdentifierError(
       `Unknown shell command encoding version: ${version || '(empty)'}`,
     );
   }
+  const segments = restricted ? encodedSegments.slice(1) : encodedSegments;
   assertTokenCount(segments);
   const tokens = segments.map(decodeToken);
   assertTokenCount(tokens);
-  const rule = { argvPrefix: tokens };
+  const rule: ShellCommandRule = {
+    argvPrefix: tokens,
+    ...(restricted ? { allowEnvironmentAssignments: false } : {}),
+  };
   if (encodeShellCommandRule(rule) !== identifier) {
     throw new ShellCommandIdentifierError(
       'Shell command identifier is not canonical',
@@ -186,7 +202,11 @@ export function compareShellCommandRules(
     if (leftPrefix[index] < rightPrefix[index]) return -1;
     if (leftPrefix[index] > rightPrefix[index]) return 1;
   }
-  return leftPrefix.length - rightPrefix.length;
+  return (
+    leftPrefix.length - rightPrefix.length ||
+    Number(left.allowEnvironmentAssignments !== false) -
+      Number(right.allowEnvironmentAssignments !== false)
+  );
 }
 
 export function normalizeShellCommandRules(

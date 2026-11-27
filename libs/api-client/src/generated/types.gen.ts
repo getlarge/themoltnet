@@ -2317,6 +2317,10 @@ export type SetProfilePoliciesBody = {
 
 export type ShellCommandRule = {
   /**
+   * When false, reject inline environment assignments for matching invocations. Omitted or true preserves existing assignment handling; inherited process environment is unchanged.
+   */
+  allowEnvironmentAssignments?: boolean;
+  /**
    * Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.
    */
   argvPrefix: Array<string>;
