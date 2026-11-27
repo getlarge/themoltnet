@@ -3,7 +3,7 @@
 # ship as a fix or feat commit so release-please releases the action.
 e8474869514911e36d0d366c5a7a21e96813e2d361f69d0c0fc460d14f35d72f  .github/workflows/adaptive-review-outcomes-reusable.yml
 ac0e9b6a7cdb48495b9746d3a722f7366cea29cf241cda5278f54f39d218f2cd  .github/workflows/adaptive-review-reusable.yml
-0544c8923178e5a2eea4386515c4ecbf6a23417ca8e45b7bedf9254ea270c4d2  apps/agent-daemon/package.json
+1e67adcd89266b014c8a100377a0fea8eb2ab69f4187ab0f94e5894b6212eb44  apps/agent-daemon/package.json
 bdc926c40feef70990896b68d3cac7bb8cc0c9561b175a84ea480bb71ad7e331  infra/absurd/Dockerfile
 dbc5ad9dacc03f49f6520dc484f5f704c428bd88b4a9b7440046f071c952a156  libs/adaptive-review/src/complexity-lane.ts
 517d522f1a33933cf501ec31f51526fa8ac43a75547b68f616b65ee2318995df  libs/adaptive-review/src/config.ts
@@ -71,7 +71,7 @@ ba39b405ecd7fcf78f19b902e63a602b3c93473da1bd32dd600448b19c7a5323  libs/security-
 70e75553cf32d473b9f1f383c2f9e3adef8e43cd2cf2e0cc98875f13c8a2876c  libs/security-review/src/main.ts
 2744c15dfee674a7e64b7144e32db615d68139dc1a751c461b8e949dfd56804a  libs/security-review/src/review.ts
 16b4395d50c7c31687149287892acba7a3e6d41ec8b2b83fcda41c65bc90aa9e  packages/agent-daemon-action/action.yml
-07bb35b275198624a60638b8e4e9a13b45ac593d3dc959cbad2e6408d1357466  packages/agent-daemon-action/package.json
+a8504c21155792cf27d1c96ebfeda9cb325d9e295b866de53ea9dc3257cbc895  packages/agent-daemon-action/package.json
 431673e591a228f99de4623de58f027e51f6ac2966d3befcf7eadd6a83fb72f4  packages/agent-daemon-action/src/cancel-superseded.ts
 ab6ce882766a822342455bc87baf9af571ab8e5f67c4c6c9e9c0dbb37e1a6733  packages/agent-daemon-action/src/create-task.ts
 f8f236bddc9a9ac441cb32cfd7c8996ae3149c25e3a332eb25e2a38a1640310a  packages/agent-daemon-action/src/dispatch.ts
