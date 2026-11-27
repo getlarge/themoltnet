@@ -26,11 +26,11 @@ afterEach(() => {
 });
 
 it.each([
-  { headerMs: 6_000, processingMs: 0 },
-  { headerMs: 0, processingMs: 15_000 },
+  { headerMs: 6_000, initialPauseMs: 15_000, processingMs: 0 },
+  { headerMs: 0, initialPauseMs: 0, processingMs: 15_000 },
 ])(
   'keeps replay alive with $headerMs ms to headers and $processingMs ms processing per commit',
-  async ({ headerMs, processingMs }) => {
+  async ({ headerMs, initialPauseMs, processingMs }) => {
     vi.useFakeTimers();
     // Native AbortSignal.timeout does not use the mocked JS clock.
     vi.spyOn(AbortSignal, 'timeout').mockImplementation((milliseconds) => {
@@ -84,6 +84,10 @@ it.each([
     try {
       const replay = (async () => {
         const page = await writer.transport.read(0, BACKGROUND_CONTEXT);
+        if (initialPauseMs)
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, initialPauseMs);
+          });
         const received: number[] = [];
         for await (const commit of page.items) {
           received.push(commit.seq);
@@ -97,7 +101,9 @@ it.each([
         (received) => ({ received }),
         (error: unknown) => ({ error }),
       );
-      await vi.advanceTimersByTimeAsync(headerMs + 12_000 + 3 * processingMs);
+      await vi.advanceTimersByTimeAsync(
+        headerMs + initialPauseMs + 12_000 + 3 * processingMs,
+      );
       expect(await replay).toEqual({ received: [1, 2, 3] });
       expect(writer.signal.aborted).toBe(false);
       // Completing the page must dispose its idle timer.

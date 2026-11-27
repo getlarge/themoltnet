@@ -155,9 +155,10 @@ export async function acquireDurableTransport(input: {
           fail('read', error);
           throw lost.signal.reason;
         });
-      startWaiting();
+      stopWaiting();
       async function* items(): AsyncGenerator<RuntimeCommit> {
         try {
+          startWaiting();
           for await (const commit of page.items) {
             stopWaiting();
             check();
