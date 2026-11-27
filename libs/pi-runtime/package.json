@@ -111,6 +111,13 @@
       "platform:server"
     ],
     "targets": {
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/pack.shared.mjs"
+        ]
+      },
       "test-ci": {
         "executor": "nx:noop",
         "dependsOn": [

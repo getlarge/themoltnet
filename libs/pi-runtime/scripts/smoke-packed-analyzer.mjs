@@ -93,11 +93,12 @@ try {
   const sandboxGondolinTarball = pack('libs/sandbox-gondolin');
   const sdkTarball = pack('libs/sdk');
   const agentRuntimeTarball = pack('libs/agent-runtime');
+  const shellCommandAnalyzerTarball = pack('libs/shell-command-analyzer');
   const tarballs = [
     sdkTarball,
     agentRuntimeTarball,
     sandboxGondolinTarball,
-    pack('libs/shell-command-analyzer'),
+    shellCommandAnalyzerTarball,
     pack('libs/pi-runtime'),
   ];
   writeFileSync(
@@ -118,6 +119,7 @@ try {
     '@themoltnet/agent-runtime': `file:${agentRuntimeTarball}`,
     '@themoltnet/sandbox-gondolin': `file:${sandboxGondolinTarball}`,
     '@themoltnet/sdk': `file:${sdkTarball}`,
+    '@themoltnet/shell-command-analyzer': `file:${shellCommandAnalyzerTarball}`,
   });
   const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
     cwd: installDir,
