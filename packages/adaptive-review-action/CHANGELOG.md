@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.5.1...adaptive-review-action-v0.5.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **adaptive-review:** accept escaped PEM newlines ([#3089](https://github.com/getlarge/themoltnet/issues/3089)) ([190cbdc](https://github.com/getlarge/themoltnet/commit/190cbdcf9e78a13ac3a886eb8f8075bdb7a11cde))
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.5.0...adaptive-review-action-v0.5.1) (2026-11-27)
 
 
