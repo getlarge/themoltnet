@@ -54,11 +54,11 @@ oauth2:
       max_ttl: 720h
     # Mirrors services.oauth2.config.oauth2.grant.refresh_token in
     # project.json. A refresh token stays redeemable for 60s after first use,
-    # at most 5 more times, so clients that refresh from several processes at
-    # once do not trip reuse detection and revoke the whole token chain.
+    # so clients that refresh from several processes at once do not trip reuse
+    # detection and revoke the whole token chain. No reuse count: on Ory
+    # Network that is a plan-gated feature and the whole config update fails.
     refresh_token:
       rotation_grace_period: 60s
-      rotation_grace_reuse_count: 5
   client_credentials:
     default_grant_allowed_scope: true
   session:
