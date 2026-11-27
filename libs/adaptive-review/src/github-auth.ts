@@ -12,7 +12,11 @@ export function reviewGithubToken(
   publication: 'report-only' | 'github' = 'github',
 ): () => Promise<string> {
   const appId = source.ADAPTIVE_GITHUB_APP_ID;
-  const privateKeyPem = source.MOLTNET_GITHUB_APP_PRIVATE_KEY;
+  // Match the escaped-newline environment form accepted by GitHub App auth.
+  const privateKeyPem = source.MOLTNET_GITHUB_APP_PRIVATE_KEY?.replace(
+    /\\n/g,
+    '\n',
+  );
   if (!appId || !privateKeyPem)
     return () => Promise.resolve(required('GH_TOKEN', source));
   let cached: { token: string; expiresAt: string } | undefined;

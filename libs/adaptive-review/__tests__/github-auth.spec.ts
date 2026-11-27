@@ -1,11 +1,15 @@
-import { generateKeyPairSync } from 'node:crypto';
+import { createPublicKey, generateKeyPairSync, verify } from 'node:crypto';
 
 import { afterEach, expect, it, vi } from 'vitest';
 
 import { reviewGithubToken } from '../src/github-auth.js';
 
-const privateKey = generateKeyPairSync('rsa', { modulusLength: 2048 })
-  .privateKey.export({ type: 'pkcs8', format: 'pem' })
+const { privateKey: rsaKey } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+});
+const privateKey = rsaKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+const pkcs1PrivateKey = rsaKey
+  .export({ type: 'pkcs1', format: 'pem' })
   .toString();
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -19,6 +23,53 @@ it('uses the explicit token fallback and fails when neither credential form exis
     Promise.resolve().then(() => reviewGithubToken('owner/repo', {})()),
   ).rejects.toThrow('GH_TOKEN');
 });
+it.each([
+  ['raw PKCS#8 PEM', privateKey],
+  ['raw PKCS#1 PEM', pkcs1PrivateKey],
+  ['escaped PKCS#1 newlines', pkcs1PrivateKey.replace(/\n/g, '\\n')],
+  ['escaped newlines', privateKey.replace(/\n/g, '\\n')],
+])(
+  'signs repository-token requests with %s from the environment',
+  async (_label, pem) => {
+    const jwtSignatures: boolean[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init: RequestInit) => {
+        const authorization = new Headers(init.headers).get('authorization');
+        const jwt = authorization?.replace(/^Bearer /i, '') ?? '';
+        const [header, payload, signature] = jwt.split('.');
+        jwtSignatures.push(
+          verify(
+            'RSA-SHA256',
+            Buffer.from(`${header}.${payload}`),
+            createPublicKey(privateKey),
+            Buffer.from(signature, 'base64url'),
+          ),
+        );
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(
+              url.endsWith('/installation')
+                ? { id: 7 }
+                : {
+                    token: 'token',
+                    expires_at: new Date(Date.now() + 3600_000).toISOString(),
+                  },
+            ),
+          ),
+        );
+      }),
+    );
+    await expect(
+      reviewGithubToken('owner/repo', {
+        ADAPTIVE_GITHUB_APP_ID: 'app',
+        MOLTNET_GITHUB_APP_PRIVATE_KEY: pem,
+      })(),
+    ).resolves.toBe('token');
+    expect(jwtSignatures).toEqual([true, true]);
+  },
+);
+
 it('retries after failed mint and refreshes at the exact renewal boundary', async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-11-20T00:00:00Z'));
