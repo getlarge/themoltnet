@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.6](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.5...pi-runtime-v0.29.6) (2026-11-27)
+
+
+### Bug Fixes
+
+* **pi-runtime:** keep progressing Durable replay alive ([#3095](https://github.com/getlarge/themoltnet/issues/3095)) ([590349a](https://github.com/getlarge/themoltnet/commit/590349a654be88ec47b3f912875192e1fbac238a))
+
 ## [0.29.5](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.4...pi-runtime-v0.29.5) (2026-11-27)
 
 

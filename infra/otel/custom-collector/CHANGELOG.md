@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.5...otel-collector-v0.2.6) (2026-11-27)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ory/client-go to v1.22.98 ([#3100](https://github.com/getlarge/themoltnet/issues/3100)) ([4a74da7](https://github.com/getlarge/themoltnet/commit/4a74da790ac9e5c48488db6281116196e30b1d74))
+
 ## [0.2.5](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.4...otel-collector-v0.2.5) (2026-11-27)
 
 

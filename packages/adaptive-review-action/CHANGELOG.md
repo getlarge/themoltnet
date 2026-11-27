@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.3](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.5.2...adaptive-review-action-v0.5.3) (2026-11-27)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.76.1
+    * @themoltnet/pi-runtime bumped to 0.29.6
+
 ## [0.5.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.5.1...adaptive-review-action-v0.5.2) (2026-11-27)
 
 
