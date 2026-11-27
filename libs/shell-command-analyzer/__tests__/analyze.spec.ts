@@ -175,7 +175,7 @@ describe('analyzeCommand — risk classification of resolved tools', () => {
 });
 
 describe('analyzeCommand — wrappers', () => {
-  it('re-analyzes env split-string commands', async () => {
+  it('resolves env split-string argv', async () => {
     expect(await invocationArgv("env -S 'git push --force'")).toEqual([
       ['env', '-S', 'git push --force'],
       ['git', 'push', '--force'],
@@ -186,6 +186,124 @@ describe('analyzeCommand — wrappers', () => {
       ['env', null],
       ['gh', 'pr', 'merge', '1725'],
     ]);
+  });
+
+  describe('env split-string argument composition', () => {
+    const forms = (value: string) => [
+      `env -S '${value}'`,
+      `env --split-string '${value}'`,
+      `env --split-string='${value}'`,
+      `env --split-string="${value}"`,
+      `env "--split-string=${value}"`,
+      `env -S'${value}'`,
+      `env '-S' '${value}'`,
+    ];
+
+    it.each(forms('LANG=C env'))(
+      'attributes split assignments to the trailing target: %s',
+      async (prefix) => {
+        const result = await analyzeCommand(`${prefix} git diff; other`);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(
+          result.tools.map(({ name, argv, envAssignments }) => ({
+            name,
+            ...(name === 'git' ? { argv } : {}),
+            envAssignments,
+          })),
+        ).toEqual([
+          { name: 'env', envAssignments: ['LANG'] },
+          { name: 'env', envAssignments: ['LANG'] },
+          { name: 'git', argv: ['git', 'diff'], envAssignments: ['LANG'] },
+          { name: 'other', envAssignments: [] },
+        ]);
+        expect(result.envAssignments).toEqual(['LANG']);
+        expect(result.unscopedEnvAssignments).toEqual([]);
+      },
+    );
+
+    it.each([...forms('git'), ...forms('env git')])(
+      'appends trailing argv without a separate invocation: %s',
+      async (prefix) => {
+        const result = await analyzeCommand(`${prefix} diff -- file`);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(result.tools.at(-1)?.argv).toEqual([
+          'git',
+          'diff',
+          '--',
+          'file',
+        ]);
+        expect(result.envAssignments).toEqual([]);
+      },
+    );
+
+    it.each(forms(''))(
+      'retains the tail after an empty split: %s',
+      async (prefix) => {
+        expect((await invocationArgv(`${prefix} git diff`)).at(-1)).toEqual([
+          'git',
+          'diff',
+        ]);
+      },
+    );
+
+    it.each([
+      "env LANG=C -S 'env' git diff",
+      "env -S 'LANG=C -S env' git diff",
+      "env -S '-- LANG=C -S env' git diff",
+    ])('stops split-option parsing at assignments: %s', async (command) => {
+      expect((await invocationArgv(command)).at(-1)).toEqual([
+        '-S',
+        'env',
+        'git',
+        'diff',
+      ]);
+    });
+
+    it('preserves dynamic tail argv without making it literal', async () => {
+      const result = await analyzeCommand(
+        `env -S 'LANG=C env' git diff "$PATH"`,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.tools.at(-1)?.argv).toEqual(['git', 'diff', null]);
+      expect(result.tools.at(-1)?.envAssignments).toEqual(['LANG']);
+    });
+
+    it('resolves repeated split options with a bounded splice depth', async () => {
+      expect((await invocationArgv("env -S '-S env' git diff")).at(-1)).toEqual(
+        ['git', 'diff'],
+      );
+      await expectDeny(`env -S '${'-S '.repeat(40)}env' git diff`);
+    });
+
+    it.each(forms('LANG=C'))(
+      'retains targetless assignments: %s',
+      async (command) => {
+        const result = await analyzeCommand(command);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(
+          result.tools.map(({ name, envAssignments }) => ({
+            name,
+            envAssignments,
+          })),
+        ).toEqual([{ name: 'env', envAssignments: ['LANG'] }]);
+      },
+    );
+
+    it.each([
+      `env -S '$SETTING env' git diff`,
+      'env -S "$SETTING" git diff',
+      `env --split-string="$SETTING" git diff`,
+      `env -S 'LANG="C" env' git diff`,
+      `env -S 'LANG=C\\_env' git diff`,
+      `env -S 'LANG=C env; other' git diff`,
+      `env -S 'env # comment' git diff`,
+    ])('fails closed on unsupported split grammar: %s', async (command) => {
+      await expectDeny(command);
+    });
   });
 
   it('rejects quoted wrapper targets containing whitespace', async () => {

@@ -262,6 +262,88 @@ describe('decideToolCall', () => {
       expect(check('env LANG=C; restricted')).toMatchObject({ allow: true });
       expect(check('restricted')).toMatchObject({ allow: true });
     });
+    describe('env split-string argument composition', () => {
+      const prefixes = [
+        "env -S 'LANG=C env'",
+        "env --split-string 'LANG=C env'",
+        "env --split-string='LANG=C env'",
+        'env --split-string="LANG=C env"',
+        'env "--split-string=LANG=C env"',
+        "env -S'LANG=C env'",
+        "env '-S' 'LANG=C env'",
+        "env -S 'LANG=C'",
+      ];
+      it.each(prefixes)('restricts composed git diff argv: %s', (prefix) => {
+        expect(
+          check(`${prefix} git diff`, {
+            allowedShellCommands: [
+              { argvPrefix: ['env'] },
+              {
+                argvPrefix: ['git', 'diff'],
+                allowEnvironmentAssignments: false,
+              },
+            ],
+          }),
+        ).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+      });
+      it.each(prefixes)('restricts the composed target: %s', (prefix) => {
+        expect(check(`${prefix} restricted`)).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+        expect(check(`${prefix} permitted; restricted`)).toMatchObject({
+          allow: true,
+        });
+        for (const allowEnvironmentAssignments of [undefined, true]) {
+          expect(
+            check(`${prefix} restricted`, {
+              allowedShellCommands: rules.map((rule) => ({
+                ...rule,
+                allowEnvironmentAssignments,
+              })),
+            }),
+          ).toMatchObject({ allow: true });
+        }
+      });
+      it.each([
+        "env -S 'restricted'",
+        "env -S 'env' restricted",
+        "env --split-string='env' restricted",
+        "env -S 'env restricted'",
+        'env LANG=C permitted; env -S restricted',
+      ])('allows composed targets without assignments: %s', (command) => {
+        expect(check(command)).toMatchObject({ allow: true });
+      });
+      it.each([
+        'env -S "$SETTING" restricted',
+        'env -S env "$COMMAND"',
+        'env --split-string="$SETTING" restricted',
+        "env -S '$SETTING env' restricted",
+        'env -S \'LANG="C" env\' restricted',
+        "env -S 'env # comment' restricted",
+      ])('rejects unsupported split syntax: %s', (command) => {
+        expect(check(command)).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_command_unresolvable',
+        });
+      });
+      it.each(prefixes)('restricts the outer wrapper: %s', (prefix) => {
+        expect(
+          check(`${prefix} permitted`, {
+            allowedShellCommands: [
+              { argvPrefix: ['env'], allowEnvironmentAssignments: false },
+              { argvPrefix: ['permitted'] },
+            ],
+          }),
+        ).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+      });
+    });
     it.each(['env LANG=C', "env 'LANG=C'", 'env LANG=C permitted'])(
       'denies assignments on a restricted wrapper itself: %s',
       (command) => {

@@ -273,12 +273,27 @@ function commandWords(node: Node): Word[] | null {
 }
 
 type Advance =
-  | { kind: 'target'; index: number; envAssignments: string[] }
+  | { kind: 'target'; words: Word[]; envAssignments: string[] }
   | { kind: 'none'; envAssignments: string[] }
   | { kind: 'deny'; reason: string };
 
 /**
- * Walk a wrapper's options to the index of the command it runs. Handles
+ * env -S splices argv, not a shell program. Only whitespace-separated literal
+ * tokens are supported; env-specific quoting, escapes, comments and expansion
+ * fail closed instead of being misinterpreted using shell grammar.
+ */
+function splitEnvString(word: Word | undefined): Word[] | null {
+  if (!word) return null;
+  const value = word.name ?? unquote(word.raw);
+  if (/[^ \tA-Za-z0-9_./:=+@%,-]/.test(value)) return null;
+  return value
+    .split(/[ \t]+/)
+    .filter(Boolean)
+    .map((name) => ({ raw: name, name }));
+}
+
+/**
+ * Walk a wrapper's options to the command it runs. Handles
  * separate (`-u X`), attached (`-uX`), and inline (`--user=X`) value flags,
  * boolean flags (including short clusters), `--`, and env-style assignments.
  * **Fails closed** on any option in neither known set, since an unknown
@@ -293,9 +308,41 @@ function advancePastWrapper(
   let j = start;
   let positionals = 0;
   let afterDoubleDash = false;
+  let splitCount = 0;
   const envAssignments: string[] = [];
   while (j < words.length) {
     const raw = words[j].raw;
+    const option = words[j].name ?? raw;
+    if (
+      baseName(who) === 'env' &&
+      !afterDoubleDash &&
+      (option === '-S' ||
+        option === '--split-string' ||
+        option.startsWith('-S') ||
+        option.startsWith('--split-string='))
+    ) {
+      const separate = option === '-S' || option === '--split-string';
+      const attached = option.startsWith('--split-string=')
+        ? option.slice('--split-string='.length)
+        : option.slice(2);
+      const expanded = splitEnvString(
+        separate
+          ? words[j + 1]
+          : { raw: attached, name: words[j].name === null ? null : attached },
+      );
+      if (expanded === null || ++splitCount > MAX_WRAPPER_DEPTH) {
+        return {
+          kind: 'deny',
+          reason: 'unresolvable env split-string arguments',
+        };
+      }
+      words = [
+        ...words.slice(0, j),
+        ...expanded,
+        ...words.slice(j + (separate ? 2 : 1)),
+      ];
+      continue;
+    }
     const assignment = assignmentName(words[j]);
     if (
       assignment !== undefined &&
@@ -303,6 +350,9 @@ function advancePastWrapper(
         (spec.assignmentOperands === 'before-double-dash' && !afterDoubleDash))
     ) {
       envAssignments.push(assignment);
+      // env stops parsing options at its first assignment operand. A later
+      // -S is an executable name, not another split-string directive.
+      if (spec.assignmentOperands === 'before-command') afterDoubleDash = true;
       j += 1;
       continue;
     }
@@ -356,7 +406,7 @@ function advancePastWrapper(
       j += 1;
       continue;
     }
-    return { kind: 'target', index: j, envAssignments };
+    return { kind: 'target', words: words.slice(j), envAssignments };
   }
   return { kind: 'none', envAssignments };
 }
@@ -475,7 +525,7 @@ function resolveWords(
         escapes: wrapperEscapes,
       };
     }
-    const inner = resolveWords(words.slice(advance.index), wrapperDepth + 1, [
+    const inner = resolveWords(advance.words, wrapperDepth + 1, [
       ...envAssignments,
       ...advance.envAssignments,
     ]);
