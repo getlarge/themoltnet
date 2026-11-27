@@ -1,0 +1,5 @@
+# The console is a signed-in application with nothing to index. Crawlers that
+# follow its sign-in and sign-up links start an Ory login or registration flow
+# on every visit, so keep all of it out of crawl.
+User-agent: *
+Disallow: /
