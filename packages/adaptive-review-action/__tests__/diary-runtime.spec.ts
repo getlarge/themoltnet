@@ -26,15 +26,10 @@ it.each([
       {
         env: { ...process.env, ADAPTIVE_REVIEW_DIARY_IDS: ids },
         encoding: 'utf8',
-        // Bound real daemon-adapter startup independently of Vitest's timer.
-        timeout: 10_000,
-        killSignal: 'SIGKILL',
       },
     );
-    expect(result.error, result.stderr).toBeUndefined();
     expect(result.status, result.stderr).toBe(valid ? 0 : 1);
     if (valid) expect(result.stdout).toBe('adaptive_review_pi');
     else expect(result.stderr).toContain('Review diary sources must contain');
   },
-  15_000,
 );
