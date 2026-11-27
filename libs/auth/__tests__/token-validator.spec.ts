@@ -667,7 +667,7 @@ describe('TokenValidator', () => {
       expect(result).toBeNull();
       expect(resolveTalosAgent).not.toHaveBeenCalled();
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith(
+      expect(logger.warn).toHaveBeenCalledWith(
         {
           credentialType: 'talos-api-key',
           reason: 'credential_rejected',
@@ -854,7 +854,7 @@ describe('TokenValidator', () => {
 
       expect(result).toBeNull();
       expect(resolveTalosAgent).not.toHaveBeenCalled();
-      expect(logger.debug).toHaveBeenCalledWith(
+      expect(logger.warn).toHaveBeenCalledWith(
         {
           credentialType: 'talos-api-key',
           reason: 'credential_rejected',
@@ -862,6 +862,44 @@ describe('TokenValidator', () => {
           status: undefined,
         },
         'Talos API key rejected',
+      );
+    });
+
+    it('names the expired key and its agent so the caller can be traced', async () => {
+      const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent,
+        logger,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: true,
+        actor_id: VALID_AGENT_ID,
+        key_id: 'talos-key-expired',
+        status: 'KEY_STATUS_ACTIVE',
+        visibility: 'KEY_VISIBILITY_SECRET',
+        expire_time: new Date(Date.now() - 60_000),
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_expired');
+
+      expect(result).toBeNull();
+      expect(resolveTalosAgent).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'credential_expired',
+          errorCode: undefined,
+          status: 'KEY_STATUS_ACTIVE',
+          keyId: 'talos-key-expired',
+          actorId: VALID_AGENT_ID,
+        },
+        'Talos API key rejected',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'ory_ak_expired',
       );
     });
 
