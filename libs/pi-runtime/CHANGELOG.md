@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.29.5](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.4...pi-runtime-v0.29.5) (2026-11-27)
+
+
+### Bug Fixes
+
+* **adaptive-review:** provide task-bound pinned diff access ([d07f132](https://github.com/getlarge/themoltnet/commit/d07f132bdfeeab054a503d59dcfef8013679993c))
+* **agent-daemon:** recover interrupted Durable attempts ([825b7ad](https://github.com/getlarge/themoltnet/commit/825b7ad16cb6b28ed557be8b89d4a6441c3855c4))
+* **agent-runtime:** require confirmed teardown before recovery ([60f4d4e](https://github.com/getlarge/themoltnet/commit/60f4d4ed3d2e7be1bd9a10d029e8249c897abf2e))
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+* **pi-runtime:** honor Ollama profile controls ([ec12bbb](https://github.com/getlarge/themoltnet/commit/ec12bbb284da7fa4a2251f6ccfe6fc23b5bf08c6))
+* **pi-runtime:** pin packed analyzer in smoke consumers ([416c529](https://github.com/getlarge/themoltnet/commit/416c529aa78324e4999905a2ac3a42f7b5a515f8))
+* **pi-runtime:** preserve sampling when thinking is off ([7407738](https://github.com/getlarge/themoltnet/commit/7407738828f8db98626c33d9133bb4c007258cb8))
+* **pi-runtime:** require successful harness shutdown for recovery ([1b4850a](https://github.com/getlarge/themoltnet/commit/1b4850a1589264be737e58990482918c50e11f0d))
+* **review:** close Git diff option parsing before review arguments ([dccaf0e](https://github.com/getlarge/themoltnet/commit/dccaf0ee6ab5b1b420c69b287d804c2f6322edb1))
+* **review:** match executable paths and own policy tests ([7bc5944](https://github.com/getlarge/themoltnet/commit/7bc59447792b532aa990315722a9203d9eb1d4ba))
+* **review:** use scoped Bash Git diff inspection ([ffc5241](https://github.com/getlarge/themoltnet/commit/ffc524193b60d0d12eaecd062de0bb1dab9f67e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.23.0
+    * @themoltnet/sandbox-gondolin bumped to 0.10.0
+    * @themoltnet/sdk bumped to 0.154.5
+    * @themoltnet/shell-command-analyzer bumped to 0.4.2
+
 ## [0.29.4](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.3...pi-runtime-v0.29.4) (2026-11-27)
 
 

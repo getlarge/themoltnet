@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.7.1...tasks-orchestrator-v0.8.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** checkpoint coordinator and lane recovery ([a70aa30](https://github.com/getlarge/themoltnet/commit/a70aa305586670844b16a0c70f6fa8ecfce49a3c))
+* **adaptive-review:** persist coordinator recovery with Absurd ([0d3f359](https://github.com/getlarge/themoltnet/commit/0d3f359db0c6e8c6461525b135f6a0f55d98c170))
+
+
+### Bug Fixes
+
+* **adaptive-review:** provide task-bound pinned diff access ([d07f132](https://github.com/getlarge/themoltnet/commit/d07f132bdfeeab054a503d59dcfef8013679993c))
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+* **review:** use scoped Bash Git diff inspection ([ffc5241](https://github.com/getlarge/themoltnet/commit/ffc524193b60d0d12eaecd062de0bb1dab9f67e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.5
+
 ## [0.7.1](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.7.0...tasks-orchestrator-v0.7.1) (2026-11-27)
 
 

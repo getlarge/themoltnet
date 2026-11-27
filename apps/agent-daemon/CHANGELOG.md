@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.76.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.75.0...agent-daemon-v0.76.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+
+
+### Bug Fixes
+
+* **adaptive-review:** provide task-bound pinned diff access ([d07f132](https://github.com/getlarge/themoltnet/commit/d07f132bdfeeab054a503d59dcfef8013679993c))
+* **agent-daemon:** recover interrupted Durable attempts ([825b7ad](https://github.com/getlarge/themoltnet/commit/825b7ad16cb6b28ed557be8b89d4a6441c3855c4))
+* **agent-daemon:** resume interrupted durable attempts ([292e047](https://github.com/getlarge/themoltnet/commit/292e0470118416aee872f6168d40a9f33798e00f))
+* **pi-runtime:** honor Ollama profile controls ([ec12bbb](https://github.com/getlarge/themoltnet/commit/ec12bbb284da7fa4a2251f6ccfe6fc23b5bf08c6))
+* **review:** match executable paths and own policy tests ([7bc5944](https://github.com/getlarge/themoltnet/commit/7bc59447792b532aa990315722a9203d9eb1d4ba))
+* **review:** use scoped Bash Git diff inspection ([ffc5241](https://github.com/getlarge/themoltnet/commit/ffc524193b60d0d12eaecd062de0bb1dab9f67e4))
+* **sandbox:** serialize snapshot builds across daemon processes ([7e16f3c](https://github.com/getlarge/themoltnet/commit/7e16f3c32dd7cae90992d9e1ca69bdc4abd8d6fd))
+* **tooling:** correct auth mock types and test formatting ([4d16ffe](https://github.com/getlarge/themoltnet/commit/4d16ffe4f04bb9fcac341a8bad7f00f9f57e5f81))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.23.0
+    * @themoltnet/pi-runtime bumped to 0.29.5
+    * @themoltnet/sdk bumped to 0.154.5
+
 ## [0.75.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.5...agent-daemon-v0.75.0) (2026-11-27)
 
 

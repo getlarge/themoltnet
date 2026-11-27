@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.72.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.71.0...rest-api-v0.72.0) (2026-11-27)
+
+
+### Features
+
+* **auth:** use Console across dev and deployment stacks ([d563924](https://github.com/getlarge/themoltnet/commit/d5639246b5706df60d9d65f4e8d8c0bb2cac9e24))
+* **console:** add shared Ory self-service authentication screens ([42737d8](https://github.com/getlarge/themoltnet/commit/42737d8772351aca2e3f50badc125409593e7f5e))
+* **diary:** generate embeddings in durable background workflows ([d751cd4](https://github.com/getlarge/themoltnet/commit/d751cd4ff0bc5c65ab71b8cd36b8a171fb7e36b0))
+* **diary:** generate embeddings in the background with a bounded process pool ([7d45842](https://github.com/getlarge/themoltnet/commit/7d45842a55f68fe5b6decd304e8a9bc3d78b71ee))
+* **embedding-service:** bound inference with process workers ([6d33536](https://github.com/getlarge/themoltnet/commit/6d33536e1f0a39da517ff21110b0d168489cccde))
+* **self-host:** reusable Ory 26.2 runtime and release bundle ([13c0b98](https://github.com/getlarge/themoltnet/commit/13c0b98ab65f4edf4e5ad2e842cab14262eb686a))
+* **self-host:** ship reusable Ory 26.2 runtime module ([98fff11](https://github.com/getlarge/themoltnet/commit/98fff11b991325577019664b6641bead162b9dd9))
+
+
+### Bug Fixes
+
+* **api:** preserve Date handling in standalone serializers ([00e5f8d](https://github.com/getlarge/themoltnet/commit/00e5f8dabaa3c352badf1c9dce343e5d01c99847))
+* **diary:** make enrichment handoff atomic and retries finite ([8ec9635](https://github.com/getlarge/themoltnet/commit/8ec96356c2419e015268cdfb4a432c9bdbdd9a25))
+* **docker:** align node base images with the 24.22.3 toolchain ([0b21f08](https://github.com/getlarge/themoltnet/commit/0b21f08a4e967d66d857f3c1685aa7ad309fedf8))
+* reduce API startup compilation and correlate telemetry by instance ([2e7c450](https://github.com/getlarge/themoltnet/commit/2e7c4505b7bf99a0edaf924f4ef38a581c4eeb08))
+
+
+### Performance Improvements
+
+* **api:** precompile response serializers during builds ([e107f2b](https://github.com/getlarge/themoltnet/commit/e107f2b96df5bf0016cc4c90a44b5f9ca3216f4e))
+* **api:** precompile response serializers during builds ([b19ae82](https://github.com/getlarge/themoltnet/commit/b19ae820a0def6bda93277893878828a033fef12))
+* **rest-api:** reuse equivalent response serializers ([6d322be](https://github.com/getlarge/themoltnet/commit/6d322be4696be71fc02b3717e2dcfe2e8bab3130))
+
 ## [0.71.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.70.1...rest-api-v0.71.0) (2026-11-27)
 
 

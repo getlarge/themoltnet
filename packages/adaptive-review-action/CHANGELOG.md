@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.5.0...adaptive-review-action-v0.5.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **tooling:** finalize matcher ranges and restore startup test budget ([b9bc580](https://github.com/getlarge/themoltnet/commit/b9bc580e21c483cc3a8d991cdd2b8b3e8850cd8c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.76.0
+    * @themoltnet/pi-runtime bumped to 0.29.5
+  * devDependencies
+    * @themoltnet/agent-daemon-action bumped to 0.10.0
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.4.2...adaptive-review-action-v0.5.0) (2026-11-27)
 
 

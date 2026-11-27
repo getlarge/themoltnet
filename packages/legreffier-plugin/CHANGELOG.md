@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.2](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.12.1...legreffier-plugin-v0.12.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **legreffier:** capture agent self-corrections in diary ([187bfd9](https://github.com/getlarge/themoltnet/commit/187bfd9eb4b6d6a6e3d5af652f301de7faa35880))
+* **legreffier:** capture agent self-corrections in diary ([7fa8f30](https://github.com/getlarge/themoltnet/commit/7fa8f301ba152f02221a623a606796b2fa5755bf))
+
 ## [0.12.1](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.12.0...legreffier-plugin-v0.12.1) (2026-11-27)
 
 

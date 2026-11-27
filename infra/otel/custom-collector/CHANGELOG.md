@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.5](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.4...otel-collector-v0.2.5) (2026-11-27)
+
+
+### Bug Fixes
+
+* **deps:** synchronize collector module graphs for Ory update ([f2464cb](https://github.com/getlarge/themoltnet/commit/f2464cb29677281acc4a68dcde27564d29d9c768))
+* **deps:** update digest updates ([c65c077](https://github.com/getlarge/themoltnet/commit/c65c077a1599abea95b9ef45654d569dc0a96dc1))
+* **deps:** update digest updates ([bd07640](https://github.com/getlarge/themoltnet/commit/bd07640029c4dedfc0705ee6fc124da232e31785))
+* **deps:** update module github.com/ory/client-go to v1.22.93 ([1eb4146](https://github.com/getlarge/themoltnet/commit/1eb4146faf8cd98f345ac16a6de8920148474486))
+* **deps:** update module github.com/ory/client-go to v1.22.94 ([#3066](https://github.com/getlarge/themoltnet/issues/3066)) ([69abf34](https://github.com/getlarge/themoltnet/commit/69abf34def349472ee93fa8ceef697c744416f67))
+* **deps:** update module github.com/ory/client-go to v1.22.95 ([#3070](https://github.com/getlarge/themoltnet/issues/3070)) ([ff465a1](https://github.com/getlarge/themoltnet/commit/ff465a1246ab54e023652fb78624833ecbc8ce64))
+
 ## [0.2.4](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.3...otel-collector-v0.2.4) (2026-11-27)
 
 

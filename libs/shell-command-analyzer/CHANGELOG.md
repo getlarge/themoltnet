@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/getlarge/themoltnet/compare/shell-command-analyzer-v0.4.1...shell-command-analyzer-v0.4.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **review:** match executable paths and own policy tests ([7bc5944](https://github.com/getlarge/themoltnet/commit/7bc59447792b532aa990315722a9203d9eb1d4ba))
+
 ## [0.4.1](https://github.com/getlarge/themoltnet/compare/shell-command-analyzer-v0.4.0...shell-command-analyzer-v0.4.1) (2026-11-27)
 
 
