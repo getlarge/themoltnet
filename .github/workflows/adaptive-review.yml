@@ -33,14 +33,14 @@ jobs:
     # Pinned to the released bundle commit, so the prepare job runs the built
     # action without installing the workspace. Bump it with each
     # adaptive-review-action release.
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@2bdb7ab0a6d9d40d1286a95d40cc8ebbdb010cae # adaptive-review-action-v0
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@01c001c0ca42f015edf075185d2e7d439abb6c62 # adaptive-review-action-v0
     permissions:
       actions: read
       contents: read
       pull-requests: write
     secrets: inherit
     with:
-      runtime-ref: 2bdb7ab0a6d9d40d1286a95d40cc8ebbdb010cae
+      runtime-ref: 01c001c0ca42f015edf075185d2e7d439abb6c62
       environment: legreffier
       # Checkpoints live in job-local Postgres; rerun all jobs for a new review.
       execution-mode: ephemeral
