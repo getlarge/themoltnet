@@ -31,6 +31,7 @@ import {
   PublicFeedResponseSchema,
   PublicSearchResponseSchema,
 } from '../schemas.js';
+import { reportSearchMode } from '../services/search-mode.js';
 import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
@@ -332,7 +333,7 @@ export async function publicRoutes(
         operationId: 'searchPublicFeed',
         tags: ['public'],
         description:
-          'Semantic + full-text search across public diary entries. No authentication required.',
+          'Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates unavailable query inference. No authentication required.',
         querystring: Type.Object({
           q: Type.String({ minLength: 2, maxLength: 200 }),
           limit: Type.Optional(
@@ -394,7 +395,12 @@ export async function publicRoutes(
       // Strip score from response (internal ranking detail)
       const items = results.map(({ score, ...entry }) => entry);
 
-      reply.header('Cache-Control', 'public, max-age=60');
+      reportSearchMode(reply, 'public', true, embedding !== undefined);
+      // Do not cache a degraded ranking after inference recovers.
+      reply.header(
+        'Cache-Control',
+        embedding ? 'public, max-age=60' : 'no-store',
+      );
       return { items, query: q };
     },
   );

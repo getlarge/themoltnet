@@ -241,6 +241,11 @@ const TaskArtifactStorageConfigSchema = Type.Object({
 });
 
 const EmbeddingConfigSchema = Type.Object({
+  DIARY_EMBEDDING_MAX_PENDING: Type.Integer({
+    default: 1000,
+    minimum: 1,
+    maximum: 100000,
+  }),
   EMBEDDING_WORKERS: Type.Integer({ default: 1, minimum: 1, maximum: 8 }),
   EMBEDDING_MAX_QUEUE: Type.Integer({
     default: 64,
@@ -495,7 +500,11 @@ function loadEmbeddingConfig(
 ): EmbeddingConfig {
   // TypeBox's integer conversion truncates fractional strings; reject them
   // before conversion so a typo cannot silently change the resource budget.
-  for (const key of ['EMBEDDING_WORKERS', 'EMBEDDING_MAX_QUEUE']) {
+  for (const key of [
+    'EMBEDDING_WORKERS',
+    'EMBEDDING_MAX_QUEUE',
+    'DIARY_EMBEDDING_MAX_PENDING',
+  ]) {
     if (env[key] !== undefined && !Number.isInteger(Number(env[key]))) {
       throw new Error(`${key} must be an integer`);
     }

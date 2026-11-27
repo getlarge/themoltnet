@@ -6,8 +6,53 @@ import {
   createMetricCounter,
   createMetricUpDownCounter,
   createRequestMetrics,
+  getMetricMeter,
 } from '../src/metrics.js';
 import { TestMetricReader } from './test-metric-reader.js';
+
+describe('observable backlog gauges', () => {
+  afterEach(() => metricsApi.disable());
+
+  it('distinguishes retained gauge samples from successful observations', async () => {
+    const reader = new TestMetricReader();
+    const provider = createMeterProvider({ serviceName: 'test', reader });
+    metricsApi.setGlobalMeterProvider(provider);
+    const meter = getMetricMeter('test');
+    const gauge = meter.createObservableGauge('backlog');
+    const success = meter.createObservableGauge('observation.success');
+    const gauges = [gauge, success];
+    let value: number | undefined = 7;
+    let calls = 0;
+    const observe: Parameters<typeof meter.addBatchObservableCallback>[0] = (
+      result,
+    ) => {
+      calls++;
+      if (value !== undefined) result.observe(gauge, value);
+      result.observe(success, value === undefined ? 0 : 1);
+    };
+    meter.addBatchObservableCallback(observe, gauges);
+    const first = await reader.collect();
+    expect(
+      first.resourceMetrics.scopeMetrics[0].metrics[0].dataPoints[0].value,
+    ).toBe(7);
+    value = undefined;
+    const unavailable = await reader.collect();
+    const metrics = unavailable.resourceMetrics.scopeMetrics.flatMap(
+      (scope) => scope.metrics,
+    );
+    expect(
+      metrics.find((m) => m.descriptor.name === 'backlog')?.dataPoints[0].value,
+    ).toBe(7);
+    expect(
+      metrics.find((m) => m.descriptor.name === 'observation.success')
+        ?.dataPoints[0].value,
+    ).toBe(0);
+    meter.removeBatchObservableCallback(observe, gauges);
+    await reader.collect();
+    expect(calls).toBe(2);
+    await provider.shutdown();
+  });
+});
 
 describe('createMeterProvider', () => {
   afterEach(() => {

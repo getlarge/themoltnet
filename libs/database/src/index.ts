@@ -35,6 +35,11 @@ export {
   type TransactionalWorkflowEnqueueInput,
   type TransactionalWorkflowEnqueueResult,
 } from './dbos-transactional-enqueue.js';
+export {
+  createDiaryEmbeddingQueue,
+  type DiaryEmbeddingBacklog,
+  DiaryEmbeddingQueueFullError,
+} from './diary-embedding-queue.js';
 export { runMigrations } from './migrate.js';
 export {
   type AgentPrincipal,

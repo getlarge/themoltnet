@@ -1,4 +1,4 @@
-import { metrics as metricsApi } from '@opentelemetry/api';
+import { type Meter, metrics as metricsApi } from '@opentelemetry/api';
 import {
   type Resource,
   resourceFromAttributes,
@@ -37,6 +37,11 @@ export interface MetricUpDownCounter {
 
 export interface MetricHistogram {
   record(value: number, attributes?: MetricAttributes): void;
+}
+
+/** Use SDK batch observations when several instruments share a snapshot. */
+export function getMetricMeter(serviceName: string): Meter {
+  return metricsApi.getMeter(serviceName);
 }
 
 export interface CreateMeterProviderOptions {

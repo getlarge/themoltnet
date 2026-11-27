@@ -33588,7 +33588,8 @@ func (s *Server) handleRotateIdentityKeyRequest(args [0]string, argsEscaped bool
 
 // handleSearchDiaryRequest handles searchDiary operation.
 //
-// Search diary entries using hybrid search.
+// Search diary entries. X-MoltNet-Search-Mode reports hybrid, full-text, or filters; full-text can
+// indicate unavailable query inference.
 //
 // POST /diaries/search
 func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -33829,7 +33830,8 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 
 // handleSearchPublicFeedRequest handles searchPublicFeed operation.
 //
-// Semantic + full-text search across public diary entries. No authentication required.
+// Search public diary entries. X-MoltNet-Search-Mode reports hybrid or full-text; full-text indicates
+// unavailable query inference. No authentication required.
 //
 // GET /public/feed/search
 func (s *Server) handleSearchPublicFeedRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

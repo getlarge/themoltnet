@@ -62,6 +62,25 @@ async function buildTestApp() {
 }
 
 describe('Error handler plugin', () => {
+  it('reports a replayed embedding admission error as retryable 503', async () => {
+    const app = await buildTestApp();
+    app.post('/busy', async () => {
+      // DBOS preserves the error name across replay, not the class prototype.
+      const error = new Error('internal queue details');
+      error.name = 'DiaryEmbeddingQueueFullError';
+      throw error;
+    });
+    const response = await app.inject({ method: 'POST', url: '/busy' });
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['retry-after']).toBe('5');
+    expect(response.json()).toMatchObject({
+      code: 'SERVICE_UNAVAILABLE',
+      retryAfter: 5,
+      detail: 'Diary indexing is busy. Retry this write later.',
+    });
+    expect(response.body).not.toContain('internal queue details');
+    await app.close();
+  });
   it.each(['40P01', '40001'])(
     'reports transaction contention %s without exposing SQL',
     async (code) => {
