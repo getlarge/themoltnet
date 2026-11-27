@@ -145,6 +145,22 @@ function resolveClientId(
   return '';
 }
 
+/**
+ * How the client identified itself on this request: `none` means it named no
+ * client at all, which is what an `invalid_client` without a client id means.
+ */
+function clientAuthMethod(
+  body: Record<string, string>,
+  authorization: string | undefined,
+): 'basic' | 'assertion' | 'body' | 'none' {
+  if (authorization?.startsWith('Basic ')) return 'basic';
+  if (body.client_assertion) return 'assertion';
+  if (body.client_id) return 'body';
+  return 'none';
+}
+
+const USER_AGENT_LOG_MAX = 200;
+
 /** Key prefix owning every cached grant for a client. */
 function clientCacheKeyPrefix(clientId: string): string {
   return `${clientId}|`;
@@ -580,6 +596,28 @@ export async function oauth2Routes(
 
       for (const [name, value] of Object.entries(resolved.value.headers)) {
         void reply.header(name, value);
+      }
+
+      // Say who was refused. The upstream provider records an unknown client
+      // without any identity, so this is the only place a rejected caller can
+      // be traced. Identifiers only: no secret, assertion, code or token.
+      if (resolved.value.status !== 200) {
+        const userAgent = request.headers['user-agent'];
+        request.log.info(
+          {
+            grantType: grantType || null,
+            clientId: resolveClientId(body, authorization) || null,
+            clientAuth: clientAuthMethod(body, authorization),
+            status: resolved.value.status,
+            error: (resolved.value.body as Partial<HydraError>).error ?? null,
+            ip: request.ip,
+            userAgent:
+              typeof userAgent === 'string'
+                ? userAgent.slice(0, USER_AGENT_LOG_MAX)
+                : null,
+          },
+          'OAuth2 token request rejected',
+        );
       }
 
       // A grant served from cache must report the life it has left. A freshly
