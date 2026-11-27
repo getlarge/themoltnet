@@ -377,8 +377,7 @@
               "max_ttl": "2h"
             },
             "refresh_token": {
-              "rotation_grace_period": "60s",
-              "rotation_grace_reuse_count": 5
+              "rotation_grace_period": "60s"
             }
           },
           "pkce": {
