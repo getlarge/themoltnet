@@ -42,11 +42,14 @@ export async function acquireDurableTransport(input: {
   const lost = new AbortController();
   const signal = AbortSignal.any([input.signal, lost.signal]);
   let deadline = Number.POSITIVE_INFINITY;
-  const request = (context?: Context) => ({
+  const request = (context?: Context, timeout?: AbortSignal) => ({
     teamId,
     signal: AbortSignal.any([
       signal,
-      AbortSignal.timeout(Math.max(0, Math.min(10_000, deadline - Date.now()))),
+      timeout ??
+        AbortSignal.timeout(
+          Math.max(0, Math.min(10_000, deadline - Date.now())),
+        ),
       ...(context?.abortSignal ? [context.abortSignal] : []),
     ]),
   });
@@ -127,21 +130,45 @@ export async function acquireDurableTransport(input: {
   const transport: DurableStoreTransport = {
     async read(afterSeq, context) {
       check();
+      // Replay pages can take longer than one request while still progressing.
+      // Bound each network wait; the shared signal independently fences lease
+      // expiry and cancellation throughout the whole replay.
+      const idle = new AbortController();
+      let timer: ReturnType<typeof setTimeout>;
+      const stopWaiting = () => clearTimeout(timer);
+      const startWaiting = () => {
+        stopWaiting();
+        timer = setTimeout(
+          () =>
+            idle.abort(
+              new DOMException('Durable read timed out', 'TimeoutError'),
+            ),
+          10_000,
+        );
+        timer.unref();
+      };
+      startWaiting();
       const page = await stores
-        .read(handle.storeId, afterSeq, request(context))
+        .read(handle.storeId, afterSeq, request(context, idle.signal))
         .catch((error: unknown) => {
+          stopWaiting();
           fail('read', error);
           throw lost.signal.reason;
         });
+      startWaiting();
       async function* items(): AsyncGenerator<RuntimeCommit> {
         try {
           for await (const commit of page.items) {
+            stopWaiting();
             check();
             yield commit as unknown as RuntimeCommit;
+            startWaiting();
           }
         } catch (error) {
           fail('read_body', error);
           throw lost.signal.reason;
+        } finally {
+          stopWaiting();
         }
       }
       return { headSeq: page.headSeq, items: items() };
