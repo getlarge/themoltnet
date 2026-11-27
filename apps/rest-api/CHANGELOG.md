@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.71.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.70.1...rest-api-v0.71.0) (2026-11-27)
+
+
+### Features
+
+* **auth:** use Console across dev and deployment stacks ([d563924](https://github.com/getlarge/themoltnet/commit/d5639246b5706df60d9d65f4e8d8c0bb2cac9e24))
+* **console:** add shared Ory self-service authentication screens ([42737d8](https://github.com/getlarge/themoltnet/commit/42737d8772351aca2e3f50badc125409593e7f5e))
+* **self-host:** reusable Ory 26.2 runtime and release bundle ([13c0b98](https://github.com/getlarge/themoltnet/commit/13c0b98ab65f4edf4e5ad2e842cab14262eb686a))
+
 ## [0.70.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.70.0...rest-api-v0.70.1) (2026-11-19)
 
 

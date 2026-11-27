@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/ctap-v0.2.1...ctap-v0.2.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/ctap-v0.2.0...ctap-v0.2.1) (2026-11-05)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.3](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.4.2...yubikey-preview-sign-v0.4.3) (2026-11-27)
+
+
+### Bug Fixes
+
+* **nx:** remove duplicate Rolldown configuration keys ([108cc35](https://github.com/getlarge/themoltnet/commit/108cc3500ce433ff8fe9fdf03a480b095eea83e0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/ctap bumped to 0.2.2
+
 ## [0.4.2](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.4.1...yubikey-preview-sign-v0.4.2) (2026-11-05)
 
 
