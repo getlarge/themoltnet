@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.75.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.5...agent-daemon-v0.75.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+
+
+### Bug Fixes
+
+* **adaptive-review:** provide task-bound pinned diff access ([d07f132](https://github.com/getlarge/themoltnet/commit/d07f132bdfeeab054a503d59dcfef8013679993c))
+* **pi-runtime:** honor Ollama profile controls ([ec12bbb](https://github.com/getlarge/themoltnet/commit/ec12bbb284da7fa4a2251f6ccfe6fc23b5bf08c6))
+* **review:** match executable paths and own policy tests ([7bc5944](https://github.com/getlarge/themoltnet/commit/7bc59447792b532aa990315722a9203d9eb1d4ba))
+* **review:** use scoped Bash Git diff inspection ([ffc5241](https://github.com/getlarge/themoltnet/commit/ffc524193b60d0d12eaecd062de0bb1dab9f67e4))
+* **sandbox:** serialize snapshot builds across daemon processes ([7e16f3c](https://github.com/getlarge/themoltnet/commit/7e16f3c32dd7cae90992d9e1ca69bdc4abd8d6fd))
+* **tooling:** correct auth mock types and test formatting ([4d16ffe](https://github.com/getlarge/themoltnet/commit/4d16ffe4f04bb9fcac341a8bad7f00f9f57e5f81))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.22.0
+    * @themoltnet/pi-runtime bumped to 0.29.4
+    * @themoltnet/sdk bumped to 0.154.4
+
 ## [0.74.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.4...agent-daemon-v0.74.5) (2026-11-10)
 
 

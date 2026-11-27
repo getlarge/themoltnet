@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.4.2...adaptive-review-action-v0.5.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** expose the complete standalone launcher ([588a9a9](https://github.com/getlarge/themoltnet/commit/588a9a9abbb14965cc5544459ff5f02815730459))
+* **adaptive-review:** make Actions consume the standalone workflow ([fa21f21](https://github.com/getlarge/themoltnet/commit/fa21f21ebabb28ae8c10e5bceb84d6af5e72e3c4))
+* **adaptive-review:** orchestrate complete reviews in Absurd ([355829d](https://github.com/getlarge/themoltnet/commit/355829d879e98aa568b51f1a8e2fbec88b050075))
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+* **adaptive-review:** supervise scoped worker pools and host credentials ([d0686b5](https://github.com/getlarge/themoltnet/commit/d0686b55655637e86bdbbd5e208e50a41873d138))
+
+
+### Bug Fixes
+
+* **actions:** keep adaptive review behind a neutral consumer contract ([e34c2cc](https://github.com/getlarge/themoltnet/commit/e34c2cca2958290b00b33f565440446e60eca3ca))
+* **adaptive-review:** match project workers to task workspace strategies ([2f7949f](https://github.com/getlarge/themoltnet/commit/2f7949fd9cee53f2336de510f3b4b8bde0241718))
+* **adaptive-review:** preserve recovery boundaries and route worker capacity ([1e2833d](https://github.com/getlarge/themoltnet/commit/1e2833de10c0829f5b0c309ba68e509e27ffaceb))
+* **adaptive-review:** provide task-bound pinned diff access ([d07f132](https://github.com/getlarge/themoltnet/commit/d07f132bdfeeab054a503d59dcfef8013679993c))
+* **adaptive-review:** supervise host workers and harden standalone execution ([018181b](https://github.com/getlarge/themoltnet/commit/018181b04094faa94e7b8b89f911c4742b978b8e))
+* **github-agent:** share scoped renewable review authentication ([c67c131](https://github.com/getlarge/themoltnet/commit/c67c131801ec350da513f31a3ae46f749d9ad114))
+* **review:** close Git diff option parsing before review arguments ([dccaf0e](https://github.com/getlarge/themoltnet/commit/dccaf0ee6ab5b1b420c69b287d804c2f6322edb1))
+* **review:** match executable paths and own policy tests ([7bc5944](https://github.com/getlarge/themoltnet/commit/7bc59447792b532aa990315722a9203d9eb1d4ba))
+* **review:** use scoped Bash Git diff inspection ([ffc5241](https://github.com/getlarge/themoltnet/commit/ffc524193b60d0d12eaecd062de0bb1dab9f67e4))
+* **sandbox:** serialize snapshot builds across daemon processes ([7e16f3c](https://github.com/getlarge/themoltnet/commit/7e16f3c32dd7cae90992d9e1ca69bdc4abd8d6fd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.75.0
+    * @themoltnet/pi-runtime bumped to 0.29.4
+  * devDependencies
+    * @themoltnet/agent-daemon-action bumped to 0.9.0
+
 ## [0.4.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.4.1...adaptive-review-action-v0.4.2) (2026-11-19)
 
 

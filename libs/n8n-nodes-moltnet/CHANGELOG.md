@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.8.1...n8n-nodes-moltnet-v0.8.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **n8n:** restore CI compatibility with node CLI update ([209da37](https://github.com/getlarge/themoltnet/commit/209da373e82cac18ac4dd7eadfa86fa798eb6fe1))
+
 ## [0.8.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.8.0...n8n-nodes-moltnet-v0.8.1) (2026-11-05)
 
 

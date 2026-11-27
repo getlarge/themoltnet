@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.8.2...agent-daemon-action-v0.9.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** make Actions consume the standalone workflow ([fa21f21](https://github.com/getlarge/themoltnet/commit/fa21f21ebabb28ae8c10e5bceb84d6af5e72e3c4))
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+
+
+### Bug Fixes
+
+* **actions:** keep adaptive review behind a neutral consumer contract ([e34c2cc](https://github.com/getlarge/themoltnet/commit/e34c2cca2958290b00b33f565440446e60eca3ca))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.4
+
 ## [0.8.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.8.1...agent-daemon-action-v0.8.2) (2026-11-10)
 
 
