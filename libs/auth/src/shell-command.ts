@@ -82,7 +82,7 @@ function decodeToken(segment: string): string {
   }
 
   const bytes: number[] = [];
-  for (let index = 0; index < segment.length; ) {
+  for (let index = 0; index < segment.length;) {
     const character = segment[index];
     if (UNRESERVED_BYTE.test(character)) {
       bytes.push(character.charCodeAt(0));

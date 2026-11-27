@@ -173,8 +173,7 @@ export interface PiDurableExtensionContribution {
 }
 
 export type PiExtensionContribution =
-  | PiCodingExtensionContribution
-  | PiDurableExtensionContribution;
+  PiCodingExtensionContribution | PiDurableExtensionContribution;
 
 export interface PiDurableExtensionOptions {
   extension: DurableExtension;
