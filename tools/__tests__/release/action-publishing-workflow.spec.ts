@@ -220,6 +220,19 @@ jq -r "$filter | $expr" "${join(root, 'releases.json')}"
 });
 
 describe('action publication transaction', () => {
+  it('allows plugin recovery after skipped Release Please with successful target resolution', () => {
+    const plugin = workflow('release').jobs['release-legreffier-plugin'];
+    expect(plugin.needs).toBe('resolve-publish');
+    // An explicit status function overrides implicit success(), which rejects
+    // the deliberately skipped Release Please ancestor on manual dispatch.
+    expect(plugin.if).toContain('always()');
+    expect(plugin.if).toContain('!cancelled()');
+    expect(plugin.if).toContain("needs.resolve-publish.result == 'success'");
+    expect(plugin.if).toContain(
+      "needs.resolve-publish.outputs.legreffier-plugin == 'true'",
+    );
+  });
+
   it('runs legacy recovery only on pushes or explicit legacy dispatches', () => {
     const release = workflow('release');
     expect(Object.keys(release.on).sort()).toEqual([

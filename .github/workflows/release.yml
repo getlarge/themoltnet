@@ -2012,7 +2012,8 @@ jobs:
   release-legreffier-plugin:
     name: Release LeGreffier Plugin
     needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.legreffier-plugin == 'true' }}
+    # Manual recovery intentionally skips the Release Please ancestor.
+    if: ${{ always() && !cancelled() && needs.resolve-publish.result == 'success' && needs.resolve-publish.outputs.legreffier-plugin == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
