@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.9.0...sandbox-gondolin-v0.10.0) (2026-11-27)
+
+
+### Features
+
+* **adaptive-review:** run full orchestration as a standalone Absurd workflow ([adf7854](https://github.com/getlarge/themoltnet/commit/adf7854b8f7d497331fbd1a03ffef380f4bedea6))
+
+
+### Bug Fixes
+
+* **sandbox:** serialize snapshot builds across daemon processes ([7e16f3c](https://github.com/getlarge/themoltnet/commit/7e16f3c32dd7cae90992d9e1ca69bdc4abd8d6fd))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.8.2...sandbox-gondolin-v0.9.0) (2026-11-27)
 
 
