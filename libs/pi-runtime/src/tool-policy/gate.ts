@@ -12,6 +12,7 @@ export type { ToolEnforcement } from '@moltnet/models';
 
 export interface ShellCommandRule {
   argvPrefix: readonly [string, ...string[]];
+  allowEnvironmentAssignments?: boolean;
 }
 
 export interface GateInput {
@@ -54,6 +55,7 @@ export type ToolPolicyDecisionReason =
   | 'arbitrary_code_interpreter'
   | 'shell_output_redirection_not_permitted'
   | 'unsafe_environment_assignment'
+  | 'shell_environment_assignment_not_permitted'
   | 'tool_not_permitted';
 
 /**
@@ -257,18 +259,46 @@ export function decideToolCall(input: GateInput): GateDecision {
   }
 
   const matchedShellCommands: MatchedShellCommand[] = [];
+  const deniedEnvironmentAssignments = new Set<string>();
   const missingShellCommands = resolved.tools
     .filter((tool) => {
-      const matched = input.allowedShellCommands.find((rule) =>
+      const matches = input.allowedShellCommands.filter((rule) =>
         matchesArgvPrefix(tool.argv, rule.argvPrefix),
       );
-      if (!matched) return true;
+      if (matches.length === 0) return true;
+      // Restrictions from every matching rule apply, independent of order or
+      // prefix length. A broader overlapping grant cannot discard a constraint.
+      if (matches.some((rule) => rule.allowEnvironmentAssignments === false)) {
+        if (
+          tool.envAssignments === undefined ||
+          tool.envAssignments.length > 0 ||
+          (resolved.unscopedEnvAssignments?.length ?? 0) > 0 ||
+          resolved.hasUnknownEnvAssignments === true
+        ) {
+          deniedEnvironmentAssignments.add(sanitizeExecutableName(tool.name));
+        }
+      }
       matchedShellCommands.push(
-        toMatchedShellCommand(tool.name, matched.argvPrefix),
+        ...matches.map((rule) =>
+          toMatchedShellCommand(tool.name, rule.argvPrefix),
+        ),
       );
       return false;
     })
     .map(toMissingShellCommand);
+
+  if (
+    missingShellCommands.length === 0 &&
+    deniedEnvironmentAssignments.size > 0
+  ) {
+    return fenced(
+      input.enforcement,
+      'shell_environment_assignment_not_permitted',
+      'inline or unattributed environment assignments are not permitted by the shell command rule',
+      'would block shell environment assignments (watch)',
+      [...deniedEnvironmentAssignments],
+    );
+  }
 
   if (missingShellCommands.length === 0 && resolved.hasOutputRedirection) {
     const executables = [
@@ -397,6 +427,7 @@ interface ResolvedTool {
   name: string;
   argv: readonly (string | null)[];
   risk: RiskTier;
+  envAssignments?: readonly string[];
 }
 
 /**
@@ -411,6 +442,8 @@ function resolveNames(input: GateInput):
       tools: ResolvedTool[];
       hasOutputRedirection?: boolean;
       envAssignments?: readonly string[];
+      unscopedEnvAssignments?: readonly string[];
+      hasUnknownEnvAssignments?: boolean;
     }
   | { kind: 'unresolvable'; reason: string } {
   if (input.toolName !== 'bash') {
@@ -433,9 +466,12 @@ function resolveNames(input: GateInput):
           name: tool.name,
           argv: tool.argv,
           risk: tool.risk,
+          envAssignments: tool.envAssignments,
         })),
         hasOutputRedirection: analysis.hasOutputRedirection === true,
         envAssignments: analysis.envAssignments,
+        unscopedEnvAssignments: analysis.unscopedEnvAssignments,
+        hasUnknownEnvAssignments: analysis.hasUnknownEnvAssignments,
       }
     : { kind: 'unresolvable', reason: analysis.reason };
 }

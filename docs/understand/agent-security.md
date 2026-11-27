@@ -320,6 +320,25 @@ the 8-token limit, such as `['gh', 'pr', 'view']`. MoltNet does not apply
 CLI-specific normalization: `git -C repo diff` does not match `['git', 'diff']`;
 grant its actual leading tokens explicitly.
 
+A shell rule can set `allowEnvironmentAssignments: false` to reject inline
+assignments on matching invocations:
+
+```json
+{ "allowEnvironmentAssignments": false, "argvPrefix": ["git", "diff"] }
+```
+
+Omitted or `true` keeps existing assignment handling, including the global
+checks for execution-redirecting variable names. Assignments on an unrelated
+command do not affect this rule: `LANG=C permitted-command; git diff` can pass
+when both commands have grants, while `LANG=C git diff` cannot. Recognized
+wrapper assignments, such as `env LANG=C git diff`, follow their target.
+Restrictions from all matching rules apply, regardless of rule order. Standalone
+or unattributable assignments, such as `LANG=C; git diff`, are conservatively
+refused when a restricted invocation participates; the analyzer does not model
+full shell environment dataflow. The option does not sanitize the process's
+inherited environment. Pinned snapshots include the restriction; existing
+snapshots without it retain their previous semantics.
+
 Every fail-closed path funnels into one "would-block" decision that the mode
 then resolves: blocked in `enforce`, audited-but-allowed in `watch`:
 

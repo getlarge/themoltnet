@@ -15,7 +15,10 @@ const EXECUTION_POLICY_HASH = `sha256:${'b'.repeat(64)}`;
 function agentReturning(
   enforcement: 'off' | 'watch' | 'enforce',
   allowedTools: string[],
-  allowedShellCommands: Array<{ argvPrefix: string[] }> = [],
+  allowedShellCommands: Array<{
+    argvPrefix: string[];
+    allowEnvironmentAssignments?: boolean;
+  }> = [],
 ): AllowedToolsClient {
   return {
     runtimeProfiles: {
@@ -132,6 +135,25 @@ describe('resolveSessionToolPolicy', () => {
       });
     },
   );
+
+  it('retains per-rule assignment restrictions from the API', async () => {
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent: agentReturning(
+        'enforce',
+        [],
+        [
+          { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+          { argvPrefix: ['ls'], allowEnvironmentAssignments: true },
+        ],
+      ),
+      enforcement: 'enforce',
+    });
+    expect(policy.allowedShellCommands).toEqual([
+      { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+      { argvPrefix: ['ls'], allowEnvironmentAssignments: true },
+    ]);
+  });
 
   it('resolves the allow-set from the API for enforce (not degraded)', async () => {
     const policy = await resolveSessionToolPolicy({

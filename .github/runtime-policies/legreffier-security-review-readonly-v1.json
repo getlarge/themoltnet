@@ -3,6 +3,7 @@
   "name": "legreffier-security-review-readonly-v1",
   "shellCommands": [
     {
+      "allowEnvironmentAssignments": false,
       "argvPrefix": [
         "git",
         "diff",

@@ -342,6 +342,20 @@ describe('runtime kernel', () => {
     expect(out).toContain('is never authorized');
   });
 
+  it('renders assignment restrictions without changing other rules', () => {
+    const out = buildToolPolicyInstructions({
+      enforcement: 'enforce',
+      allowedTools: [],
+      degraded: false,
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'], allowEnvironmentAssignments: false },
+        { argvPrefix: ['ls'] },
+      ],
+    });
+    expect(out).toContain('`git diff` (no inline environment assignments)');
+    expect(out).not.toContain('`ls` (no inline environment assignments)');
+  });
+
   it('bounds the rendered shell-prefix list', () => {
     const out = buildToolPolicyInstructions({
       enforcement: 'enforce',

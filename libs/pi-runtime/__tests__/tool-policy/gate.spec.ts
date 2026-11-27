@@ -95,6 +95,376 @@ describe('decideToolCall', () => {
     });
   });
 
+  describe('per-rule environment assignments', () => {
+    const rules: GateInput['allowedShellCommands'] = [
+      { argvPrefix: ['restricted'], allowEnvironmentAssignments: false },
+      { argvPrefix: ['permitted'] },
+      { argvPrefix: ['env'] },
+      { argvPrefix: ['sudo'] },
+      { argvPrefix: ['find'] },
+      { argvPrefix: ['tar'] },
+      { argvPrefix: ['command'] },
+      { argvPrefix: ['builtin'] },
+      { argvPrefix: ['export'] },
+    ];
+    const check = (command: string, overrides: Partial<GateInput> = {}) =>
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command,
+          analyze: analyzeRealCommand,
+          allowedShellCommands: rules,
+          ...overrides,
+        }),
+      );
+
+    it.each([';', '&&', '|'])('attributes prefixes across %s', (separator) => {
+      expect(check(`LANG=C permitted ${separator} restricted`)).toMatchObject({
+        allow: true,
+      });
+      expect(check(`permitted ${separator} LANG=C restricted`)).toMatchObject({
+        allow: false,
+        reasonCode: 'shell_environment_assignment_not_permitted',
+      });
+    });
+    it.each([
+      'LANG=C restricted',
+      'LANG=$LANG restricted',
+      'env LANG=C restricted',
+      'env -- LANG=C restricted',
+      "env -S 'LANG=C restricted'",
+      'sudo LANG=C restricted',
+      "env 'LANG=C' restricted",
+      'LANG=C env restricted',
+      'env LANG=C env restricted',
+      'LANG=C find . -exec restricted {} \\;',
+      "tar --to-command='LANG=C restricted' -cf archive .",
+      "LANG=C tar --to-command='restricted' -cf archive .",
+      'LANG=C; restricted',
+      'export LANG=C; restricted',
+      "export 'LANG=C'; restricted",
+      'export "LANG=C"; restricted',
+      'command export LANG=C; restricted',
+      "builtin export 'LANG=C'; restricted",
+      "readonly 'LANG=C'; restricted",
+      "declare -x 'LANG=C'; restricted",
+      "typeset -x 'LANG=C'; restricted",
+      "local 'LANG=C'; restricted",
+      'tar --to-command="export \'LANG=C\'; restricted" -cf archive .',
+    ])('denies restricted assignment context: %s', (command) => {
+      expect(check(command)).toMatchObject({
+        allow: false,
+        reasonCode: 'shell_environment_assignment_not_permitted',
+      });
+    });
+    it.each(
+      [
+        '"LANG=$LANG"',
+        '"LANG=${LANG}"',
+        'LANG="${LANG}"',
+        'LANG=pre"${LANG}"',
+        'LA"NG"="${LANG}"',
+      ].flatMap((operand) =>
+        ['export', 'command export', 'builtin export'].map(
+          (declaration) => `${declaration} ${operand}; restricted`,
+        ),
+      ),
+    )(
+      'rejects declaration assignments independently of value: %s',
+      (command) => {
+        expect(check(command)).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+        for (const allowEnvironmentAssignments of [undefined, true]) {
+          expect(
+            check(command, {
+              allowedShellCommands: rules.map((rule) => ({
+                ...rule,
+                allowEnvironmentAssignments,
+              })),
+            }),
+          ).toMatchObject({ allow: true });
+        }
+      },
+    );
+    it.each([
+      'export "$SETTING"; restricted',
+      'command export "$SETTING"; restricted',
+      'builtin export "$SETTING"; restricted',
+    ])('treats unknown declaration operands as uncertain: %s', (command) => {
+      expect(check(command)).toMatchObject({
+        allow: false,
+        reasonCode: 'shell_environment_assignment_not_permitted',
+      });
+      expect(
+        check(command, {
+          allowedShellCommands: rules.map((rule) => ({
+            ...rule,
+            allowEnvironmentAssignments: true,
+          })),
+        }),
+      ).toMatchObject({ allow: true });
+    });
+    it.each([
+      'env "LANG=$LANG" restricted',
+      'env "LANG=${LANG}" restricted',
+      'env LANG="${LANG}" restricted',
+      'env LANG=pre"${LANG}" restricted',
+    ])(
+      'recognizes wrapper assignment names independently of value: %s',
+      (command) => {
+        expect(check(command)).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+        expect(check(command.replace('restricted', 'permitted'))).toMatchObject(
+          { allow: true },
+        );
+        expect(
+          check(`${command.replace('restricted', 'permitted')}; restricted`),
+        ).toMatchObject({ allow: true });
+      },
+    );
+    it.each([
+      'export "LANG=$(permitted)"; restricted',
+      'command export "LANG=$(permitted)"; restricted',
+      'builtin export "LANG=$(permitted)"; restricted',
+      'env "LANG=$(permitted)" restricted',
+    ])('retains the existing command-substitution rejection: %s', (command) => {
+      for (const allowEnvironmentAssignments of [undefined, true, false]) {
+        expect(
+          check(command, {
+            allowedShellCommands: rules.map((rule) => ({
+              ...rule,
+              allowEnvironmentAssignments,
+            })),
+          }),
+        ).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_command_unresolvable',
+        });
+      }
+    });
+    it('keeps assignments on unrelated and nested invocations separate', () => {
+      expect(
+        check("LANG=C permitted; tar --to-command='restricted' -cf archive ."),
+      ).toMatchObject({ allow: true });
+      expect(check('permitted A=B; restricted')).toMatchObject({ allow: true });
+      expect(check('env LANG=C permitted; restricted')).toMatchObject({
+        allow: true,
+      });
+      expect(
+        check(
+          'find . -exec env LANG=C tar --to-command=permitted \\; -exec tar --to-command=restricted \\;',
+        ),
+      ).toMatchObject({ allow: true });
+      expect(check('env LANG=C; restricted')).toMatchObject({ allow: true });
+      expect(check('restricted')).toMatchObject({ allow: true });
+    });
+    it.each(['env LANG=C', "env 'LANG=C'", 'env LANG=C permitted'])(
+      'denies assignments on a restricted wrapper itself: %s',
+      (command) => {
+        expect(
+          check(command, {
+            allowedShellCommands: [
+              { argvPrefix: ['env'], allowEnvironmentAssignments: false },
+              { argvPrefix: ['permitted'] },
+            ],
+          }),
+        ).toMatchObject({
+          allow: false,
+          reasonCode: 'shell_environment_assignment_not_permitted',
+        });
+      },
+    );
+    it.each([undefined, true])(
+      'preserves existing behavior for %s',
+      (allowEnvironmentAssignments) => {
+        expect(
+          check('LANG=C restricted', {
+            allowedShellCommands: [
+              { argvPrefix: ['restricted'], allowEnvironmentAssignments },
+            ],
+          }),
+        ).toMatchObject({ allow: true });
+        for (const command of [
+          "export 'LANG=C'; restricted",
+          'export "LANG=C"; restricted',
+          'command export LANG=C; restricted',
+          "builtin export 'LANG=C'; restricted",
+          'env LANG=C',
+        ]) {
+          expect(
+            check(command, {
+              allowedShellCommands: rules.map((rule) => ({
+                ...rule,
+                allowEnvironmentAssignments,
+              })),
+            }),
+          ).toMatchObject({ allow: true });
+        }
+        expect(
+          check('PATH=/tmp restricted', {
+            allowedShellCommands: [
+              { argvPrefix: ['restricted'], allowEnvironmentAssignments },
+            ],
+          }),
+        ).toMatchObject({
+          allow: false,
+          reasonCode: 'unsafe_environment_assignment',
+        });
+      },
+    );
+    it('preserves command-wide unsafe-name checks', () => {
+      expect(check('PATH=/tmp permitted; restricted')).toMatchObject({
+        allow: false,
+        reasonCode: 'unsafe_environment_assignment',
+      });
+      expect(check('env PATH=/tmp permitted; restricted')).toMatchObject({
+        allow: false,
+        reasonCode: 'unsafe_environment_assignment',
+      });
+      for (const command of [
+        'export "PATH=$PATH"; restricted',
+        'command export "PATH=${PATH}"; restricted',
+        'env "PATH=$PATH" permitted; restricted',
+      ]) {
+        expect(check(command)).toMatchObject({
+          allow: false,
+          reasonCode: 'unsafe_environment_assignment',
+        });
+      }
+    });
+    it('applies restrictions from overlapping rules independently of order', () => {
+      for (const allowedShellCommands of [
+        [
+          { argvPrefix: ['restricted'] as const },
+          {
+            argvPrefix: ['restricted', 'status'] as const,
+            allowEnvironmentAssignments: false,
+          },
+        ],
+        [
+          {
+            argvPrefix: ['restricted', 'status'] as const,
+            allowEnvironmentAssignments: false,
+          },
+          { argvPrefix: ['restricted'] as const },
+        ],
+      ]) {
+        expect(
+          check('LANG=C restricted status', { allowedShellCommands }),
+        ).toMatchObject({ allow: false });
+        expect(
+          check('restricted status', { allowedShellCommands }),
+        ).toMatchObject({ allow: true });
+      }
+    });
+    it('audits in watch and bypasses in off', () => {
+      expect(
+        check('LANG=C restricted', { enforcement: 'watch' }),
+      ).toMatchObject({
+        audit: expect.any(String),
+        reasonCode: 'shell_environment_assignment_not_permitted',
+      });
+      expect(check('LANG=C restricted', { enforcement: 'off' })).toMatchObject({
+        allow: true,
+      });
+    });
+    it('fails closed when invocation attribution is unavailable', () => {
+      expect(
+        check('restricted', {
+          analyze: analyzerOf({ restricted: ['restricted'] }),
+        }),
+      ).toMatchObject({ allow: false });
+      expect(check('$COMMAND')).toMatchObject({ allow: false });
+    });
+  });
+
+  describe('wrapper assignment operands', () => {
+    it.each(
+      [
+        'nice',
+        'nice --',
+        'nohup',
+        'exec',
+        'command',
+        'timeout 1',
+        'xargs',
+        'sudo --',
+      ].flatMap((wrapper) =>
+        [
+          'LANG=C',
+          "'LANG=C'",
+          '"LANG=C"',
+          '"LANG=$LANG"',
+          'LANG="${LANG}"',
+          'LANG=pre"${LANG}"',
+        ].map((operand) => ({ wrapper, operand })),
+      ),
+    )(
+      'does not authorize a different target: $wrapper $operand',
+      ({ wrapper, operand }) => {
+        for (const allowEnvironmentAssignments of [undefined, true, false]) {
+          const dynamic = operand.includes('$');
+          const decision = decideToolCall(
+            base({
+              toolName: 'bash',
+              command: `${wrapper} ${operand} permitted`,
+              analyze: analyzeRealCommand,
+              allowedShellCommands: [
+                { argvPrefix: [wrapper.split(' ')[0]] },
+                { argvPrefix: ['permitted'], allowEnvironmentAssignments },
+              ],
+            }),
+          );
+          expect(decision).toMatchObject({
+            allow: false,
+            reasonCode: dynamic
+              ? 'shell_command_unresolvable'
+              : 'tool_not_permitted',
+            ...(!dynamic ? { missing: ['<unreportable>'] } : {}),
+          });
+        }
+      },
+    );
+
+    it.each(
+      ['env', 'env --', 'sudo', 'sudo -u deploy'].flatMap((wrapper) =>
+        ['LANG=C', "'LANG=C'", '"LANG=$LANG"', 'LANG="${LANG}"'].map(
+          (operand) => ({ wrapper, operand }),
+        ),
+      ),
+    )(
+      'attributes supported operands to the target: $wrapper $operand',
+      ({ wrapper, operand }) => {
+        for (const allowEnvironmentAssignments of [undefined, true, false]) {
+          expect(
+            decideToolCall(
+              base({
+                toolName: 'bash',
+                command: `${wrapper} ${operand} permitted`,
+                analyze: analyzeRealCommand,
+                allowedShellCommands: [
+                  { argvPrefix: [wrapper.split(' ')[0]] },
+                  { argvPrefix: ['permitted'], allowEnvironmentAssignments },
+                ],
+              }),
+            ),
+          ).toMatchObject(
+            allowEnvironmentAssignments === false
+              ? {
+                  allow: false,
+                  reasonCode: 'shell_environment_assignment_not_permitted',
+                }
+              : { allow: true },
+          );
+        }
+      },
+    );
+  });
+
   it('off allows anything', () => {
     expect(
       decideToolCall(base({ toolName: 'write', enforcement: 'off' })),
