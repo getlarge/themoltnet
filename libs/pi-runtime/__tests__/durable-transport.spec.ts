@@ -1,4 +1,7 @@
-import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
+import {
+  BACKGROUND_CONTEXT,
+  withAbortSignal,
+} from '@earendil-works/chord/context';
 import {
   type ClaimedTask,
   TaskExecutionInterrupted,
@@ -17,7 +20,181 @@ const claimed = {
   attemptN: 1,
   claimAuthority: { leaseId: 'lease', executorFingerprint: 'executor' },
 } as ClaimedTask;
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+});
+
+it.each([
+  { headerMs: 6_000, initialPauseMs: 15_000, processingMs: 0 },
+  { headerMs: 0, initialPauseMs: 0, processingMs: 15_000 },
+])(
+  'keeps replay alive with $headerMs ms to headers and $processingMs ms processing per commit',
+  async ({ headerMs, initialPauseMs, processingMs }) => {
+    vi.useFakeTimers();
+    // Native AbortSignal.timeout does not use the mocked JS clock.
+    vi.spyOn(AbortSignal, 'timeout').mockImplementation((milliseconds) => {
+      const controller = new AbortController();
+      setTimeout(
+        () => controller.abort(new DOMException('Timed out', 'TimeoutError')),
+        milliseconds,
+      );
+      return controller.signal;
+    });
+    let readSignal: AbortSignal | undefined;
+    const writer = await acquireDurableTransport({
+      stores: {
+        open: async () => ({
+          storeId: 'store',
+          writerToken: 'writer',
+          writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+        }),
+        renew: async () => ({
+          writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+        }),
+        read: async (
+          _store: string,
+          _after: number,
+          options: Parameters<RuntimeSessionsNamespace['read']>[2],
+        ) => {
+          readSignal = options.signal;
+          if (headerMs)
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, headerMs);
+            });
+          options.signal?.throwIfAborted();
+          return {
+            headSeq: 3,
+            items: (async function* () {
+              for (let seq = 1; seq <= 3; seq++) {
+                await new Promise<void>((resolve) => {
+                  setTimeout(resolve, 4_000);
+                });
+                options.signal?.throwIfAborted();
+                yield { seq, writes: [] };
+              }
+            })(),
+          };
+        },
+        release: async () => {},
+      } as unknown as RuntimeSessionsNamespace,
+      claimed,
+      signal: new AbortController().signal,
+    });
+    try {
+      const replay = (async () => {
+        const page = await writer.transport.read(0, BACKGROUND_CONTEXT);
+        if (initialPauseMs)
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, initialPauseMs);
+          });
+        const received: number[] = [];
+        for await (const commit of page.items) {
+          received.push(commit.seq);
+          if (processingMs)
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, processingMs);
+            });
+        }
+        return received;
+      })().then(
+        (received) => ({ received }),
+        (error: unknown) => ({ error }),
+      );
+      await vi.advanceTimersByTimeAsync(
+        headerMs + initialPauseMs + 12_000 + 3 * processingMs,
+      );
+      expect(await replay).toEqual({ received: [1, 2, 3] });
+      expect(writer.signal.aborted).toBe(false);
+      // Completing the page must dispose its idle timer.
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(readSignal?.aborted).toBe(false);
+    } finally {
+      await writer.transport.close(BACKGROUND_CONTEXT);
+    }
+  },
+);
+
+it.each([
+  'header timeout',
+  'idle timeout',
+  'cancellation',
+  'context cancellation',
+  'lease expiry',
+] as const)('still fences a replay on %s', async (failure) => {
+  vi.useFakeTimers();
+  const cancellation = new AbortController();
+  const context =
+    failure === 'context cancellation'
+      ? withAbortSignal(cancellation.signal, BACKGROUND_CONTEXT)
+      : BACKGROUND_CONTEXT;
+  const untilAborted = (signal?: AbortSignal) =>
+    new Promise<void>((_resolve, reject) => {
+      signal?.throwIfAborted();
+      signal?.addEventListener('abort', () => reject(signal.reason), {
+        once: true,
+      });
+    });
+  const writer = await acquireDurableTransport({
+    stores: {
+      open: async () => ({
+        storeId: 'store',
+        writerToken: 'writer',
+        writerExpiresAt: new Date(
+          Date.now() + (failure === 'lease expiry' ? 8_000 : 30_000),
+        ).toISOString(),
+      }),
+      renew: async () => {
+        if (failure === 'lease expiry') throw new NetworkError('offline');
+        return {
+          writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+        };
+      },
+      read: async (
+        _store: string,
+        _after: number,
+        options: Parameters<RuntimeSessionsNamespace['read']>[2],
+      ) => {
+        if (failure === 'header timeout') await untilAborted(options.signal);
+        return {
+          headSeq: 2,
+          items: (async function* () {
+            yield { seq: 1, writes: [] };
+            await untilAborted(options.signal);
+          })(),
+        };
+      },
+      release: async () => {},
+    } as unknown as RuntimeSessionsNamespace,
+    claimed,
+    signal:
+      failure === 'context cancellation'
+        ? new AbortController().signal
+        : cancellation.signal,
+  });
+  try {
+    const replay = (async () => {
+      const page = await writer.transport.read(0, context);
+      for await (const _ of page.items) {
+        /* consume */
+      }
+    })().catch((error: unknown) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    if (failure === 'cancellation' || failure === 'context cancellation')
+      cancellation.abort(new Error('cancelled'));
+    else {
+      const wait = failure === 'lease expiry' ? 8_000 : 10_000;
+      await vi.advanceTimersByTimeAsync(wait - 1);
+      expect(writer.signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+    }
+    expect(await replay).toBeInstanceOf(TaskExecutionInterrupted);
+    expect(writer.signal.aborted).toBe(true);
+    expect(() => writer.check()).toThrow();
+  } finally {
+    await writer.transport.close(BACKGROUND_CONTEXT);
+  }
+});
 it('renews the writer and stops progress on renewal failure', async () => {
   vi.useFakeTimers();
   const handle = {
