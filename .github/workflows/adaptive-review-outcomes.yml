@@ -9,10 +9,10 @@ permissions: {}
 jobs:
   record:
     if: vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true'
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@01c001c0ca42f015edf075185d2e7d439abb6c62 # adaptive-review-action-v0
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@3146868f4be521a3f5fbb9eaeab0aae8a2b62c70 # adaptive-review-action-v0
     permissions:
       contents: read
     secrets: inherit
     with:
-      runtime-ref: 01c001c0ca42f015edf075185d2e7d439abb6c62
+      runtime-ref: 3146868f4be521a3f5fbb9eaeab0aae8a2b62c70
       environment: legreffier
