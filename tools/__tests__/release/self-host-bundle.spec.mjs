@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -474,129 +473,126 @@ test('locks all component images to the source revision tag', () => {
   }
 });
 
-test('resolves digest pins for source-tagged images', () => {
-  const temporary = mkdtempSync(
-    path.join(os.tmpdir(), 'moltnet-self-host-digest-test-'),
-  );
+test('verifies manifest-selected releases and preserves version plus digest in all five pins', () => {
+  const temporary = mkdtempSync(path.join(os.tmpdir(), 'self-host-releases-'));
+  const bin = path.join(temporary, 'bin');
+  const log = path.join(temporary, 'verified.jsonl');
   const output = path.join(temporary, 'bundle');
-  const mockBin = path.join(temporary, 'bin');
-  const tag = 'self-host-1.0.0-abc123def456';
   const digests = Object.fromEntries(
     ['rest-api', 'mcp-server', 'console', 'db-migrate'].map(
       (repository, index) => [repository, `sha256:${'abcd'[index].repeat(64)}`],
     ),
   );
-  const metadata = path.join(temporary, 'metadata');
-  mkdirSync(metadata);
-  for (const [repository, digest] of Object.entries(digests)) {
-    writeFileSync(
-      path.join(metadata, `${repository}.json`),
-      JSON.stringify({ 'containerimage.digest': digest }),
-    );
-  }
+  const versions = JSON.parse(
+    readFileSync(path.join(repoRoot, '.release-please-manifest.json'), 'utf8'),
+  );
+  const projects = {
+    REST_API_IMAGE: ['rest-api', 'apps/rest-api'],
+    MCP_SERVER_IMAGE: ['mcp-server', 'apps/mcp-server'],
+    CONSOLE_IMAGE: ['console', 'apps/console'],
+    DB_MIGRATE_IMAGE: ['db-migrate', 'libs/database'],
+    ORY_TOOLS_IMAGE: ['db-migrate', 'libs/database'],
+  };
+  mkdirSync(bin);
+  const docker = execFileSync('which', ['docker'], { encoding: 'utf8' }).trim();
+  writeFileSync(
+    path.join(bin, 'docker'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const cp = require('node:child_process');
+const args = process.argv.slice(2);
+if (args[0] === 'buildx') {
+  const image = args[3];
+  if (process.env.FAILURE === 'unpublished') { console.error('synthetic unpublished image'); process.exit(1); }
+  const repository = image.split('/').at(-1).split(':')[0];
+  const digest = JSON.parse(process.env.IMAGE_DIGESTS)[repository];
+  console.log(JSON.stringify({digest: process.env.FAILURE === 'digest' ? 'invalid' : digest,
+    manifests: (process.env.FAILURE === 'platform' ? ['amd64'] : ['amd64', 'arm64']).map(architecture =>
+      ({digest, platform: {os: 'linux', architecture}}))}));
+} else {
+  const result = cp.spawnSync(process.env.REAL_DOCKER, args, {stdio: 'inherit'});
+  process.exit(result.status ?? 1);
+}
+`,
+    { mode: 0o755 },
+  );
+  writeFileSync(
+    path.join(bin, 'gh'),
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+fs.appendFileSync(process.env.VERIFY_LOG, JSON.stringify(process.argv.slice(2)) + '\\n');
+if (process.env.FAILURE === 'provenance') { console.error('synthetic invalid provenance'); process.exit(1); }
+console.log(process.env.FAILURE === 'empty' ? '[]' : process.env.FAILURE === 'unverified' ? '[{}]' : '[{"verificationResult":{}}]');
+`,
+    { mode: 0o755 },
+  );
+  const env = {
+    ...process.env,
+    PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+    REAL_DOCKER: docker,
+    IMAGE_DIGESTS: JSON.stringify(digests),
+    VERIFY_LOG: log,
+  };
   try {
-    const docker = execFileSync('which', ['docker'], {
-      encoding: 'utf8',
-    }).trim();
-    mkdirSync(mockBin);
-    const mockDocker = path.join(mockBin, 'docker');
-    writeFileSync(
-      mockDocker,
-      `#!/bin/sh\nif [ "$1" = buildx ] && [ "$2" = imagetools ] && [ "$3" = inspect ]; then\n  case "$4" in\n${Object.entries(
-        digests,
-      )
-        .map(
-          ([repository, digest]) =>
-            `    */${repository}:*) printf '%s\\n' '${digest}' ;;`,
-        )
-        .join(
-          '\n',
-        )}\n    *) exit 1 ;;\n  esac\nelse\n  exec "$REAL_DOCKER" "$@"\nfi\n`,
-    );
-    chmodSync(mockDocker, 0o755);
-    execFileSync(
-      'node',
-      [
-        script,
-        '--version',
-        '1.0.0',
-        '--image-tag',
-        tag,
-        '--build-metadata-dir',
-        metadata,
-        '--output',
-        output,
-      ],
-      {
-        cwd: repoRoot,
-        env: {
-          ...process.env,
-          PATH: `${mockBin}${path.delimiter}${process.env.PATH}`,
-          REAL_DOCKER: docker,
-        },
-        stdio: 'pipe',
-      },
-    );
+    execFileSync('node', [script, '--version', 'test', '--output', output], {
+      cwd: repoRoot,
+      env,
+      stdio: 'pipe',
+    });
     const releaseEnv = readFileSync(
       path.join(output, 'deploy/self-host/.env.release'),
       'utf8',
     );
-    for (const [variable, repository] of Object.entries({
-      REST_API_IMAGE: 'rest-api',
-      MCP_SERVER_IMAGE: 'mcp-server',
-      CONSOLE_IMAGE: 'console',
-      DB_MIGRATE_IMAGE: 'db-migrate',
-      ORY_TOOLS_IMAGE: 'db-migrate',
-    })) {
-      assert.match(
-        releaseEnv,
-        new RegExp(
-          `^${variable}=.+/${repository}@${digests[repository]}$`,
-          'm',
+    for (const [variable, [repository, project]] of Object.entries(projects)) {
+      assert.ok(
+        releaseEnv.includes(
+          `${variable}=ghcr.io/getlarge/themoltnet/${repository}:${versions[project]}@${digests[repository]}\n`,
         ),
       );
     }
-    // Each failure must prevent creation of a lock, including mutable tag drift.
-    for (const [name, value, error] of [
-      [
-        'mismatch',
-        { 'containerimage.digest': `sha256:${'b'.repeat(64)}` },
-        /does not match the build output digest/,
-      ],
-      [
-        'invalid',
-        { 'containerimage.digest': 'sha256:invalid' },
-        /Invalid build output digest/,
-      ],
-      ['absent-field', {}, /Invalid build output digest/],
-      ['missing-file', null, /ENOENT/],
+    const calls = readFileSync(log, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+    assert.equal(
+      calls.length,
+      4,
+      'database/Ory tools share one verified subject',
+    );
+    assert.deepEqual(
+      new Set(calls.map((args) => args[2])),
+      new Set(
+        Object.entries(digests).map(
+          ([repository, digest]) =>
+            `oci://ghcr.io/getlarge/themoltnet/${repository}@${digest}`,
+        ),
+      ),
+    );
+    for (const args of calls) {
+      assert.deepEqual(args.slice(0, 2), ['attestation', 'verify']);
+      assert.deepEqual(args.slice(3), [
+        '--repo',
+        'getlarge/themoltnet',
+        '--signer-workflow',
+        'getlarge/themoltnet/.github/workflows/release.yml',
+        '--bundle-from-oci',
+        '--format',
+        'json',
+      ]);
+    }
+    for (const [failure, error] of [
+      ['unpublished', /synthetic unpublished image/],
+      ['digest', /invalid digest/],
+      ['platform', /missing linux\/arm64/],
+      ['provenance', /synthetic invalid provenance/],
+      ['empty', /No verified release provenance/],
+      ['unverified', /No verified release provenance/],
     ]) {
-      const file = path.join(metadata, 'rest-api.json');
-      if (value === null) rmSync(file);
-      else writeFileSync(file, JSON.stringify(value));
-      const destination = path.join(temporary, name);
+      const destination = path.join(temporary, failure);
       const failed = spawnSync(
         'node',
-        [
-          script,
-          '--version',
-          '1.0.0',
-          '--image-tag',
-          tag,
-          '--build-metadata-dir',
-          metadata,
-          '--output',
-          destination,
-        ],
-        {
-          cwd: repoRoot,
-          encoding: 'utf8',
-          env: {
-            ...process.env,
-            PATH: `${mockBin}${path.delimiter}${process.env.PATH}`,
-            REAL_DOCKER: docker,
-          },
-        },
+        [script, '--version', 'test', '--output', destination],
+        { cwd: repoRoot, env: { ...env, FAILURE: failure }, encoding: 'utf8' },
       );
       assert.notEqual(failed.status, 0);
       assert.match(failed.stderr, error);

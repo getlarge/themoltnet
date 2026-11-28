@@ -437,55 +437,86 @@ describe('Nx release configuration', () => {
     expect(result.stdout).not.toContain('ci-main');
   }, 30_000);
 
-  it('attests all four checked self-host build digests before bundling', () => {
+  it('packages manifest-selected releases without a second image publisher', () => {
     const config = parse(
       readFileSync(
         join(workspaceRoot, '.github/workflows/release-self-host.yml'),
         'utf8',
       ),
     );
-    const steps = config.jobs.bundle.steps;
-    const imageAttestations = steps.filter(
+    expect(Object.keys(config.jobs)).toEqual(['bundle']);
+    const job = config.jobs.bundle;
+    expect(job.permissions.packages).toBe('read');
+    const steps = job.steps;
+    const version = steps.find(
+      (step: { id?: string }) => step.id === 'version',
+    );
+    expect(version.run).toContain(
+      '"$GITHUB_REF" != "refs/tags/self-host-v$version"',
+    );
+    const archive = steps.find(
+      (step: { name?: string }) => step.name === 'Build digest-pinned archive',
+    );
+    expect(archive.run).toContain(
+      'self-host-bundle.mjs --version "$VERSION" --output "$root"',
+    );
+    expect(archive.env.GH_TOKEN).toBe('${{ github.token }}');
+    expect(JSON.stringify(steps)).not.toMatch(
+      /docker:build|setup-qemu|push-to-registry|--image-tag|--skip-digests/,
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        uses: './.github/actions/setup-workspace',
+        with: { go: 'false' },
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Smoke-test Ory against populated PostgreSQL 17',
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Smoke-test released images through Caddy',
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Attest release archive',
+        with: {
+          'subject-path':
+            'moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz',
+        },
+      }),
+    );
+  });
+
+  it('binds regular release provenance and platform SBOM subjects to actual build output', () => {
+    const steps = parse(workflow).jobs['publish-docker-images'].steps;
+    const build = steps.find(
+      (step: { name?: string }) =>
+        step.name === 'Build and publish multi-platform image',
+    );
+    const verify = steps.find((step: { id?: string }) => step.id === 'image');
+    expect(build.env.NX_DOCKER_METADATA_DIR).toBe(
+      verify.env.BUILD_METADATA_DIR,
+    );
+    expect(verify.run).toContain('--metadata-dir "$BUILD_METADATA_DIR"');
+    const attestations = steps.filter(
       (step: { with?: Record<string, unknown> }) =>
         step.with?.['push-to-registry'],
     );
-    expect(imageAttestations).toHaveLength(4);
-    for (const [id, repository] of [
-      ['rest-api', 'rest-api'],
-      ['mcp-server', 'mcp-server'],
-      ['console', 'console'],
-      ['database', 'db-migrate'],
-    ]) {
-      const verify = steps.find((step: { id?: string }) => step.id === id);
-      expect(verify.env.METADATA_FILE).toBe(
-        `\${{ runner.temp }}/self-host-build-metadata/${repository}.json`,
-      );
-      expect(verify.run).toContain('--metadata-file "$METADATA_FILE"');
-      expect(imageAttestations).toContainEqual(
-        expect.objectContaining({
-          uses: 'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
-          with: {
-            'subject-name': `\${{ steps.${id}.outputs.image_name }}`,
-            'subject-digest': `\${{ steps.${id}.outputs.image_digest }}`,
-            'push-to-registry': true,
-          },
-        }),
+    expect(attestations).toHaveLength(3);
+    for (const step of attestations) {
+      expect(step.with['subject-digest']).toBe(
+        '${{ steps.image.outputs.image_digest }}',
       );
     }
-    const build = steps.find(
-      (step: { name?: string }) =>
-        step.name === 'Publish bundle images from this source revision',
-    );
-    const bundle = steps.find(
-      (step: { name?: string }) => step.name === 'Build digest-pinned archive',
-    );
-    expect(build.env.NX_DOCKER_METADATA_DIR).toBe(
-      bundle.env.BUILD_METADATA_DIR,
-    );
-    expect(bundle.run).toContain('--build-metadata-dir "$BUILD_METADATA_DIR"');
-    expect(steps.indexOf(bundle)).toBeGreaterThan(
-      steps.indexOf(imageAttestations.at(-1)),
-    );
+    expect(
+      attestations.filter(
+        (step: { with: Record<string, unknown> }) => step.with['sbom-path'],
+      ),
+    ).toHaveLength(2);
   });
 
   it('exports the actual Buildx digest and rejects retagged manifests', () => {
@@ -522,8 +553,8 @@ if (args[1] === 'build') {
       '@moltnet/rest-api',
       '--tag',
       'test',
-      '--metadata-file',
-      join(metadata, 'rest-api.json'),
+      '--metadata-dir',
+      metadata,
     ];
     try {
       const built = runNode(

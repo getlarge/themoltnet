@@ -14,8 +14,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-import { readBuildDigest } from '../docker-build-metadata.mjs';
-
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const sourceDir = path.join(repoRoot, 'deploy/self-host');
@@ -30,7 +28,6 @@ const imageProjects = {
 function parseArgs(argv) {
   const result = {
     imageTag: undefined,
-    buildMetadataDir: undefined,
     output: undefined,
     skipDigests: false,
     version: undefined,
@@ -39,14 +36,6 @@ function parseArgs(argv) {
     const argument = argv[index];
     if (argument === '--skip-digests') {
       result.skipDigests = true;
-    } else if (argument === '--build-metadata-dir') {
-      result.buildMetadataDir = argv[++index];
-      if (
-        !result.buildMetadataDir ||
-        result.buildMetadataDir.startsWith('--')
-      ) {
-        throw new Error('--build-metadata-dir requires a value');
-      }
     } else if (argument === '--image-tag') {
       result.imageTag = argv[++index];
       if (!result.imageTag || result.imageTag.startsWith('--')) {
@@ -77,11 +66,6 @@ function parseArgs(argv) {
     !/^[0-9A-Za-z_][0-9A-Za-z_.-]{0,127}$/.test(result.imageTag)
   ) {
     throw new Error(`Invalid Docker image tag: ${result.imageTag}`);
-  }
-  if (result.buildMetadataDir && (result.skipDigests || !result.imageTag)) {
-    throw new Error(
-      '--build-metadata-dir requires --image-tag and digest verification',
-    );
   }
   return result;
 }
@@ -199,42 +183,76 @@ function currentImages(imageTag) {
   );
 }
 
-function writeImageLock(destination, skipDigests, imageTag, buildMetadataDir) {
+function writeImageLock(destination, skipDigests, imageTag) {
   const images = currentImages(imageTag);
   const lines = [];
+  const verifiedImages = new Map();
   for (const [name, image] of Object.entries(images)) {
     const variable = `${name.replaceAll('-', '_').toUpperCase()}_IMAGE`;
     if (skipDigests) {
       lines.push(`${variable}=${image}`);
       continue;
     }
-    const digest = run(
-      'docker',
-      [
-        'buildx',
-        'imagetools',
-        'inspect',
-        image,
-        '--format',
-        '{{.Manifest.Digest}}',
-      ],
-      { capture: true },
-    ).trim();
-    if (!/^sha256:[a-f0-9]{64}$/.test(digest)) {
-      throw new Error(
-        `Registry returned an invalid digest for ${image}: ${digest}`,
+    if (!verifiedImages.has(image)) {
+      const manifest = JSON.parse(
+        run(
+          'docker',
+          [
+            'buildx',
+            'imagetools',
+            'inspect',
+            image,
+            '--format',
+            '{{json .Manifest}}',
+          ],
+          { capture: true },
+        ),
       );
-    }
-    if (buildMetadataDir) {
-      const repository = imageWithoutTag(image).split('/').at(-1);
-      const builtDigest = readBuildDigest(
-        path.join(buildMetadataDir, `${repository}.json`),
-      );
-      if (digest !== builtDigest) {
-        throw new Error(`${image} does not match the build output digest`);
+      const digest = manifest.digest;
+      if (typeof digest !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(digest)) {
+        throw new Error(`Registry returned an invalid digest for ${image}`);
       }
+      for (const architecture of ['amd64', 'arm64']) {
+        if (
+          !(manifest.manifests ?? []).some(
+            (entry) =>
+              entry.platform?.os === 'linux' &&
+              entry.platform?.architecture === architecture &&
+              /^sha256:[a-f0-9]{64}$/.test(entry.digest ?? ''),
+          )
+        ) {
+          throw new Error(`${image} is missing linux/${architecture}`);
+        }
+      }
+      const reference = `${imageWithoutTag(image)}@${digest}`;
+      const results = JSON.parse(
+        run(
+          'gh',
+          [
+            'attestation',
+            'verify',
+            `oci://${reference}`,
+            '--repo',
+            'getlarge/themoltnet',
+            '--signer-workflow',
+            'getlarge/themoltnet/.github/workflows/release.yml',
+            '--bundle-from-oci',
+            '--format',
+            'json',
+          ],
+          { capture: true },
+        ),
+      );
+      if (
+        !Array.isArray(results) ||
+        !results.some((result) => result?.verificationResult)
+      ) {
+        throw new Error(`No verified release provenance for ${reference}`);
+      }
+      // Preserve the selected release version as well as its immutable digest.
+      verifiedImages.set(image, `${image}@${digest}`);
     }
-    lines.push(`${variable}=${imageWithoutTag(image)}@${digest}`);
+    lines.push(`${variable}=${verifiedImages.get(image)}`);
   }
   const releaseSignerPublicKey = run(
     'bash',
@@ -316,7 +334,6 @@ function main() {
     path.join(bundleRoot, 'deploy/self-host/.env.release'),
     args.skipDigests,
     args.imageTag,
-    args.buildMetadataDir,
   );
   validateBundle(bundleRoot);
   process.stdout.write(`${bundleRoot}\n`);

@@ -6,8 +6,11 @@ Kratos/Hydra/Keto/Talos, Valkey, and an S3-compatible object store.
 
 Use a `self-host-vX.Y.Z` GitHub release rather than a source checkout for a
 real installation. Release archives include an `.env.release` whose MoltNet
-images are built from the bundle's source revision and pinned by registry
-digest, plus a `SHA256SUMS` manifest.
+images use the component versions selected by the bundle's release manifest,
+pinned as `repository:version@sha256` references, plus a `SHA256SUMS` manifest.
+The release verifies each image's regular-release provenance and smoke-tests
+the selected set with the bundled configuration before signing the archive.
+The image source commits can differ from the bundle's source revision.
 
 The bundle does not configure off-host backups. Before storing data you need to
 keep, arrange PostgreSQL point-in-time recovery and a complete, encrypted

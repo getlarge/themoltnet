@@ -204,6 +204,7 @@ jobs:
 
       - name: Build and publish multi-platform image
         env:
+          NX_DOCKER_METADATA_DIR: ${{ runner.temp }}/release-build-metadata
           NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
           NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
         run: >-
@@ -214,12 +215,13 @@ jobs:
       - name: Verify published multi-platform manifest
         id: image
         env:
+          BUILD_METADATA_DIR: ${{ runner.temp }}/release-build-metadata
           NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
           NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
         run: >-
           node tools/verify-docker-manifest.mjs
           --project "$NX_DOCKER_RELEASE_PROJECT"
-          --tag "$NX_DOCKER_RELEASE_TAG"
+          --tag "$NX_DOCKER_RELEASE_TAG" --metadata-dir "$BUILD_METADATA_DIR"
 
       - name: Install Syft for release SBOMs
         id: syft

@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
@@ -14,7 +15,7 @@ const { values } = parseArgs({
   options: {
     project: { type: 'string' },
     tag: { type: 'string' },
-    'metadata-file': { type: 'string' },
+    'metadata-dir': { type: 'string' },
   },
   strict: true,
 });
@@ -54,10 +55,10 @@ const digest = manifest.digest;
 if (typeof digest !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(digest)) {
   throw new Error(`${reference} has no valid image digest`);
 }
-if (
-  values['metadata-file'] &&
-  digest !== readBuildDigest(values['metadata-file'])
-) {
+const metadataFile = values['metadata-dir']
+  ? join(values['metadata-dir'], `${basename(repositoryName)}.json`)
+  : undefined;
+if (metadataFile && digest !== readBuildDigest(metadataFile)) {
   throw new Error(`${reference} does not match the build output digest`);
 }
 const platformDigests = Object.fromEntries(

@@ -14,9 +14,12 @@ cache, object-storage, and ingress dependencies.
 
 Download a `self-host-vX.Y.Z` archive from GitHub Releases, verify its checksum,
 and follow the included `deploy/self-host/README.md`. The release's
-`.env.release` pins images built from that release's source revision by digest;
-do not replace those pins with floating tags in a production installation. The
-checksum published beside the archive detects corruption, but does not by itself
+`.env.release` pins the component versions selected by the bundle's release
+manifest as `repository:version@sha256` references. Each image has verified
+regular-release provenance; the archive's smoke tests validate the selected set
+with its bundled configuration. Image source commits can differ from the
+bundle's source revision. Keep these immutable pins in production. The checksum
+published beside the archive detects corruption, but does not by itself
 authenticate the publisher.
 
 The Compose bundle does not set up off-host backup or point-in-time recovery.
