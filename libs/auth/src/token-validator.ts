@@ -540,14 +540,22 @@ export function createTokenValidator(
           reason: expired ? 'credential_expired' : 'credential_inactive',
           ...(result.key_id ? { keyId: result.key_id } : {}),
         });
-        logger.debug(
+        // Warn, with the key and its agent: an agent still presenting an
+        // expired or revoked key keeps failing on its own schedule, and the
+        // upstream verifier records the failure without saying whose key it
+        // was. The credential itself is never logged.
+        logger.warn(
           {
             credentialType: 'talos-api-key',
             reason: publicVisibility
               ? 'public_key_rejected'
-              : 'credential_rejected',
+              : expired
+                ? 'credential_expired'
+                : 'credential_rejected',
             errorCode: result.error_code,
             status: result.status,
+            ...(result.key_id ? { keyId: result.key_id } : {}),
+            ...(result.actor_id ? { actorId: result.actor_id } : {}),
           },
           'Talos API key rejected',
         );
