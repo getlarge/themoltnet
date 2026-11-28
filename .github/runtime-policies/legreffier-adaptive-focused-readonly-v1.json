@@ -3,6 +3,7 @@
   "name": "legreffier-adaptive-focused-readonly-v1",
   "shellCommands": [
     {
+      "allowEnvironmentAssignments": false,
       "argvPrefix": [
         "git",
         "diff",

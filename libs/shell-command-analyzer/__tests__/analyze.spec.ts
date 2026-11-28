@@ -175,7 +175,7 @@ describe('analyzeCommand — risk classification of resolved tools', () => {
 });
 
 describe('analyzeCommand — wrappers', () => {
-  it('re-analyzes env split-string commands', async () => {
+  it('resolves env split-string argv', async () => {
     expect(await invocationArgv("env -S 'git push --force'")).toEqual([
       ['env', '-S', 'git push --force'],
       ['git', 'push', '--force'],
@@ -186,6 +186,124 @@ describe('analyzeCommand — wrappers', () => {
       ['env', null],
       ['gh', 'pr', 'merge', '1725'],
     ]);
+  });
+
+  describe('env split-string argument composition', () => {
+    const forms = (value: string) => [
+      `env -S '${value}'`,
+      `env --split-string '${value}'`,
+      `env --split-string='${value}'`,
+      `env --split-string="${value}"`,
+      `env "--split-string=${value}"`,
+      `env -S'${value}'`,
+      `env '-S' '${value}'`,
+    ];
+
+    it.each(forms('LANG=C env'))(
+      'attributes split assignments to the trailing target: %s',
+      async (prefix) => {
+        const result = await analyzeCommand(`${prefix} git diff; other`);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(
+          result.tools.map(({ name, argv, envAssignments }) => ({
+            name,
+            ...(name === 'git' ? { argv } : {}),
+            envAssignments,
+          })),
+        ).toEqual([
+          { name: 'env', envAssignments: ['LANG'] },
+          { name: 'env', envAssignments: ['LANG'] },
+          { name: 'git', argv: ['git', 'diff'], envAssignments: ['LANG'] },
+          { name: 'other', envAssignments: [] },
+        ]);
+        expect(result.envAssignments).toEqual(['LANG']);
+        expect(result.unscopedEnvAssignments).toEqual([]);
+      },
+    );
+
+    it.each([...forms('git'), ...forms('env git')])(
+      'appends trailing argv without a separate invocation: %s',
+      async (prefix) => {
+        const result = await analyzeCommand(`${prefix} diff -- file`);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(result.tools.at(-1)?.argv).toEqual([
+          'git',
+          'diff',
+          '--',
+          'file',
+        ]);
+        expect(result.envAssignments).toEqual([]);
+      },
+    );
+
+    it.each(forms(''))(
+      'retains the tail after an empty split: %s',
+      async (prefix) => {
+        expect((await invocationArgv(`${prefix} git diff`)).at(-1)).toEqual([
+          'git',
+          'diff',
+        ]);
+      },
+    );
+
+    it.each([
+      "env LANG=C -S 'env' git diff",
+      "env -S 'LANG=C -S env' git diff",
+      "env -S '-- LANG=C -S env' git diff",
+    ])('stops split-option parsing at assignments: %s', async (command) => {
+      expect((await invocationArgv(command)).at(-1)).toEqual([
+        '-S',
+        'env',
+        'git',
+        'diff',
+      ]);
+    });
+
+    it('preserves dynamic tail argv without making it literal', async () => {
+      const result = await analyzeCommand(
+        `env -S 'LANG=C env' git diff "$PATH"`,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.reason);
+      expect(result.tools.at(-1)?.argv).toEqual(['git', 'diff', null]);
+      expect(result.tools.at(-1)?.envAssignments).toEqual(['LANG']);
+    });
+
+    it('resolves repeated split options with a bounded splice depth', async () => {
+      expect((await invocationArgv("env -S '-S env' git diff")).at(-1)).toEqual(
+        ['git', 'diff'],
+      );
+      await expectDeny(`env -S '${'-S '.repeat(40)}env' git diff`);
+    });
+
+    it.each(forms('LANG=C'))(
+      'retains targetless assignments: %s',
+      async (command) => {
+        const result = await analyzeCommand(command);
+        expect(result.ok).toBe(true);
+        if (!result.ok) throw new Error(result.reason);
+        expect(
+          result.tools.map(({ name, envAssignments }) => ({
+            name,
+            envAssignments,
+          })),
+        ).toEqual([{ name: 'env', envAssignments: ['LANG'] }]);
+      },
+    );
+
+    it.each([
+      `env -S '$SETTING env' git diff`,
+      'env -S "$SETTING" git diff',
+      `env --split-string="$SETTING" git diff`,
+      `env -S 'LANG="C" env' git diff`,
+      `env -S 'LANG=C\\_env' git diff`,
+      `env -S 'LANG=C env; other' git diff`,
+      `env -S 'env # comment' git diff`,
+    ])('fails closed on unsupported split grammar: %s', async (command) => {
+      await expectDeny(command);
+    });
   });
 
   it('rejects quoted wrapper targets containing whitespace', async () => {
@@ -236,6 +354,87 @@ describe('analyzeCommand — wrappers', () => {
     // A bare VAR=value prefix is a grammar-level assignment, not a command.
     expect(await toolNames('FOO=bar git push')).toEqual(['git']);
   });
+
+  it.each(
+    [
+      'nice',
+      'nice --',
+      'nohup',
+      'exec',
+      'command',
+      'timeout 1',
+      'xargs',
+      'sudo --',
+    ].flatMap((wrapper) =>
+      ['LANG=C', "'LANG=C'", '"LANG=C"'].map((operand) => ({
+        wrapper,
+        operand,
+      })),
+    ),
+  )(
+    'preserves assignment-looking executables: $wrapper $operand',
+    async ({ wrapper, operand }) => {
+      const result = await analyzeCommand(`${wrapper} ${operand} permitted`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.tools.map(({ name }) => name)).toEqual([
+          wrapper.split(' ')[0],
+          'LANG=C',
+        ]);
+        expect(result.tools[1].argv).toEqual(['LANG=C', 'permitted']);
+        expect(result.envAssignments).toEqual([]);
+        expect(
+          result.tools.map(({ envAssignments }) => envAssignments),
+        ).toEqual([[], []]);
+      }
+    },
+  );
+
+  it.each(
+    [
+      'nice',
+      'nice --',
+      'nohup',
+      'exec',
+      'command',
+      'timeout 1',
+      'xargs',
+      'sudo --',
+    ].flatMap((wrapper) =>
+      ['"LANG=$LANG"', 'LANG="${LANG}"', 'LANG=pre"${LANG}"'].map(
+        (operand) => `${wrapper} ${operand} permitted`,
+      ),
+    ),
+  )('rejects dynamic assignment-looking executables: %s', async (command) => {
+    await expectDeny(command);
+  });
+
+  it.each(
+    ['env', 'env --', 'sudo', 'sudo -u deploy'].flatMap((wrapper) =>
+      ['LANG=C', "'LANG=C'", '"LANG=$LANG"', 'LANG="${LANG}"'].map(
+        (operand) => ({ wrapper, operand }),
+      ),
+    ),
+  )(
+    'recognizes supported assignment operands: $wrapper $operand',
+    async ({ wrapper, operand }) => {
+      const result = await analyzeCommand(`${wrapper} ${operand} permitted`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(
+          result.tools.map(({ name, envAssignments }) => ({
+            name,
+            envAssignments,
+          })),
+        ).toEqual([
+          { name: wrapper.split(' ')[0], envAssignments: ['LANG'] },
+          { name: 'permitted', envAssignments: ['LANG'] },
+        ]);
+        expect(result.envAssignments).toEqual(['LANG']);
+        expect(result.unscopedEnvAssignments).toEqual([]);
+      }
+    },
+  );
 
   it('resolves xargs targets', async () => {
     expect(await toolNames('xargs rm')).toEqual(['xargs', 'rm']);
@@ -469,6 +668,162 @@ describe('analyzeCommand — materialized escape flags', () => {
       expect(result.envAssignments).toEqual(['PATH', 'LS_COLORS']);
       // The prefix is not argv, so it must not appear as an executable.
       expect(result.tools.map((tool) => tool.name)).toEqual(['ls']);
+    }
+  });
+
+  it('attributes assignments to commands and wrapper targets, not other commands', async () => {
+    const analyzer = await ShellCommandAnalyzer.create();
+    const result = analyzer.analyze('LANG=C first; env TZ=UTC second && third');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(
+        result.tools.map(({ name, envAssignments }) => ({
+          name,
+          envAssignments,
+        })),
+      ).toEqual([
+        { name: 'first', envAssignments: ['LANG'] },
+        { name: 'env', envAssignments: ['TZ'] },
+        { name: 'second', envAssignments: ['TZ'] },
+        { name: 'third', envAssignments: [] },
+      ]);
+      expect(result.envAssignments).toEqual(['LANG', 'TZ']);
+      expect(result.unscopedEnvAssignments).toEqual([]);
+    }
+  });
+
+  it('retains standalone and nested assignments without exposing values', async () => {
+    const analyzer = await ShellCommandAnalyzer.create();
+    const result = analyzer.analyze(
+      "LANG=C; tar --to-command='TZ=UTC second' -cf archive .",
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.unscopedEnvAssignments).toEqual(['LANG']);
+      expect(result.envAssignments).toEqual(['LANG', 'TZ']);
+      expect(
+        result.tools.find(({ name }) => name === 'second')?.envAssignments,
+      ).toEqual(['TZ']);
+    }
+  });
+
+  it.each([
+    "export 'LANG=C'; second",
+    'export "LANG=C"; second',
+    "readonly 'LANG=C'; second",
+    "declare -x 'LANG=C'; second",
+    "typeset -x 'LANG=C'; second",
+    "local 'LANG=C'; second",
+    'command export LANG=C; second',
+    "builtin export 'LANG=C'; second",
+  ])(
+    'retains declaration assignment operands as unscoped: %s',
+    async (command) => {
+      const result = await analyzeCommand(command);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.envAssignments).toEqual(['LANG']);
+        expect(result.unscopedEnvAssignments).toEqual(['LANG']);
+        expect(
+          result.tools.find(({ name }) => name === 'second')?.envAssignments,
+        ).toEqual([]);
+      }
+    },
+  );
+
+  it.each(
+    [
+      '"LANG=$LANG"',
+      '"LANG=${LANG}"',
+      'LANG="${LANG}"',
+      'LANG=pre"${LANG}"',
+    ].flatMap((operand) =>
+      ['export', 'command export', 'builtin export'].map(
+        (declaration) => `${declaration} ${operand}; second`,
+      ),
+    ),
+  )(
+    'retains declaration names independently of dynamic values: %s',
+    async (command) => {
+      const result = await analyzeCommand(command);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.envAssignments).toEqual(['LANG']);
+        expect(result.unscopedEnvAssignments).toEqual(['LANG']);
+        expect(result.hasUnknownEnvAssignments).toBe(false);
+        expect(
+          result.tools.find(({ name }) => name === 'second')?.envAssignments,
+        ).toEqual([]);
+        const declaration = result.tools.find(({ name }) => name === 'export');
+        if (declaration) expect(declaration.argv[1]).toBeNull();
+      }
+    },
+  );
+
+  it.each([
+    'export "$SETTING"; second',
+    'command export "$SETTING"; second',
+    'builtin export "$SETTING"; second',
+    'export LA"NG"="$LANG"; second',
+  ])(
+    'retains unknown declaration assignment names explicitly: %s',
+    async (command) => {
+      const result = await analyzeCommand(command);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.hasUnknownEnvAssignments).toBe(true);
+    },
+  );
+
+  it('propagates uncertain declaration metadata from materialized nested commands', async () => {
+    const result = await analyzeCommand(
+      'tar --to-command=\'export "$SETTING"; second\' -cf archive .',
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.hasUnknownEnvAssignments).toBe(true);
+  });
+
+  it.each([
+    '"LANG=$LANG"',
+    '"LANG=${LANG}"',
+    'LANG="${LANG}"',
+    'LANG=pre"${LANG}"',
+  ])(
+    'attributes wrapper assignments independently of dynamic values: %s',
+    async (operand) => {
+      const result = await analyzeCommand(`env ${operand} first; second`);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(
+          result.tools.map(({ name, envAssignments }) => ({
+            name,
+            envAssignments,
+          })),
+        ).toEqual([
+          { name: 'env', envAssignments: ['LANG'] },
+          { name: 'first', envAssignments: ['LANG'] },
+          { name: 'second', envAssignments: [] },
+        ]);
+        expect(result.tools[0].argv[1]).toBeNull();
+        expect(result.unscopedEnvAssignments).toEqual([]);
+      }
+    },
+  );
+
+  it('attributes assignments to an env wrapper without a target', async () => {
+    const result = await analyzeCommand('env LANG=C; second');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(
+        result.tools.map(({ name, envAssignments }) => ({
+          name,
+          envAssignments,
+        })),
+      ).toEqual([
+        { name: 'env', envAssignments: ['LANG'] },
+        { name: 'second', envAssignments: [] },
+      ]);
+      expect(result.envAssignments).toEqual(['LANG']);
+      expect(result.unscopedEnvAssignments).toEqual([]);
     }
   });
 

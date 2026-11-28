@@ -294,6 +294,10 @@ Bash tool only for commands beginning with
 external diff and text-conversion helpers, then close Git's option parser before
 model-supplied arguments. Keep `--end-of-options` in the policy prefix: flags
 before it could override the helper restrictions or write output to a file.
+These rules also set `allowEnvironmentAssignments: false` to reject inline
+assignments for the Git invocation. Other rules keep their current behavior
+when the option is omitted. See [assignment handling](../../docs/understand/agent-security.md#runtime-tool-policies)
+for command scoping and inherited-environment boundaries.
 Review briefs supply the exact pinned `base...head` range. Append `-- PATH` to
 scope the diff; use `read` for more source context instead of appending flags.
 Git rejects unsupported option-boundary syntax rather than running a weaker

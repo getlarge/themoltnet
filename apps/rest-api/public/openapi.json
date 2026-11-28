@@ -10769,6 +10769,10 @@
       "ShellCommandRule": {
         "additionalProperties": false,
         "properties": {
+          "allowEnvironmentAssignments": {
+            "description": "When false, reject inline environment assignments for matching invocations. Omitted or true preserves existing assignment handling; inherited process environment is unchanged.",
+            "type": "boolean"
+          },
           "argvPrefix": {
             "description": "Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted; output redirection is never permitted.",
             "items": {

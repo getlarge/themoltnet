@@ -110865,6 +110865,12 @@ func (s *ShellCommandRule) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *ShellCommandRule) encodeFields(e *jx.Encoder) {
 	{
+		if s.AllowEnvironmentAssignments.Set {
+			e.FieldStart("allowEnvironmentAssignments")
+			s.AllowEnvironmentAssignments.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("argvPrefix")
 		e.ArrStart()
 		for _, elem := range s.ArgvPrefix {
@@ -110874,8 +110880,9 @@ func (s *ShellCommandRule) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfShellCommandRule = [1]string{
-	0: "argvPrefix",
+var jsonFieldsNameOfShellCommandRule = [2]string{
+	0: "allowEnvironmentAssignments",
+	1: "argvPrefix",
 }
 
 // Decode decodes ShellCommandRule from json.
@@ -110887,8 +110894,18 @@ func (s *ShellCommandRule) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "allowEnvironmentAssignments":
+			if err := func() error {
+				s.AllowEnvironmentAssignments.Reset()
+				if err := s.AllowEnvironmentAssignments.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowEnvironmentAssignments\"")
+			}
 		case "argvPrefix":
-			requiredBitSet[0] |= 1 << 0
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				s.ArgvPrefix = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -110917,7 +110934,7 @@ func (s *ShellCommandRule) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000001,
+		0b00000010,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

@@ -99,6 +99,48 @@ describe('runtime tool-policy routes', () => {
       });
     });
 
+    it('round trips assignment restrictions through API schema and Keto', async () => {
+      mocks.runtimePolicyRepository.create.mockResolvedValue(policyRow());
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: {
+          name: 'ci',
+          shellCommands: [
+            { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+          ],
+        },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(response.json().shellCommands).toEqual([
+        { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+      ]);
+      expect(
+        mocks.relationshipWriter.writeRuntimePolicyEdges,
+      ).toHaveBeenCalledWith(
+        POLICY_ID,
+        expect.objectContaining({
+          addShellCommands: ['v2/no-env/git'],
+        }),
+      );
+    });
+
+    it('rejects non-boolean assignment settings', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: {
+          name: 'ci',
+          shellCommands: [
+            { argvPrefix: ['git'], allowEnvironmentAssignments: {} },
+          ],
+        },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
     it('rejects requests without a team header', async () => {
       const response = await app.inject({
         method: 'POST',

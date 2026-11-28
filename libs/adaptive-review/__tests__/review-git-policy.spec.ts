@@ -33,9 +33,37 @@ it.each([
     ),
   ) as {
     tools: string[];
-    shellCommands: { argvPrefix: [string, ...string[]] }[];
+    shellCommands: {
+      argvPrefix: [string, ...string[]];
+      allowEnvironmentAssignments?: boolean;
+    }[];
   };
   const prefix = policy.shellCommands[0].argvPrefix;
+  expect(policy.shellCommands[0].allowEnvironmentAssignments).toBe(false);
+  for (const command of [
+    `LANG=C ${prefix.join(' ')} HEAD`,
+    `export 'LANG=C'; ${prefix.join(' ')} HEAD`,
+    `export "LANG=C"; ${prefix.join(' ')} HEAD`,
+    `export "LANG=$LANG"; ${prefix.join(' ')} HEAD`,
+    `export "LANG=\${LANG}"; ${prefix.join(' ')} HEAD`,
+    `export "$SETTING"; ${prefix.join(' ')} HEAD`,
+    `GIT_TRACE=/tmp/review-trace ${prefix.join(' ')} HEAD`,
+    `GIT_CONFIG_COUNT=1 ${prefix.join(' ')} HEAD`,
+  ]) {
+    expect(
+      decideToolCall({
+        toolName: 'bash',
+        command,
+        enforcement: 'enforce',
+        allowedTools: new Set(policy.tools),
+        allowedShellCommands: policy.shellCommands,
+        analyze: (value) => analyzer.analyze(value),
+      }),
+    ).toMatchObject({
+      allow: false,
+      reasonCode: 'shell_environment_assignment_not_permitted',
+    });
+  }
   expect(prefix).toEqual([
     'git',
     'diff',

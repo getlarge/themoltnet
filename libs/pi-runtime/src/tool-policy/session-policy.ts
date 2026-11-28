@@ -68,7 +68,10 @@ export interface AllowedToolsClient {
     ) => Promise<{
       enforcement: ToolEnforcement;
       allowedTools: string[];
-      allowedShellCommands: Array<{ argvPrefix: string[] }>;
+      allowedShellCommands: Array<{
+        argvPrefix: string[];
+        allowEnvironmentAssignments?: boolean;
+      }>;
       runtimeKind: string;
       policySnapshotHash?: string;
       runtimeProfileRevision?: number;
@@ -177,12 +180,17 @@ export async function resolveSessionToolPolicy(
         if (
           rule.argvPrefix.length < 1 ||
           rule.argvPrefix.length > 8 ||
-          rule.argvPrefix.some((token) => !token)
+          rule.argvPrefix.some((token) => !token) ||
+          (rule.allowEnvironmentAssignments !== undefined &&
+            typeof rule.allowEnvironmentAssignments !== 'boolean')
         ) {
           throw new Error('runtime returned an invalid shell command rule');
         }
         return {
           argvPrefix: rule.argvPrefix as [string, ...string[]],
+          ...(rule.allowEnvironmentAssignments !== undefined
+            ? { allowEnvironmentAssignments: rule.allowEnvironmentAssignments }
+            : {}),
         };
       }),
       executionPolicySnapshotHash: resolved.policySnapshotHash,

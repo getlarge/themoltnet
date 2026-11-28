@@ -17,10 +17,12 @@ export interface RuntimeInstructorToolPolicy {
   allowedTools: readonly string[];
   allowedShellCommands: readonly {
     argvPrefix: readonly string[];
+    allowEnvironmentAssignments?: boolean;
   }[];
   unavailableTools?: readonly string[];
   unavailableShellCommands?: readonly {
     argvPrefix: readonly string[];
+    allowEnvironmentAssignments?: boolean;
   }[];
   degraded: boolean;
 }
@@ -126,7 +128,10 @@ function renderShellCommandPrefixes(
 ): string[] {
   const visible = commands
     .slice(0, 12)
-    .map(({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``);
+    .map(
+      ({ argvPrefix, allowEnvironmentAssignments }) =>
+        `  - \`${argvPrefix.join(' ')}\`${allowEnvironmentAssignments === false ? ' (no inline environment assignments)' : ''}`,
+    );
   const omitted = commands.length - visible.length;
   if (omitted > 0) {
     visible.push(`  - …and ${omitted} more authorized prefixes.`);

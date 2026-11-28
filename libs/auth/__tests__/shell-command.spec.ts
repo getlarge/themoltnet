@@ -44,6 +44,35 @@ describe('shell command identifiers', () => {
     );
   });
 
+  it('round trips restricted rules without changing legacy identifiers', () => {
+    const restricted = {
+      argvPrefix: ['git', 'diff'] as const,
+      allowEnvironmentAssignments: false,
+    };
+    expect(encodeShellCommandRule(restricted)).toBe('v2/no-env/git/diff');
+    expect(decodeShellCommandIdentifier('v2/no-env/git/diff')).toEqual(
+      restricted,
+    );
+    expect(
+      encodeShellCommandRule({
+        argvPrefix: ['git', 'diff'],
+        allowEnvironmentAssignments: true,
+      }),
+    ).toBe('v1/git/diff');
+    expect(
+      normalizeShellCommandRules([
+        { argvPrefix: ['git'], allowEnvironmentAssignments: true },
+        { argvPrefix: ['git'] },
+        { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+      ]),
+    ).toEqual([
+      { argvPrefix: ['git'], allowEnvironmentAssignments: false },
+      { argvPrefix: ['git'] },
+    ]);
+    expect(() => decodeShellCommandIdentifier('v2/other/git')).toThrow();
+    expect(() => decodeShellCommandIdentifier('v2/no-env')).toThrow();
+  });
+
   it('enforces token and encoded identifier limits', () => {
     expect(() =>
       encodeShellCommandRule({ argvPrefix: ['git', 'x'.repeat(129)] }),

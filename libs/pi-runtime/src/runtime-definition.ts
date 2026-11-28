@@ -173,8 +173,7 @@ export interface PiDurableExtensionContribution {
 }
 
 export type PiExtensionContribution =
-  | PiCodingExtensionContribution
-  | PiDurableExtensionContribution;
+  PiCodingExtensionContribution | PiDurableExtensionContribution;
 
 export interface PiDurableExtensionOptions {
   extension: DurableExtension;
@@ -866,7 +865,10 @@ export function isToolVisible(
 export interface ModelVisibleToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
-  allowedShellCommands?: readonly { argvPrefix: readonly string[] }[];
+  allowedShellCommands?: readonly {
+    argvPrefix: readonly string[];
+    allowEnvironmentAssignments?: boolean;
+  }[];
 }
 
 export function isKernelTool(name: string): boolean {

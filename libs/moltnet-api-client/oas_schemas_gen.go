@@ -52568,14 +52568,27 @@ func (*SetRuntimeProfilePoliciesUnauthorized) setRuntimeProfilePoliciesRes() {}
 
 // Ref: #/components/schemas/ShellCommandRule
 type ShellCommandRule struct {
+	// When false, reject inline environment assignments for matching invocations. Omitted or true
+	// preserves existing assignment handling; inherited process environment is unchanged.
+	AllowEnvironmentAssignments OptBool `json:"allowEnvironmentAssignments"`
 	// Literal argv tokens matched from the program name onward. Additional argv tokens remain permitted;
 	// output redirection is never permitted.
 	ArgvPrefix []string `json:"argvPrefix"`
 }
 
+// GetAllowEnvironmentAssignments returns the value of AllowEnvironmentAssignments.
+func (s *ShellCommandRule) GetAllowEnvironmentAssignments() OptBool {
+	return s.AllowEnvironmentAssignments
+}
+
 // GetArgvPrefix returns the value of ArgvPrefix.
 func (s *ShellCommandRule) GetArgvPrefix() []string {
 	return s.ArgvPrefix
+}
+
+// SetAllowEnvironmentAssignments sets the value of AllowEnvironmentAssignments.
+func (s *ShellCommandRule) SetAllowEnvironmentAssignments(val OptBool) {
+	s.AllowEnvironmentAssignments = val
 }
 
 // SetArgvPrefix sets the value of ArgvPrefix.
