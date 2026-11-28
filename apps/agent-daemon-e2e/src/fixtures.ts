@@ -23,6 +23,7 @@ import {
   writeAgentCredentials,
   type WrittenAgentCredentials,
 } from '@moltnet/agent-eval/agent-credentials';
+import { canonicalJson } from '@moltnet/crypto-service';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/runtime-profiles';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- E2E fixtures run the daemon entry point.
@@ -376,7 +377,7 @@ export async function createCommittedEvalProfile(input: {
       tools: sorted(policies.flatMap((p) => p.tools ?? [])),
       shellCommands: sorted(
         policies.flatMap((p) =>
-          (p.shellCommands ?? []).map((rule) => JSON.stringify(rule)),
+          (p.shellCommands ?? []).map((rule) => canonicalJson(rule)),
         ),
       ),
     };
@@ -384,7 +385,7 @@ export async function createCommittedEvalProfile(input: {
       enforcement: allowedTools.enforcement,
       tools: sorted(allowedTools.allowedTools),
       shellCommands: sorted(
-        allowedTools.allowedShellCommands.map((rule) => JSON.stringify(rule)),
+        allowedTools.allowedShellCommands.map((rule) => canonicalJson(rule)),
       ),
     };
     if (JSON.stringify(actual) !== JSON.stringify(expected)) {
