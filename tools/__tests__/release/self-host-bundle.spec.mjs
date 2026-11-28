@@ -481,7 +481,19 @@ test('resolves digest pins for source-tagged images', () => {
   const output = path.join(temporary, 'bundle');
   const mockBin = path.join(temporary, 'bin');
   const tag = 'self-host-1.0.0-abc123def456';
-  const digest = `sha256:${'a'.repeat(64)}`;
+  const digests = Object.fromEntries(
+    ['rest-api', 'mcp-server', 'console', 'db-migrate'].map(
+      (repository, index) => [repository, `sha256:${'abcd'[index].repeat(64)}`],
+    ),
+  );
+  const metadata = path.join(temporary, 'metadata');
+  mkdirSync(metadata);
+  for (const [repository, digest] of Object.entries(digests)) {
+    writeFileSync(
+      path.join(metadata, `${repository}.json`),
+      JSON.stringify({ 'containerimage.digest': digest }),
+    );
+  }
   try {
     const docker = execFileSync('which', ['docker'], {
       encoding: 'utf8',
@@ -490,12 +502,31 @@ test('resolves digest pins for source-tagged images', () => {
     const mockDocker = path.join(mockBin, 'docker');
     writeFileSync(
       mockDocker,
-      `#!/bin/sh\nif [ "$1" = buildx ] && [ "$2" = imagetools ] && [ "$3" = inspect ]; then\n  printf '%s\\n' '${digest}'\nelse\n  exec "$REAL_DOCKER" "$@"\nfi\n`,
+      `#!/bin/sh\nif [ "$1" = buildx ] && [ "$2" = imagetools ] && [ "$3" = inspect ]; then\n  case "$4" in\n${Object.entries(
+        digests,
+      )
+        .map(
+          ([repository, digest]) =>
+            `    */${repository}:*) printf '%s\\n' '${digest}' ;;`,
+        )
+        .join(
+          '\n',
+        )}\n    *) exit 1 ;;\n  esac\nelse\n  exec "$REAL_DOCKER" "$@"\nfi\n`,
     );
     chmodSync(mockDocker, 0o755);
     execFileSync(
       'node',
-      [script, '--version', '1.0.0', '--image-tag', tag, '--output', output],
+      [
+        script,
+        '--version',
+        '1.0.0',
+        '--image-tag',
+        tag,
+        '--build-metadata-dir',
+        metadata,
+        '--output',
+        output,
+      ],
       {
         cwd: repoRoot,
         env: {
@@ -510,14 +541,69 @@ test('resolves digest pins for source-tagged images', () => {
       path.join(output, 'deploy/self-host/.env.release'),
       'utf8',
     );
-    for (const name of [
-      'REST_API_IMAGE',
-      'MCP_SERVER_IMAGE',
-      'CONSOLE_IMAGE',
-      'DB_MIGRATE_IMAGE',
-      'ORY_TOOLS_IMAGE',
+    for (const [variable, repository] of Object.entries({
+      REST_API_IMAGE: 'rest-api',
+      MCP_SERVER_IMAGE: 'mcp-server',
+      CONSOLE_IMAGE: 'console',
+      DB_MIGRATE_IMAGE: 'db-migrate',
+      ORY_TOOLS_IMAGE: 'db-migrate',
+    })) {
+      assert.match(
+        releaseEnv,
+        new RegExp(
+          `^${variable}=.+/${repository}@${digests[repository]}$`,
+          'm',
+        ),
+      );
+    }
+    // Each failure must prevent creation of a lock, including mutable tag drift.
+    for (const [name, value, error] of [
+      [
+        'mismatch',
+        { 'containerimage.digest': `sha256:${'b'.repeat(64)}` },
+        /does not match the build output digest/,
+      ],
+      [
+        'invalid',
+        { 'containerimage.digest': 'sha256:invalid' },
+        /Invalid build output digest/,
+      ],
+      ['absent-field', {}, /Invalid build output digest/],
+      ['missing-file', null, /ENOENT/],
     ]) {
-      assert.match(releaseEnv, new RegExp(`^${name}=.+@${digest}$`, 'm'));
+      const file = path.join(metadata, 'rest-api.json');
+      if (value === null) rmSync(file);
+      else writeFileSync(file, JSON.stringify(value));
+      const destination = path.join(temporary, name);
+      const failed = spawnSync(
+        'node',
+        [
+          script,
+          '--version',
+          '1.0.0',
+          '--image-tag',
+          tag,
+          '--build-metadata-dir',
+          metadata,
+          '--output',
+          destination,
+        ],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            PATH: `${mockBin}${path.delimiter}${process.env.PATH}`,
+            REAL_DOCKER: docker,
+          },
+        },
+      );
+      assert.notEqual(failed.status, 0);
+      assert.match(failed.stderr, error);
+      assert.equal(
+        existsSync(path.join(destination, 'deploy/self-host/.env.release')),
+        false,
+      );
     }
     const composeDir = path.join(output, 'deploy/self-host');
     const rendered = execFileSync(

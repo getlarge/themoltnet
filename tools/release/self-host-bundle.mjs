@@ -14,6 +14,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { readBuildDigest } from '../docker-build-metadata.mjs';
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '../..');
 const sourceDir = path.join(repoRoot, 'deploy/self-host');
@@ -28,6 +30,7 @@ const imageProjects = {
 function parseArgs(argv) {
   const result = {
     imageTag: undefined,
+    buildMetadataDir: undefined,
     output: undefined,
     skipDigests: false,
     version: undefined,
@@ -36,6 +39,14 @@ function parseArgs(argv) {
     const argument = argv[index];
     if (argument === '--skip-digests') {
       result.skipDigests = true;
+    } else if (argument === '--build-metadata-dir') {
+      result.buildMetadataDir = argv[++index];
+      if (
+        !result.buildMetadataDir ||
+        result.buildMetadataDir.startsWith('--')
+      ) {
+        throw new Error('--build-metadata-dir requires a value');
+      }
     } else if (argument === '--image-tag') {
       result.imageTag = argv[++index];
       if (!result.imageTag || result.imageTag.startsWith('--')) {
@@ -66,6 +77,11 @@ function parseArgs(argv) {
     !/^[0-9A-Za-z_][0-9A-Za-z_.-]{0,127}$/.test(result.imageTag)
   ) {
     throw new Error(`Invalid Docker image tag: ${result.imageTag}`);
+  }
+  if (result.buildMetadataDir && (result.skipDigests || !result.imageTag)) {
+    throw new Error(
+      '--build-metadata-dir requires --image-tag and digest verification',
+    );
   }
   return result;
 }
@@ -183,7 +199,7 @@ function currentImages(imageTag) {
   );
 }
 
-function writeImageLock(destination, skipDigests, imageTag) {
+function writeImageLock(destination, skipDigests, imageTag, buildMetadataDir) {
   const images = currentImages(imageTag);
   const lines = [];
   for (const [name, image] of Object.entries(images)) {
@@ -208,6 +224,15 @@ function writeImageLock(destination, skipDigests, imageTag) {
       throw new Error(
         `Registry returned an invalid digest for ${image}: ${digest}`,
       );
+    }
+    if (buildMetadataDir) {
+      const repository = imageWithoutTag(image).split('/').at(-1);
+      const builtDigest = readBuildDigest(
+        path.join(buildMetadataDir, `${repository}.json`),
+      );
+      if (digest !== builtDigest) {
+        throw new Error(`${image} does not match the build output digest`);
+      }
     }
     lines.push(`${variable}=${imageWithoutTag(image)}@${digest}`);
   }
@@ -291,6 +316,7 @@ function main() {
     path.join(bundleRoot, 'deploy/self-host/.env.release'),
     args.skipDigests,
     args.imageTag,
+    args.buildMetadataDir,
   );
   validateBundle(bundleRoot);
   process.stdout.write(`${bundleRoot}\n`);

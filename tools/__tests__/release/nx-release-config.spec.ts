@@ -1,10 +1,17 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 interface CommandTarget {
   options: { command: string };
@@ -430,6 +437,140 @@ describe('Nx release configuration', () => {
     expect(result.stdout).not.toContain('ci-main');
   }, 30_000);
 
+  it('attests all four checked self-host build digests before bundling', () => {
+    const config = parse(
+      readFileSync(
+        join(workspaceRoot, '.github/workflows/release-self-host.yml'),
+        'utf8',
+      ),
+    );
+    const steps = config.jobs.bundle.steps;
+    const imageAttestations = steps.filter(
+      (step: { with?: Record<string, unknown> }) =>
+        step.with?.['push-to-registry'],
+    );
+    expect(imageAttestations).toHaveLength(4);
+    for (const [id, repository] of [
+      ['rest-api', 'rest-api'],
+      ['mcp-server', 'mcp-server'],
+      ['console', 'console'],
+      ['database', 'db-migrate'],
+    ]) {
+      const verify = steps.find((step: { id?: string }) => step.id === id);
+      expect(verify.env.METADATA_FILE).toBe(
+        `\${{ runner.temp }}/self-host-build-metadata/${repository}.json`,
+      );
+      expect(verify.run).toContain('--metadata-file "$METADATA_FILE"');
+      expect(imageAttestations).toContainEqual(
+        expect.objectContaining({
+          uses: 'actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6',
+          with: {
+            'subject-name': `\${{ steps.${id}.outputs.image_name }}`,
+            'subject-digest': `\${{ steps.${id}.outputs.image_digest }}`,
+            'push-to-registry': true,
+          },
+        }),
+      );
+    }
+    const build = steps.find(
+      (step: { name?: string }) =>
+        step.name === 'Publish bundle images from this source revision',
+    );
+    const bundle = steps.find(
+      (step: { name?: string }) => step.name === 'Build digest-pinned archive',
+    );
+    expect(build.env.NX_DOCKER_METADATA_DIR).toBe(
+      bundle.env.BUILD_METADATA_DIR,
+    );
+    expect(bundle.run).toContain('--build-metadata-dir "$BUILD_METADATA_DIR"');
+    expect(steps.indexOf(bundle)).toBeGreaterThan(
+      steps.indexOf(imageAttestations.at(-1)),
+    );
+  });
+
+  it('exports the actual Buildx digest and rejects retagged manifests', () => {
+    const temporary = mkdtempSync(join(tmpdir(), 'build-output-'));
+    const digest = `sha256:${'a'.repeat(64)}`;
+    const metadata = join(temporary, 'metadata');
+    const output = join(temporary, 'outputs');
+    const bin = join(temporary, 'bin');
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, 'docker'),
+      `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+if (args[1] === 'build') {
+  const file = args[args.indexOf('--metadata-file') + 1];
+  fs.writeFileSync(file, JSON.stringify({'containerimage.digest': process.env.BUILD_DIGEST}));
+} else {
+  console.log(JSON.stringify({digest: process.env.REGISTRY_DIGEST, manifests:
+    ['amd64', 'arm64'].map(architecture => ({digest: process.env.REGISTRY_DIGEST, platform: {os: 'linux', architecture}}))}));
+}
+`,
+      { mode: 0o755 },
+    );
+    const env = {
+      PATH: `${bin}:${process.env.PATH}`,
+      NX_DOCKER_METADATA_DIR: metadata,
+      BUILD_DIGEST: digest,
+      REGISTRY_DIGEST: digest,
+      GITHUB_OUTPUT: output,
+    };
+    const verifyArgs = [
+      '--project',
+      '@moltnet/rest-api',
+      '--tag',
+      'test',
+      '--metadata-file',
+      join(metadata, 'rest-api.json'),
+    ];
+    try {
+      const built = runNode(
+        'tools/docker-build.mjs',
+        ['--project', '@moltnet/rest-api', '--push', '--tag', 'test'],
+        env,
+      );
+      expect(built.status, built.stderr).toBe(0);
+      expect(
+        JSON.parse(readFileSync(join(metadata, 'rest-api.json'), 'utf8')),
+      ).toEqual({ 'containerimage.digest': digest });
+      const verified = runNode(
+        'tools/verify-docker-manifest.mjs',
+        verifyArgs,
+        env,
+      );
+      expect(verified.status, verified.stderr).toBe(0);
+      expect(readFileSync(output, 'utf8')).toContain(
+        `image_digest=${digest}\n`,
+      );
+      const retagged = runNode('tools/verify-docker-manifest.mjs', verifyArgs, {
+        ...env,
+        REGISTRY_DIGEST: `sha256:${'b'.repeat(64)}`,
+      });
+      expect(retagged.status).not.toBe(0);
+      expect(retagged.stderr).toContain(
+        'does not match the build output digest',
+      );
+      for (const bad of [{}, { 'containerimage.digest': 'sha256:invalid' }]) {
+        writeFileSync(join(metadata, 'rest-api.json'), JSON.stringify(bad));
+        const invalid = runNode(
+          'tools/verify-docker-manifest.mjs',
+          verifyArgs,
+          env,
+        );
+        expect(invalid.status).not.toBe(0);
+        expect(invalid.stderr).toContain('Invalid build output digest');
+      }
+      rmSync(join(metadata, 'rest-api.json'));
+      expect(
+        runNode('tools/verify-docker-manifest.mjs', verifyArgs, env).status,
+      ).not.toBe(0);
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it('moves ci-main in the affected main build without a second refresh', () => {
     const result = runNode(
       'tools/docker-build.mjs',
@@ -521,7 +662,11 @@ describe('Nx release configuration', () => {
   it('maps shared Docker inputs to every image they can change', () => {
     const sharedBuilderProjects = dockerProjects.map(({ name }) => name).sort();
 
-    for (const file of ['.dockerignore', 'tools/docker-build.mjs']) {
+    for (const file of [
+      '.dockerignore',
+      'tools/docker-build.mjs',
+      'tools/docker-build-metadata.mjs',
+    ]) {
       expect(affectedDockerProjects(file).sort()).toEqual(
         sharedBuilderProjects,
       );

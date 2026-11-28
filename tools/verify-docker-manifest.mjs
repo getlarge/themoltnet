@@ -8,10 +8,13 @@ import {
   readProjectsConfigurationFromProjectGraph,
 } from '@nx/devkit';
 
+import { readBuildDigest } from './docker-build-metadata.mjs';
+
 const { values } = parseArgs({
   options: {
     project: { type: 'string' },
     tag: { type: 'string' },
+    'metadata-file': { type: 'string' },
   },
   strict: true,
 });
@@ -50,6 +53,12 @@ const manifest = JSON.parse(raw);
 const digest = manifest.digest;
 if (typeof digest !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(digest)) {
   throw new Error(`${reference} has no valid image digest`);
+}
+if (
+  values['metadata-file'] &&
+  digest !== readBuildDigest(values['metadata-file'])
+) {
+  throw new Error(`${reference} does not match the build output digest`);
 }
 const platformDigests = Object.fromEntries(
   ['amd64', 'arm64'].map((architecture) => {

@@ -72,6 +72,7 @@ jobs:
 
       - name: Publish bundle images from this source revision
         env:
+          NX_DOCKER_METADATA_DIR: ${{ runner.temp }}/self-host-build-metadata
           NX_DOCKER_RELEASE_TAG: ${{ steps.image-tag.outputs.value }}
           NX_LOAD_DOT_ENV_FILES: 'false'
         run: >-
@@ -79,22 +80,79 @@ jobs:
           --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/database
           --configuration=release --parallel=1
 
-      - name: Verify multi-platform image manifests
+      - name: Verify rest-api multi-platform build output
+        id: rest-api
         env:
           IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
-        run: |
-          for project in @moltnet/rest-api @moltnet/mcp-server @moltnet/console @moltnet/database; do
-            node tools/verify-docker-manifest.mjs --project "$project" --tag "$IMAGE_TAG"
-          done
+          METADATA_FILE: ${{ runner.temp }}/self-host-build-metadata/rest-api.json
+        run: >-
+          node tools/verify-docker-manifest.mjs --project @moltnet/rest-api
+          --tag "$IMAGE_TAG" --metadata-file "$METADATA_FILE"
+
+      - name: Attest rest-api build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.rest-api.outputs.image_name }}
+          subject-digest: ${{ steps.rest-api.outputs.image_digest }}
+          push-to-registry: true
+
+      - name: Verify mcp-server multi-platform build output
+        id: mcp-server
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+          METADATA_FILE: ${{ runner.temp }}/self-host-build-metadata/mcp-server.json
+        run: >-
+          node tools/verify-docker-manifest.mjs --project @moltnet/mcp-server
+          --tag "$IMAGE_TAG" --metadata-file "$METADATA_FILE"
+
+      - name: Attest mcp-server build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.mcp-server.outputs.image_name }}
+          subject-digest: ${{ steps.mcp-server.outputs.image_digest }}
+          push-to-registry: true
+
+      - name: Verify console multi-platform build output
+        id: console
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+          METADATA_FILE: ${{ runner.temp }}/self-host-build-metadata/console.json
+        run: >-
+          node tools/verify-docker-manifest.mjs --project @moltnet/console
+          --tag "$IMAGE_TAG" --metadata-file "$METADATA_FILE"
+
+      - name: Attest console build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.console.outputs.image_name }}
+          subject-digest: ${{ steps.console.outputs.image_digest }}
+          push-to-registry: true
+
+      - name: Verify database multi-platform build output
+        id: database
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+          METADATA_FILE: ${{ runner.temp }}/self-host-build-metadata/db-migrate.json
+        run: >-
+          node tools/verify-docker-manifest.mjs --project @moltnet/database
+          --tag "$IMAGE_TAG" --metadata-file "$METADATA_FILE"
+
+      - name: Attest database build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.database.outputs.image_name }}
+          subject-digest: ${{ steps.database.outputs.image_digest }}
+          push-to-registry: true
 
       - name: Build digest-pinned archive
         env:
           VERSION: ${{ steps.version.outputs.value }}
           IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+          BUILD_METADATA_DIR: ${{ runner.temp }}/self-host-build-metadata
         run: |
           set -euo pipefail
           root="moltnet-self-host-$VERSION"
-          node tools/release/self-host-bundle.mjs --version "$VERSION" --image-tag "$IMAGE_TAG" --output "$root"
+          node tools/release/self-host-bundle.mjs --version "$VERSION" --image-tag "$IMAGE_TAG" --build-metadata-dir "$BUILD_METADATA_DIR" --output "$root"
           (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$root" && sha256sum -c SHA256SUMS)
 

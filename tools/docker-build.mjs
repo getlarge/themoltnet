@@ -37,8 +37,8 @@
 // Release (multi-platform, semver):      node tools/docker-build.mjs --project @moltnet/rest-api --push --tag 1.2.3
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import process from 'node:process';
 import { parseArgs as nodeParseArgs } from 'node:util';
 
@@ -144,6 +144,15 @@ async function main() {
     opts.tag.startsWith('ci-') &&
     process.env.GITHUB_REF === 'refs/heads/main';
 
+  // Opt-in metadata export for release consumers; each image has its own file.
+  const metadataFile =
+    process.env.NX_DOCKER_METADATA_DIR && opts.push
+      ? resolve(
+          process.env.NX_DOCKER_METADATA_DIR,
+          `${basename(repositoryName)}.json`,
+        )
+      : undefined;
+
   const args = [
     'buildx',
     'build',
@@ -205,6 +214,7 @@ async function main() {
   } else {
     args.push(opts.push ? '--push' : '--load');
   }
+  if (metadataFile) args.push('--metadata-file', metadataFile);
   args.push('.'); // build context = repo root (Dockerfiles COPY . .)
 
   process.stdout.write(
@@ -224,6 +234,10 @@ async function main() {
     return;
   }
 
+  if (metadataFile) {
+    mkdirSync(resolve(process.env.NX_DOCKER_METADATA_DIR), { recursive: true });
+    rmSync(metadataFile, { force: true });
+  }
   execFileSync('docker', args, {
     stdio: 'inherit',
     env: { ...process.env, DOCKER_BUILDKIT: '1' },
