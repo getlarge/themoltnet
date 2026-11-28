@@ -8,6 +8,24 @@ choose or sequence review stages.
 
 ## Run the complete workflow
 
+For a headless smoke test of merged source, dispatch the repository's
+`Adaptive review source smoke` workflow on `main`:
+
+```bash
+gh workflow run adaptive-review-smoke.yml --ref main -f pr=123 -f mode=shadow
+```
+
+It builds the host and runs workspace workers from the dispatch's exact `main`
+revision, with real model providers and MoltNet tasks. The reviewed PR remains
+data. This path needs no runtime release or consumer pin update. It uses the
+existing `legreffier` environment and live profiles, a read-only GitHub token,
+and report-only publication. Lane statuses appear in the run summary; findings
+stay on the ephemeral runner. A skipped review fails the smoke because it did
+not exercise the complete workflow. Its disposable Absurd database cannot resume
+a lost job; dispatch again for a new execution.
+
+For a local run, use the following setup.
+
 Use a trusted MoltNet runtime checkout, the Node version in `.tool-versions`,
 pnpm, Git, and `gh`. Build the runtime outside the reviewed head:
 

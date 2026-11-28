@@ -1,0 +1,141 @@
+name: Adaptive review source smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request to review as data using merged main source
+        required: true
+        type: string
+      mode:
+        description: Shadow investigates every enabled lane; active follows routing
+        type: choice
+        options: [shadow, active]
+        default: shadow
+
+permissions: {}
+
+concurrency:
+  group: adaptive-review-source-smoke
+  cancel-in-progress: false
+
+jobs:
+  review:
+    # Never execute a reviewed branch with the environment's credentials.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: legreffier
+    permissions:
+      contents: read
+      pull-requests: read
+    services:
+      absurd:
+        image: postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a
+        env:
+          POSTGRES_USER: absurd
+          POSTGRES_PASSWORD: absurd_secret
+          POSTGRES_DB: absurd
+        ports: [5432]
+        options: >-
+          --health-cmd "pg_isready -U absurd -d absurd"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      NX_LOAD_DOT_ENV_FILES: 'false'
+      NX_DAEMON: 'false'
+      ADAPTIVE_EXECUTION_MODE: ephemeral
+      ADAPTIVE_REPOSITORY: ${{ github.repository }}
+      ADAPTIVE_PR: ${{ inputs.pr }}
+      ADAPTIVE_MODE: ${{ inputs.mode }}
+      ADAPTIVE_PUBLICATION: report-only
+      ADAPTIVE_TIMEOUT_SEC: '1800'
+      ADAPTIVE_RUNTIME_SHA: ${{ github.sha }}
+      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
+      ADAPTIVE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      ADAPTIVE_CLASSIFIER_PROFILE: legreffier-issue-classifier-v2
+      ADAPTIVE_DOCS_PROFILE: legreffier-adaptive-docs-review-v1
+      ADAPTIVE_COMPLEXITY_PROFILE: legreffier-complexity-review-v2
+      ADAPTIVE_SECURITY_PROFILE: legreffier-security-review-v2
+      ADAPTIVE_FOCUSED_PROFILE: legreffier-adaptive-focused-review-v1
+      ADAPTIVE_TASK_BUDGETS: |
+        focused:
+          timeout: 12m
+        security:
+          timeout: 15m
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME || 'legreffier' }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL || 'https://api.themolt.net' }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          go-cache: 'true'
+      - name: Validate smoke inputs and resolve released bootstrap CLI
+        run: |
+          node --input-type=module <<'JS'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync } from 'node:fs';
+          import { randomUUID } from 'node:crypto';
+          const pr = process.env.ADAPTIVE_PR;
+          if (!/^[1-9]\d*$/.test(pr ?? '') || !Number.isSafeInteger(Number(pr))) {
+            throw new Error('pr must be a positive safe integer');
+          }
+          if (!['active', 'shadow'].includes(process.env.ADAPTIVE_MODE)) {
+            throw new Error('mode must be active or shadow');
+          }
+          // Workspace package versions may not have been published yet.
+          const version = JSON.parse(execFileSync('npm', ['view', '@themoltnet/cli', 'dist-tags.latest', '--json'], { encoding: 'utf8' }));
+          if (typeof version !== 'string' || !/^\d+\.\d+\.\d+$/.test(version)) {
+            throw new Error('npm must return an exact stable CLI version');
+          }
+          appendFileSync(process.env.GITHUB_ENV, `MOLTNET_CLI_VERSION=${version}\nADAPTIVE_EXECUTION_ID=${randomUUID()}\n`);
+          JS
+      - name: Build source review host
+        run: pnpm exec nx run @themoltnet/adaptive-review-action:build
+      - name: Initialize disposable Absurd database
+        env:
+          ADAPTIVE_POSTGRES_PORT: ${{ job.services.absurd.ports['5432'] }}
+          ADAPTIVE_POSTGRES_CONTAINER: ${{ job.services.absurd.id }}
+        run: bash tools/setup-adaptive-review-database.sh
+      - name: Mint read-only reviewer token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: read
+          permission-pull-requests: read
+      - name: Run source host and workers
+        uses: ./packages/agent-daemon-action
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+        with:
+          agent-name: ${{ vars.MOLTNET_AGENT_NAME || 'legreffier' }}
+          command-entry: ${{ github.workspace }}/packages/adaptive-review-action/dist/run.js
+          daemon-version: workspace
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
+      - name: Summarize lane statuses
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+          const path = process.env.ADAPTIVE_REPORT;
+          if (!existsSync(path)) {
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, 'No completed review report. See the host logs for failure or admission details.\n');
+            throw new Error('Source smoke requires a completed review report');
+          } else {
+            const report = JSON.parse(readFileSync(path, 'utf8'));
+            const statuses = report.results.map(({ lane, status }) => `${lane}: ${status}`);
+            // Findings remain on the ephemeral runner; publish only statuses.
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Source review (report-only)\n\n${statuses.join('\n')}\n`);
+          }
+          JS
