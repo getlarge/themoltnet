@@ -19,6 +19,7 @@
       "{projectRoot}/Dockerfile.*",
       "{workspaceRoot}/.dockerignore",
       "{workspaceRoot}/tools/docker-build.mjs",
+      "{workspaceRoot}/tools/docker-build-metadata.mjs",
       {
         "dependentTasksOutputFiles": "**/dist/**/*",
         "transitive": true

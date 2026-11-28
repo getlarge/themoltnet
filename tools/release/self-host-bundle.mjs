@@ -186,30 +186,73 @@ function currentImages(imageTag) {
 function writeImageLock(destination, skipDigests, imageTag) {
   const images = currentImages(imageTag);
   const lines = [];
+  const verifiedImages = new Map();
   for (const [name, image] of Object.entries(images)) {
     const variable = `${name.replaceAll('-', '_').toUpperCase()}_IMAGE`;
     if (skipDigests) {
       lines.push(`${variable}=${image}`);
       continue;
     }
-    const digest = run(
-      'docker',
-      [
-        'buildx',
-        'imagetools',
-        'inspect',
-        image,
-        '--format',
-        '{{.Manifest.Digest}}',
-      ],
-      { capture: true },
-    ).trim();
-    if (!/^sha256:[a-f0-9]{64}$/.test(digest)) {
-      throw new Error(
-        `Registry returned an invalid digest for ${image}: ${digest}`,
+    if (!verifiedImages.has(image)) {
+      const manifest = JSON.parse(
+        run(
+          'docker',
+          [
+            'buildx',
+            'imagetools',
+            'inspect',
+            image,
+            '--format',
+            '{{json .Manifest}}',
+          ],
+          { capture: true },
+        ),
       );
+      const digest = manifest.digest;
+      if (typeof digest !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(digest)) {
+        throw new Error(`Registry returned an invalid digest for ${image}`);
+      }
+      for (const architecture of ['amd64', 'arm64']) {
+        if (
+          !(manifest.manifests ?? []).some(
+            (entry) =>
+              entry.platform?.os === 'linux' &&
+              entry.platform?.architecture === architecture &&
+              /^sha256:[a-f0-9]{64}$/.test(entry.digest ?? ''),
+          )
+        ) {
+          throw new Error(`${image} is missing linux/${architecture}`);
+        }
+      }
+      const reference = `${imageWithoutTag(image)}@${digest}`;
+      const results = JSON.parse(
+        run(
+          'gh',
+          [
+            'attestation',
+            'verify',
+            `oci://${reference}`,
+            '--repo',
+            'getlarge/themoltnet',
+            '--signer-workflow',
+            'getlarge/themoltnet/.github/workflows/release.yml',
+            '--bundle-from-oci',
+            '--format',
+            'json',
+          ],
+          { capture: true },
+        ),
+      );
+      if (
+        !Array.isArray(results) ||
+        !results.some((result) => result?.verificationResult)
+      ) {
+        throw new Error(`No verified release provenance for ${reference}`);
+      }
+      // Preserve the selected release version as well as its immutable digest.
+      verifiedImages.set(image, `${image}@${digest}`);
     }
-    lines.push(`${variable}=${imageWithoutTag(image)}@${digest}`);
+    lines.push(`${variable}=${verifiedImages.get(image)}`);
   }
   const releaseSignerPublicKey = run(
     'bash',

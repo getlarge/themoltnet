@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
+      packages: read
       id-token: write
       attestations: write
       artifact-metadata: write
@@ -44,19 +44,6 @@ jobs:
           fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve source image tag
-        id: image-tag
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          tag="self-host-$VERSION-${GITHUB_SHA:0:12}"
-          if [[ ! "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
-            echo 'Invalid source image tag' >&2
-            exit 1
-          fi
-          echo "value=$tag" >> "$GITHUB_OUTPUT"
-
-      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Authenticate to GHCR
@@ -70,31 +57,14 @@ jobs:
         with:
           go: 'false'
 
-      - name: Publish bundle images from this source revision
-        env:
-          NX_DOCKER_RELEASE_TAG: ${{ steps.image-tag.outputs.value }}
-          NX_LOAD_DOT_ENV_FILES: 'false'
-        run: >-
-          pnpm exec nx run-many -t docker:build
-          --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/database
-          --configuration=release --parallel=1
-
-      - name: Verify multi-platform image manifests
-        env:
-          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
-        run: |
-          for project in @moltnet/rest-api @moltnet/mcp-server @moltnet/console @moltnet/database; do
-            node tools/verify-docker-manifest.mjs --project "$project" --tag "$IMAGE_TAG"
-          done
-
       - name: Build digest-pinned archive
         env:
           VERSION: ${{ steps.version.outputs.value }}
-          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           root="moltnet-self-host-$VERSION"
-          node tools/release/self-host-bundle.mjs --version "$VERSION" --image-tag "$IMAGE_TAG" --output "$root"
+          node tools/release/self-host-bundle.mjs --version "$VERSION" --output "$root"
           (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
           (cd "$root" && sha256sum -c SHA256SUMS)
 

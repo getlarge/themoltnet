@@ -1,10 +1,17 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 interface CommandTarget {
   options: { command: string };
@@ -430,6 +437,171 @@ describe('Nx release configuration', () => {
     expect(result.stdout).not.toContain('ci-main');
   }, 30_000);
 
+  it('packages manifest-selected releases without a second image publisher', () => {
+    const config = parse(
+      readFileSync(
+        join(workspaceRoot, '.github/workflows/release-self-host.yml'),
+        'utf8',
+      ),
+    );
+    expect(Object.keys(config.jobs)).toEqual(['bundle']);
+    const job = config.jobs.bundle;
+    expect(job.permissions.packages).toBe('read');
+    const steps = job.steps;
+    const version = steps.find(
+      (step: { id?: string }) => step.id === 'version',
+    );
+    expect(version.run).toContain(
+      '"$GITHUB_REF" != "refs/tags/self-host-v$version"',
+    );
+    const archive = steps.find(
+      (step: { name?: string }) => step.name === 'Build digest-pinned archive',
+    );
+    expect(archive.run).toContain(
+      'self-host-bundle.mjs --version "$VERSION" --output "$root"',
+    );
+    expect(archive.env.GH_TOKEN).toBe('${{ github.token }}');
+    expect(JSON.stringify(steps)).not.toMatch(
+      /docker:build|setup-qemu|push-to-registry|--image-tag|--skip-digests/,
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        uses: './.github/actions/setup-workspace',
+        with: { go: 'false' },
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Smoke-test Ory against populated PostgreSQL 17',
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Smoke-test released images through Caddy',
+      }),
+    );
+    expect(steps).toContainEqual(
+      expect.objectContaining({
+        name: 'Attest release archive',
+        with: {
+          'subject-path':
+            'moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz',
+        },
+      }),
+    );
+  });
+
+  it('binds regular release provenance and platform SBOM subjects to actual build output', () => {
+    const steps = parse(workflow).jobs['publish-docker-images'].steps;
+    const build = steps.find(
+      (step: { name?: string }) =>
+        step.name === 'Build and publish multi-platform image',
+    );
+    const verify = steps.find((step: { id?: string }) => step.id === 'image');
+    expect(build.env.NX_DOCKER_METADATA_DIR).toBe(
+      verify.env.BUILD_METADATA_DIR,
+    );
+    expect(verify.run).toContain('--metadata-dir "$BUILD_METADATA_DIR"');
+    const attestations = steps.filter(
+      (step: { with?: Record<string, unknown> }) =>
+        step.with?.['push-to-registry'],
+    );
+    expect(attestations).toHaveLength(3);
+    for (const step of attestations) {
+      expect(step.with['subject-digest']).toBe(
+        '${{ steps.image.outputs.image_digest }}',
+      );
+    }
+    expect(
+      attestations.filter(
+        (step: { with: Record<string, unknown> }) => step.with['sbom-path'],
+      ),
+    ).toHaveLength(2);
+  });
+
+  it('exports the actual Buildx digest and rejects retagged manifests', () => {
+    const temporary = mkdtempSync(join(tmpdir(), 'build-output-'));
+    const digest = `sha256:${'a'.repeat(64)}`;
+    const metadata = join(temporary, 'metadata');
+    const output = join(temporary, 'outputs');
+    const bin = join(temporary, 'bin');
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, 'docker'),
+      `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+if (args[1] === 'build') {
+  const file = args[args.indexOf('--metadata-file') + 1];
+  fs.writeFileSync(file, JSON.stringify({'containerimage.digest': process.env.BUILD_DIGEST}));
+} else {
+  console.log(JSON.stringify({digest: process.env.REGISTRY_DIGEST, manifests:
+    ['amd64', 'arm64'].map(architecture => ({digest: process.env.REGISTRY_DIGEST, platform: {os: 'linux', architecture}}))}));
+}
+`,
+      { mode: 0o755 },
+    );
+    const env = {
+      PATH: `${bin}:${process.env.PATH}`,
+      NX_DOCKER_METADATA_DIR: metadata,
+      BUILD_DIGEST: digest,
+      REGISTRY_DIGEST: digest,
+      GITHUB_OUTPUT: output,
+    };
+    const verifyArgs = [
+      '--project',
+      '@moltnet/rest-api',
+      '--tag',
+      'test',
+      '--metadata-dir',
+      metadata,
+    ];
+    try {
+      const built = runNode(
+        'tools/docker-build.mjs',
+        ['--project', '@moltnet/rest-api', '--push', '--tag', 'test'],
+        env,
+      );
+      expect(built.status, built.stderr).toBe(0);
+      expect(
+        JSON.parse(readFileSync(join(metadata, 'rest-api.json'), 'utf8')),
+      ).toEqual({ 'containerimage.digest': digest });
+      const verified = runNode(
+        'tools/verify-docker-manifest.mjs',
+        verifyArgs,
+        env,
+      );
+      expect(verified.status, verified.stderr).toBe(0);
+      expect(readFileSync(output, 'utf8')).toContain(
+        `image_digest=${digest}\n`,
+      );
+      const retagged = runNode('tools/verify-docker-manifest.mjs', verifyArgs, {
+        ...env,
+        REGISTRY_DIGEST: `sha256:${'b'.repeat(64)}`,
+      });
+      expect(retagged.status).not.toBe(0);
+      expect(retagged.stderr).toContain(
+        'does not match the build output digest',
+      );
+      for (const bad of [{}, { 'containerimage.digest': 'sha256:invalid' }]) {
+        writeFileSync(join(metadata, 'rest-api.json'), JSON.stringify(bad));
+        const invalid = runNode(
+          'tools/verify-docker-manifest.mjs',
+          verifyArgs,
+          env,
+        );
+        expect(invalid.status).not.toBe(0);
+        expect(invalid.stderr).toContain('Invalid build output digest');
+      }
+      rmSync(join(metadata, 'rest-api.json'));
+      expect(
+        runNode('tools/verify-docker-manifest.mjs', verifyArgs, env).status,
+      ).not.toBe(0);
+    } finally {
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it('moves ci-main in the affected main build without a second refresh', () => {
     const result = runNode(
       'tools/docker-build.mjs',
@@ -521,7 +693,11 @@ describe('Nx release configuration', () => {
   it('maps shared Docker inputs to every image they can change', () => {
     const sharedBuilderProjects = dockerProjects.map(({ name }) => name).sort();
 
-    for (const file of ['.dockerignore', 'tools/docker-build.mjs']) {
+    for (const file of [
+      '.dockerignore',
+      'tools/docker-build.mjs',
+      'tools/docker-build-metadata.mjs',
+    ]) {
       expect(affectedDockerProjects(file).sort()).toEqual(
         sharedBuilderProjects,
       );
